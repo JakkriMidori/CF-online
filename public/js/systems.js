@@ -19,7 +19,7 @@ function itemStats(it){
   const add=(k,v)=>s[k]=(s[k]||0)+v;
   if(b.atk)add('watk',Math.round(b.atk*R.mult*lm));if(b.matk)add('wmatk',Math.round(b.matk*R.mult*lm));
   if(b.def)add('def',Math.round(b.def*R.mult*lm));if(b.mdef)add('mdef',Math.round(b.mdef*R.mult*lm));
-  if(b.implicit)for(const k in b.implicit)add(k,b.implicit[k]*(AFFIX[k]&&AFFIX[k].pct?1:Math.round(R.mult*lm)));
+  if(b.implicit)for(const k in b.implicit)add(k,b.implicit[k]*(b.implicitRaw||(AFFIX[k]&&AFFIX[k].pct)?1:Math.round(R.mult*lm)));   // implicitRaw = ค่าคงที่ ไม่คูณระดับ
   for(const a of it.affixes)add(a.k,a.v);
   // ตีบวก: ทุกค่าของไอเทม (ค่าหลัก + ค่าติดตัว + affix) — ค่าแบบหน่วย +1.5 ต่อขั้น · ค่าแบบ % +1.5% ของค่านั้นต่อขั้น (ไม่รวมรูน)
   const n=it.enh||0;if(n)for(const k in s){const pc=AFFIX[k]&&AFFIX[k].pct;s[k]=pc?Math.round(s[k]*(1+CONFIG.enhPct*n)*10000)/10000:Math.round((s[k]+CONFIG.enhFlat*n)*10)/10;}
@@ -50,7 +50,7 @@ const Stats={
     S.evasion=Math.min(DV.evaCap,t10(attr.agi)*DV.agiPer10Eva+(flat.evasion||0));
     S.apen=(flat.apen||0)+(TP.apen||0)+(passives.has('void')?50:0);
     S.mdefShred=passives.has('void')?.2:0;
-    S.apenPct=Math.min(1,flat.apenPct||0);                       // เจาะเกราะ % (คิดก่อนเจาะเกราะแบบค่าคงที่)
+    S.apenPct=Math.min(1,flat.apenPct||0);S.blindChance=flat.blindChance||0;                       // เจาะเกราะ % (คิดก่อนเจาะเกราะแบบค่าคงที่)
     S.pcritRes=Math.min(.75,(flat.pcritRes||0)+t10(S.def)*DV.defPer10Crit);S.mcritRes=Math.min(.75,(flat.mcritRes||0)+t10(S.mdef)*DV.defPer10Crit);   // ต้านคริติคอลกายภาพ / เวท
     S.dr=Math.min(CONFIG.drCap,(flat.dr||0)+(TP.dr||0));
     S.watk=flat.watk||10;S.ap=Math.round(S.watk+attr.str*2+(flat.atk||0));
@@ -164,7 +164,7 @@ const Ult={
 };
 /* ---------------- StatusEffect ---------------- */
 const Status={
-  init(f){f.st8={poison:null,bleed:null,burn:null,shock:null,stun:null};f.stunImm=0;},
+  init(f){f.st8={poison:null,bleed:null,burn:null,shock:null,stun:null,blind:null};f.stunImm=0;},
   /* โอกาสติดสถานะสุดท้าย = 100% + โบนัสโอกาสติดของผู้ใช้ (Hexweaver +25%) − ค่าต้านของเป้าหมาย (จำกัด 0–100%) */
   chance(src,f,type){const R=Math.min(1,((f.statusRes||{})[type]||0)+((f.S&&f.S.statusRes)||0)),bonus=(src&&src.S&&src.S.statusChance)||0;return clamp(1+bonus-R,0,1);},
   /* returns 'ok' | 'capped' | 'resist' | 'immune' | 'stunned' */
@@ -185,6 +185,7 @@ const Status={
     if(type==='shock'){const hadBurn=!!s.burn;s.shock=s.shock?Object.assign(s.shock,{t:T(s.shock),mul:Math.max(s.shock.mul||1,mul)}):{t:Dur,tk:0,mul};
       if(hadBurn&&src){s.burn=null;Status.onSynergy&&Status.onSynergy(f,'plasma',src);}
       this.apply(f,'stun',1,src);return'ok';}
+    if(type==='blind'){s.blind=s.blind?Object.assign(s.blind,{t:T(s.blind)}):{t:Dur,tk:0};return'ok';}   // ตาบอด: โจมตีไม่โดน
     if(type==='stun'){if(s.stun)return'stunned';if(f.stunImm>0)return'immune';s.stun={t:Dur,tk:0};Status.onStun&&Status.onStun(f);return'ok';}
     return'ok';
   },
@@ -202,10 +203,10 @@ const Status={
 
 /* ---------------- Items / Equipment / Inventory ---------------- */
 // ไอเทมระดับตายตัว (fixRar) สุ่มได้เฉพาะตอนสุ่มได้ระดับนั้นพอดี
-const rarPool=(pool,rar)=>{const r=capRar(rar),f=pool.filter(k=>!BASES[k].fixRar||BASES[k].fixRar===r);return f.length?f:pool;};
+const rarPool=(pool,rar)=>{const r=capRar(rar),f=pool.filter(k=>!BASES[k].fixRar||BASES[k].fixRar===r);return f.length?f:pool.filter(k=>!BASES[k].fixRar);};
 const capRar=r=>RARS.indexOf(r)>RARS.indexOf(CONFIG.maxRarity)?CONFIG.maxRarity:r;   // ตัดระดับไอเทมไม่ให้เกิน CONFIG.maxRarity
 function newItem(baseId,rar,ilvl){
-  rar=capRar(BASES[baseId].fixRar||rar);const b=BASES[baseId],R=RARITY[rar];ilvl=Math.max(1,ilvl|0);
+  rar=BASES[baseId].fixRar||capRar(rar);const b=BASES[baseId],R=RARITY[rar];ilvl=Math.max(1,ilvl|0);   // ของระดับตายตัว (เช่น ตำนานจากสูตรพิเศษ) ไม่ถูกตัดเพดาน
   const it={uid:G.uid++,base:baseId,rar,ilvl,req:ilvl,enh:0,affixes:[],sockets:Array(R.sockets).fill(null),uniq:null};
   const n=rint(R.affix[0],R.affix[1]);
   for(let i=0;i<n;i++){const pool=Object.keys(AFFIX).filter(k=>!it.affixes.some(a=>a.k===k));const k=pick(pool),A=AFFIX[k];
@@ -215,8 +216,8 @@ function newItem(baseId,rar,ilvl){
   return it;
 }
 const itemName=it=>(it.rar==='god'?'✦ ':'')+BASES[it.base].n+(it.enh?` +${it.enh}`:'');
-const fmtStat=(k,v)=>{const pct=(AFFIX[k]&&AFFIX[k].pct)||['statusChance','dotPct','mpowPct','dmgPct'].includes(k)||k==='critRate'||k==='critDmg'||k==='dr'||k.startsWith('res');return pct?`${v>0?'+':''}${Math.round(v*1000)/10}%`:`${v>0?'+':''}${Math.round(v)}`;};
-const STATN2=Object.assign({watk:'พลังอาวุธ',wmatk:'พลังเวทอาวุธ',def:'DEF',mdef:'M.DEF',statusChance:'โอกาสติดสถานะ',dotPct:'ดาเมจสถานะ',mpowPct:'พลังเวท %',dmgPct:'ดาเมจ %'},STATN);
+const fmtStat=(k,v)=>{const pct=(AFFIX[k]&&AFFIX[k].pct)||['statusChance','dotPct','mpowPct','dmgPct','apenPct','blindChance'].includes(k)||k==='critRate'||k==='critDmg'||k==='dr'||k.startsWith('res');return pct?`${v>0?'+':''}${Math.round(v*1000)/10}%`:`${v>0?'+':''}${Math.round(v)}`;};
+const STATN2=Object.assign({apenPct:'ไม่สนเกราะ',blindChance:'โอกาสทำให้ตาบอด 5 วิ',watk:'พลังอาวุธ',wmatk:'พลังเวทอาวุธ',def:'DEF',mdef:'M.DEF',statusChance:'โอกาสติดสถานะ',dotPct:'ดาเมจสถานะ',mpowPct:'พลังเวท %',dmgPct:'ดาเมจ %'},STATN);
 const Equip={
   canEquip(it){return G.level>=it.req;},
   slotFor(it){const t=BASES[it.base].type;if(t!=='ring')return t;if(!G.eq.ring1)return'ring1';if(!G.eq.ring2)return'ring2';return'ring1';},
@@ -282,7 +283,7 @@ const Craft={
     return RECIPES.find(r=>{const rk=Object.keys(r.mats);return rk.length===ks.length&&rk.every(k=>m[k]===r.mats[k]);})||null;},
   clueKnown(r){return!!r.known||G.known.has(r.id);},
   discovered(r){return G.found&&G.found.has(r.id);},
-  base(r){return CONFIG.craftRates[r.rar];},
+  base(r){return r.rate!=null?r.rate:CONFIG.craftRates[r.rar];},   // สูตรพิเศษกำหนดโอกาสเองได้
   chance(r,boost){return Math.min(1,this.base(r)+(boost?CONFIG.craftBoost:0));},
   shortage(slots){const m=this.combine(slots),out=[];for(const k in m)if((G.mats[k]||0)<m[k])out.push({id:k,need:m[k],have:G.mats[k]||0});return out;},
   /* recipes the player has a written clue for that the current slots are heading toward */

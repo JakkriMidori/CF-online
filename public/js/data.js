@@ -49,9 +49,9 @@ const CONFIG={
 const ELEM_PROC={fire:{s:'burn',c:.25},lightning:{s:'shock',c:.12},poison:{s:'poison',c:.35},shadow:{s:'bleed',c:.25}};
 const ELN={phys:'กายภาพ',fire:'ไฟ',lightning:'สายฟ้า',poison:'พิษ',shadow:'เงา',holy:'แสง',arcane:'อาคม',ice:'น้ำแข็ง'};
 const ELC={phys:'#dddddd',fire:'#ff7a2a',lightning:'#9fe6ff',poison:'#8aff5a',shadow:'#b08aff',holy:'#fff2a8',arcane:'#d88aff',ice:'#bff0ff'};
-const STN={poison:'พิษ',bleed:'เลือดออก',burn:'เผาไหม้',shock:'ช็อก',stun:'มึนงง'};
-const STI={poison:'☠',bleed:'🩸',burn:'🔥',shock:'⚡',stun:'💫'};
-const STC={poison:'#8aff5a',bleed:'#ff4a5a',burn:'#ff8a3a',shock:'#9fe6ff',stun:'#ffe27a'};
+const STN={poison:'พิษ',bleed:'เลือดออก',burn:'เผาไหม้',shock:'ช็อก',stun:'มึนงง',blind:'ตาบอด'};
+const STI={poison:'☠',bleed:'🩸',burn:'🔥',shock:'⚡',stun:'💫',blind:'🌑'};
+const STC={poison:'#8aff5a',bleed:'#ff4a5a',burn:'#ff8a3a',shock:'#9fe6ff',stun:'#ffe27a',blind:'#b08aff'};
 
 /* ---------- moves (frame data). dmg = power coefficient ×10 ---------- */
 function M(n,s,a,r,dmg,reach,kb,hs,o={}){return Object.assign({n,s,a,r,dmg,reach,kb,hs,hy:62,hh:56},o);}
@@ -287,6 +287,8 @@ const BASES={
   a_alch:{n:'เสื้อคลุมนักแปรธาตุ',type:'armor',def:9,mdef:14,ic:'🧥',set:'alchemist',look:{body:'#2a4a3a',trim:'#7af0c0',robe:'#23402f',sleeve:'#2a4a3a'}},
   g_alch:{n:'ถุงมือนักแปรธาตุ',type:'gloves',def:3,mdef:5,ic:'🧤',set:'alchemist',look:{gloves:'#3a6a4a'}},
   b_alch:{n:'รองเท้านักแปรธาตุ',type:'boots',def:3,mdef:5,ic:'🥾',set:'alchemist',look:{boots:'#2a3a30',trail:'#7af0c0'}},
+  w_lightless:{n:'ไลต์เลส ดาบใหญ่ไร้แสง',type:'weapon',wt:'gsword',atk:56,matk:10,ic:'⚔️',fixRar:'legendary',implicitRaw:1,implicit:{apenPct:.2,blindChance:.2},look:{wcol:'#3a3448',wfx:'#c9a0ff'}},   // ไม่สนเกราะ 20% · โอกาส 20% ทำให้ตาบอด 5 วิ
+  r_primal:{n:'แหวนปฐมกาล',type:'ring',ic:'💍',fixRar:'legendary',implicitRaw:1,implicit:{str:10,agi:10,int:10,vit:10,luk:10}},   // ค่าพลังทุกอย่าง +10
   w_scythe:{n:'เคียวสุญญตา',type:'weapon',wt:'scythe',atk:34,matk:12,ic:'🌑',fixRar:'epic'},
   h_mage:{n:'หมวกปลายแหลมนักปราชญ์',type:'helmet',def:4,mdef:9,ic:'🎩',set:'mage',look:{head:'wizard',hc:'#4a2a8a',hc2:'#d88aff'}},
   a_mage:{n:'เสื้อคลุมนักปราชญ์',type:'armor',def:8,mdef:12,ic:'🧥',set:'mage',look:{body:'#3a2a6a',trim:'#d88aff',robe:'#2e2258',sleeve:'#3a2a6a'}},
@@ -417,6 +419,8 @@ const RECIPES=[
   {id:'wh2',out:{base:'w_wh2'},rar:'rare',mats:{ore:4,thunder:1,hide:1},known:1,clue:'โบโรเล่า: "แร่สี่ หินสายฟ้าหนึ่ง พันด้ามด้วยหนัง — ค้อนศิลาฟ้า"'},
   {id:'wh3',out:{base:'w_wh3'},rar:'epic',mats:{core:1,lavaore:3,ore:2},known:1,clue:'โบโรเล่า: "แกนโกเลมเป็นหัวค้อน แร่ลาวาสาม แร่เหล็กสอง — ทุบทีแผ่นดินสะเทือน"'},
   {id:'mercstaff',out:{base:'w_mercstaff'},rar:'epic',mats:{mercury:4,core:1,fire:1},clue:'บันทึกอาจารย์นักแปรธาตุ: "ปรอทสี่หยด หลอมรอบแกนโกเลมหนึ่ง จุดด้วยไฟหนึ่ง — ไม้เท้าที่ยิงหมอกพิษ"'},
+  {id:'lightless',out:{base:'w_lightless'},rar:'legendary',rate:.10,mats:{bossfrag:5,essence:3,philostone:2,cloth:5,ore:10,core:2},known:1,clue:'จารึกดำในห้องบอส: "เศษวิญญาณบอสห้า แก่นลาวาเทพสาม ศิลานักปราชญ์สอง ผ้าเงาห้า แร่เหล็กสิบ แกนโกเลมสอง — ดาบที่กลืนแสง"'},
+  {id:'primal',out:{base:'r_primal'},rar:'legendary',rate:.10,mats:{bossfrag:5,philostone:3,essence:2,mercury:5,thunder:3,fire:3},known:1,clue:'บันทึกอาจารย์นักแปรธาตุ: "เศษวิญญาณบอสห้า ศิลานักปราชญ์สาม แก่นลาวาเทพสอง ปรอทห้า หินสายฟ้าสาม คริสตัลไฟสาม — แหวนแห่งปฐมกาล"'},
   {id:'god',out:{base:'w_god'},rar:'epic',mats:{essence:1,lavaore:5,fire:2},clue:'คัมภีร์เทพ: "แก่นลาวาเทพหนึ่ง แร่ลาวาห้า คริสตัลไฟสอง — ดาบแห่งภูเขาไฟ"'}
 ];
 const RECIPE_ILVL={normal:1,rare:5,epic:9,legendary:9,god:17};
@@ -536,7 +540,7 @@ const LOOT_TABLES={
   stonecave:{guaranteed:[{gold:[8,18]}],entries:[
     {mat:'ore',min:1,max:2,w:30},{mat:'wood',w:15},{mat:'hide',w:15},{mat:'thunder',w:8},{mat:'mp_s',w:12},{mat:'potion',w:8},
     {mat:'rune_str',w:4,rar:['rare']},{gear:'any',w:22,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:3,rar:['legendary']},{mat:'divine',w:1,rar:['god']}]},
-  duelist:{guaranteed:[{gold:[500,700]},{mat:'essence',q:1}],entries:[
+  duelist:{guaranteed:[{gold:[500,700]},{mat:'essence',q:1},{mat:'bossfrag',q:3}],entries:[
     {gear:'any',w:30,rar:'any'},{book:'rare',w:12,rar:['legendary']},{book:'ultimate',w:12,rar:['legendary','god']},{mat:'divine',w:6,rar:['god']},{mat:'mp_x',w:10}]},
   icecave:{guaranteed:[{gold:[25,45]}],entries:[
     {mat:'ore',min:1,max:2,w:30},{mat:'hide',w:15},{mat:'thunder',w:15},{mat:'mp_m',w:12},{mat:'potion',w:8},
@@ -550,19 +554,19 @@ const LOOT_TABLES={
   kage:{guaranteed:[{gold:[60,90]},{mat:'cloth',q:3},{mat:'sc_kage',q:1}],entries:[
     {base:'a_shadow',w:10,rar:'any',unique:1},{set:'shadow',w:20,rar:'any'},{gear:'any',w:20,rar:'any'},{mat:'mp_m',w:10},
     {book:'rare',w:12,rar:['rare','legendary']},{book:'ultimate',w:5,rar:['legendary','god']},{mat:'divine',w:3,rar:['god']}]},
-  golem:{guaranteed:[{gold:[150,200]},{mat:'core',q:2},{mat:'sc_golem',q:1}],entries:[
+  golem:{guaranteed:[{gold:[150,200]},{mat:'core',q:2},{mat:'sc_golem',q:1},{mat:'bossfrag',q:1}],entries:[
     {base:'h_horns',w:10,rar:'any',unique:1},{base:'a_golem',w:8,rar:'any',unique:1},{gear:'any',w:25,rar:'any'},{mat:'mp_l',w:10},
     {book:'rare',w:12,rar:['rare','legendary']},{book:'ultimate',w:6,rar:['legendary','god']},{mat:'divine',w:4,rar:['god']}]},
   tower:{guaranteed:[{gold:[40,70]}],entries:[
     {mat:'mercury',w:30,min:1,max:2},{mat:'ore',w:15},{mat:'mp_m',w:10},{mat:'potion',w:8},{gear:'any',w:22,rar:'any'},{set:'alchemist',w:8,rar:'any'},
     {mat:'philostone',w:2,rar:['rare']},{book:'common',w:6,rar:['rare']},{book:'rare',w:4,rar:['legendary']}]},
-  homunculus:{guaranteed:[{gold:[600,800]},{mat:'philostone',q:1},{mat:'sc_merc',q:1},{mat:'mercury',q:3}],entries:[
+  homunculus:{guaranteed:[{gold:[600,800]},{mat:'philostone',q:1},{mat:'sc_merc',q:1},{mat:'mercury',q:3},{mat:'bossfrag',q:2}],entries:[
     {set:'alchemist',w:30,rar:'any'},{base:'w_mercstaff',w:6,rar:'any',unique:1},{gear:'any',w:20,rar:'any'},{mat:'mp_x',w:8},
     {book:'rare',w:10,rar:['rare','legendary']},{book:'ultimate',w:8,rar:['legendary','god']},{mat:'divine',w:5,rar:['god']}]},
-  seraph:{guaranteed:[{gold:[700,900]},{mat:'essence',q:1}],entries:[
+  seraph:{guaranteed:[{gold:[700,900]},{mat:'essence',q:1},{mat:'bossfrag',q:2}],entries:[
     {base:'h_halo',w:10,rar:'any',unique:1},{base:'w_seraph',w:8,rar:'any',unique:1},{set:'seraph',w:18,rar:'any'},{mat:'sk_eyejudge',w:10},{gear:'any',w:16,rar:'any'},{mat:'mp_x',w:8},
     {book:'ultimate',w:10,rar:['legendary','god']},{mat:'divine',w:8,rar:['god']}]},
-  lavaking:{guaranteed:[{gold:[400,600]},{mat:'essence',q:1}],entries:[
+  lavaking:{guaranteed:[{gold:[400,600]},{mat:'essence',q:1},{mat:'bossfrag',q:2}],entries:[
     {base:'h_crown',w:10,rar:'any',unique:1},{set:'magma',w:20,rar:'any'},{gear:'any',w:20,rar:'any'},{mat:'mp_x',w:8},
     {book:'rare',w:10,rar:['rare','legendary']},{book:'ultimate',w:10,rar:['legendary','god']},{mat:'divine',w:6,rar:['god']}]}
 };

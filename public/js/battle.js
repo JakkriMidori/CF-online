@@ -233,6 +233,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   const b=BT;if(t.invuln>0||t.state==='ko'||t.state==='down')return;if(!t.onGround&&t.jug>((t.isP||t.isP2)&&!a.isP&&!a.isP2?CONFIG.playerJuggleMax:6))return;   // ศัตรูไล่ตีผู้เล่นกลางอากาศได้ไม่เกิน 3 ฮิต (กันติดมุม)
   const hx=px??(t.x-a.dir*t.hw*.6),hy=py??clamp(a.y-m.hy,t.y-t.h+8,t.y-6);
   let gd=null;
+  if(a.st8&&a.st8.blind){num(t,'พลาด! (ตาบอด)','#b08aff',14,-40);return;}   // ผู้โจมตีตาบอด: ตีไม่โดนทุกท่า
   if(t.S.evasion>0&&m.kind!=='ultimate'&&!m.beam&&rand()<t.S.evasion){   // หลบหลีก (สูงสุด 70%) — ท่าสุดยอด/ลำแสงหลบไม่ได้
     if(!t.__eva||t.__eva!==a.name+':'+seq){t.__eva=a.name+':'+seq;num(t,'หลบ!','#bfe8ff',16,-50);}a.didHit=true;return;}
   if(t.isP||t.isP2)gd=playerGuard(t,m);
@@ -277,7 +278,8 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(a.move===m)a.didHit=true;
   // statuses: skill-defined, element procs, unique passives, set passives
   if(m.status)for(const k in m.status)if(m.status[k]>0)tryStatus(t,k,m.status[k],a,m.statusDur);
-  if(m.stunChance&&rand()<m.stunChance)tryStatus(t,'stun',1,a,m.stunDur||3);   // ค้อนศึก: โอกาสสตัน   // statusDur = ระยะเวลาสถานะของท่านี้ (วิ)   // 0 = ปิดสถานะนั้น
+  if(m.stunChance&&rand()<m.stunChance)tryStatus(t,'stun',1,a,m.stunDur||3);
+  if(a.S&&a.S.blindChance&&rand()<a.S.blindChance)tryStatus(t,'blind',1,a,5);   // ไลต์เลส: ตาบอด 5 วิ   // ค้อนศึก: โอกาสสตัน   // statusDur = ระยะเวลาสถานะของท่านี้ (วิ)   // 0 = ปิดสถานะนั้น
   if(m.armorBreak&&t.hp>0){StatSync.addMod(t,{id:'armorbreak',n:m.armorBreak.n||'เกราะแตก',kind:'debuff',stat:'def',op:'mul',v:m.armorBreak.def,ttl:m.armorBreak.t});num(t,(m.armorBreak.n||'เกราะแตก')+'!','#ff9a5a',16,-46);}
   const pr=ELEM_PROC[h.el];if(pr&&rand()<pr.c)tryStatus(t,pr.s,1,a);
   const ps=a.S.passives;

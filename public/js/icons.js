@@ -90,7 +90,7 @@ const BASE_ICO={
   w_club:['club','#c8925a'],w_sword:['sword','#d8dde6'],w_spear:['spear','#f0e2c0'],w_flame:['flameblade','#ff8a3a'],w_gaunt:['gauntlet','#7fd8ff'],
   w_firepan:['pan','#ff9a3a'],w_hammer:['hammer','#ffd56a'],w_kage:['katana','#b08aff'],w_seraph:['featherblade','#fff2a8'],w_god:['greatsword','#ff5a1a'],
   w_mswd:['magicsword','#c9a0ff'],w_mstaff:['staff','#a98aff'],w_adagger:['dagger','#d88aff'],w_wand_fire:['wand','#ff7a2a'],w_wand_ice:['wand','#bff0ff'],
-  w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],w_mercstaff:['wand','#9ae8b0'],h_alch:['wizardhat','#7af0c0'],a_alch:['robe','#7af0c0'],g_alch:['glove','#7af0c0'],b_alch:['boot','#7af0c0'],w_gs1:['greatsword','#c8ccd8'],w_gs2:['greatsword','#e8c070'],w_gs3:['greatsword','#a98aff'],
+  w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],w_lightless:['greatsword','#9a7ad8'],r_primal:['ring','#ffd23a'],w_mercstaff:['wand','#9ae8b0'],h_alch:['wizardhat','#7af0c0'],a_alch:['robe','#7af0c0'],g_alch:['glove','#7af0c0'],b_alch:['boot','#7af0c0'],w_gs1:['greatsword','#c8ccd8'],w_gs2:['greatsword','#e8c070'],w_gs3:['greatsword','#a98aff'],
   w_wh1:['hammer','#b8bfcc'],w_wh2:['hammer','#7fb8d8'],w_wh3:['hammer','#e8b040'],
   h_mage:['wizardhat','#b58aff'],a_mage:['robe','#b58aff'],p_mage:['pants','#b58aff'],b_mage:['boot','#b58aff'],
   h_boss:['horns','#ffd23a'],a_boss:['plate','#ffd23a'],g_boss:['glove','#ffd23a'],b_boss:['boot','#ffd23a'],

@@ -67,11 +67,14 @@ function runTests(){
   T('BQ1) bbqy: ATK 234 และทุกการโจมตีเป็นเวท (ใช้ M.DEF หัก)',()=>{const d=FOES.duelist,E=Stats.enemy(d,100,false);G.mode='explore';BT=null;const sv=Z;
     setupBattle(mkFoe('duelist',{x:300,y:150}));const b=BT;b.intro=0;let typ=null;const o=G.dmgLog.length;applyHit(b.e,b.p,WEAPONS.sword.light[0],1);typ=G.dmgLog[0]&&G.dmgLog[0].type;BT=null;G.mode='explore';
     return{ok:d.base.atk===234&&E.ap===234&&E.mpow===234&&d.allMagic&&typ==='magic',info:'ATK '+E.ap+' · '+typ};});
+  T('LG1) ไลต์เลส (ตำนาน): ไม่สนเกราะ 20% + ตาบอด 5 วิ = ตีไม่โดน · แหวนปฐมกาล ค่าพลัง +10 ทุกอย่าง · สร้างได้จากของบอส โอกาส 10%',()=>{const w=newItem('w_lightless','normal',9),r=newItem('r_primal','normal',9),sw=itemStats(w),sr=itemStats(r);
+    const f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);Status.apply(f,'blind',1,null,5);const R1=RECIPES.find(x=>x.id==='lightless'),R2=RECIPES.find(x=>x.id==='primal');
+    return{ok:w.rar==='legendary'&&r.rar==='legendary'&&sw.apenPct===.2&&sw.blindChance===.2&&['str','agi','int','vit','luk'].every(k=>sr[k]>=10)&&f.st8.blind.t===300&&Craft.base(R1)===.1&&R1.mats.bossfrag===5&&R2.mats.bossfrag===5&&LOOT_TABLES.golem.guaranteed.some(g=>g.mat==='bossfrag'),info:w.rar+'/'+r.rar};});
   T('LV1) เลเวลตันที่ Lv.30 — XP ส่วนเกินไม่ทำให้เกินเพดาน',()=>{const sv={level:G.level,xp:G.xp,points:G.points};G.level=29;G.xp=0;Prog.gainXP(9e9);const ok=G.level===CONFIG.levelCap&&CONFIG.levelCap===30&&G.xp===0&&Prog.gainXP(5000)===0&&G.level===30;Object.assign(G,sv);return{ok,info:'Lv.'+CONFIG.levelCap};});
   T('LV2) บอสเมืองแรกเลเวลตายตัว 35 / 40 / 50 และใช้ค่า base เป็นค่าจริง',()=>{const L=[FOES.golem.fixedLv,FOES.lavaking.fixedLv,FOES.seraph.fixedLv],D=Diff.cur(),E=Stats.enemy(FOES.golem,35,false);
     return{ok:L.join()==='35,40,50'&&foeLevel(FOES.golem,1)===35&&E.maxHP===Math.round(FOES.golem.base.hp*D.eHP)&&E.ap===Math.round(FOES.golem.base.atk*D.eATK),info:L.join(' / ')+' · HP '+E.maxHP};});
   T('LV3) ไอเทมทุกชิ้นสูงสุดแค่มหากาพย์ (ดรอป/คราฟต์/รีไอเทม)',()=>{const a=newItem('w_sword','god',5),b=newItem('w_sword','legendary',5),c=newItem('w_sword','epic',5);const rs=reitemOdds().map(x=>x[0]);
-    return{ok:a.rar==='epic'&&b.rar==='epic'&&c.rar==='epic'&&!rs.includes('god')&&!rs.includes('legendary')&&RECIPES.every(r=>RARS.indexOf(r.rar)<=RARS.indexOf('epic')),info:rs.join('/')};});
+    return{ok:a.rar==='epic'&&b.rar==='epic'&&c.rar==='epic'&&!rs.includes('god')&&!rs.includes('legendary')&&RECIPES.every(r=>RARS.indexOf(r.rar)<=RARS.indexOf('epic')||(r.rate&&BASES[r.out.base].fixRar===r.rar)),info:rs.join('/')};});
   T('เลเวลอัปได้ 3 แต้มค่าพลัง',()=>{const s={level:G.level,xp:G.xp,points:G.points,hp:G.hp,mp:G.mp};G.level=1;G.xp=0;G.points=0;Prog.gainXP(CONFIG.xpNext(1));const ok=G.level===2&&G.points===CONFIG.levelPoints&&CONFIG.levelPoints===3;Object.assign(G,s);return ok;});
 
   RNG=mulberry32(12345);
