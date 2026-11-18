@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cave Forge — Balance Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0c0a;--panel:#15130f;--panel2:#1c1913;--line:rgba(200,164,100,.22);--gold:#c8a464;--gold2:#ffd87a;--ink:#e8dfc8;--dim:#9a8f78;--good:#7ad88a;--bad:#ff8a7a;--blue:#8ac4ff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Sarabun',sans-serif;font-size:14px;line-height:1.5}
+header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#0d0c0a 70%,rgba(13,12,10,.92));border-bottom:1px solid var(--line);padding:14px 22px 0}
+h1{font-family:'Cinzel',serif;font-weight:700;letter-spacing:.12em;color:var(--gold2);margin:0;font-size:20px}
+h1 small{font-family:'Sarabun';letter-spacing:0;color:var(--dim);font-weight:400;font-size:13px;margin-left:10px}
+nav{display:flex;gap:2px;flex-wrap:wrap;margin-top:10px}
+nav a{color:var(--dim);text-decoration:none;padding:8px 14px;border:1px solid transparent;border-bottom:0;font-weight:600}
+nav a.on{color:var(--gold2);border-color:var(--line);background:var(--panel)}
+nav a:hover{color:var(--ink)}
+#badge{float:right;font-size:12px;color:var(--dim);margin-top:-2px;text-align:right;line-height:1.7}
+#badge .btn{padding:3px 12px;margin-left:6px}
+.btn:disabled{opacity:.35;cursor:default}
+#badge b{color:var(--gold2)}
+main{padding:18px 22px 60px;max-width:1500px}
+section{display:none}section.on{display:block}
+h2{font-family:'Cinzel','Sarabun',serif;color:var(--gold);letter-spacing:.06em;font-size:17px;margin:22px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{color:var(--gold2);font-size:15px;margin:16px 0 6px}
+p.note,.note{color:var(--dim);font-size:13px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);padding:12px 14px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid rgba(200,164,100,.1);padding:5px 8px;text-align:left;vertical-align:top}
+th{color:var(--gold);font-weight:600;position:sticky;top:0;background:var(--panel2);white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:rgba(200,164,100,.05)}
+.tw{max-height:70vh;overflow:auto;border:1px solid var(--line)}
+input,select{background:#0a0907;color:var(--ink);border:1px solid rgba(200,164,100,.35);padding:4px 6px;font:inherit;font-size:13px}
+input[type=number]{width:74px;text-align:right}
+input.ed{width:64px}
+select.chg,input.ed.chg{border-color:var(--gold2);background:#2a2210;color:var(--gold2)}
+input[type=range]{width:100%;accent-color:var(--gold)}
+label{display:block;color:var(--dim);font-size:12px;margin-bottom:2px}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 16px;font-size:13px}
+.kv span{color:var(--dim)}.kv b{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.attr{display:grid;grid-template-columns:42px 1fr 52px;gap:8px;align-items:center;margin:4px 0}
+.attr b{color:var(--gold2)}
+.btn{background:transparent;color:var(--gold2);border:1px solid var(--gold);padding:6px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn:hover{background:rgba(200,164,100,.15)}
+.btn.ghost{color:var(--dim);border-color:rgba(200,164,100,.3)}
+code,pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+pre{background:#090806;border:1px solid var(--line);padding:10px;overflow:auto;max-height:420px;white-space:pre-wrap;color:#d8cfb6}
+details{margin:6px 0}summary{cursor:pointer;color:var(--gold);font-weight:600}
+.f{background:var(--panel);border-left:3px solid var(--gold);padding:8px 12px;margin:6px 0}
+.f b{color:var(--gold2)}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border:1px solid var(--line);color:var(--dim);margin-right:4px}
+.good{color:var(--good)}.bad{color:var(--bad)}.blue{color:var(--blue)}.gold{color:var(--gold2)}
+.bar{height:6px;background:rgba(255,255,255,.07);position:relative}.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--gold)}
+textarea{width:100%;min-height:260px;background:#090806;color:#d8cfb6;border:1px solid var(--line);font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:10px}
+.sm{font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <span id="badge"></span>
+  <h1>CAVE FORGE · BALANCE LAB<small>อ่านค่าจากเกมโดยตรง · แก้แล้วกด "อัปเดตเกม" ได้ทันที · <a href="index.html" style="color:var(--gold)">เปิดเกม</a></small></h1>
+  <nav id="nav"></nav>
+</header>
+<main>
+<section id="formulas"></section>
+<section id="build"></section>
+<section id="damage"></section>
+<section id="enemies"></section>
+<section id="skills"></section>
+<section id="items"></section>
+<section id="loot"></section>
+<section id="export"></section>
+</main>
+<div id="wrap" style="display:none"><canvas id="c" width="4" height="4"></canvas></div>
+<script src="js/core.js"></script><script src="js/icons.js"></script><script src="js/data.js"></script><script src="js/systems.js"></script>
+<script>
+'use strict';
+(()=>{
+/* ===== ข้อมูลและฟังก์ชันจริงจากเกม (ดึงออกมาตอนสร้างหน้านี้) ===== */
+/* อ่านค่าจากไฟล์เกมจริง (js/data.js) โดยตรง — ไม่มีสำเนาที่ต้องอัปเดตตาม */
+const DATA={CONFIG,TALENTS,TALENT_PASSIVE,BASE_ATTR,ATTRN,BASES,SETS,RARITY,AFFIX,WEAPONS,SKILLS,SKILL_UPGRADE,FOES,LOOT_CONFIG,LOOT_TABLES,DIFFICULTY,ELITE,RECIPES,RECIPE_ILVL,ELN,ELC,TIERS,TIERN,SLOTN,RARN,RARC,STATN2:typeof STATN2!=='undefined'?STATN2:{},MATS};
+const ORIG=JSON.parse(JSON.stringify(DATA));
+const GAME={fns:{'Stats.derive':Stats.derive.toString(),'Stats.enemy':Stats.enemy.toString(),'Stats.enemyCore':Stats.enemyCore.toString(),calcDamage:calcDamage.toString(),itemStats:itemStats.toString(),'Mana.cost':Mana.cost.toString(),'Status.chance':Status.chance.toString()}};
+// ชื่อตัวแปรเดียวกับในเกม เพื่อให้ฟังก์ชันจริงรันได้ทันที (อ้างถึงออบเจ็กต์เดียวกับที่แก้ในตาราง)
+var ST={diff:'souls'};Diff.cur=()=>DIFFICULTY[ST.diff];   // ความยากที่เลือกในหน้านี้
+const F={derive:(...a)=>Stats.derive(...a),enemy:(...a)=>Stats.enemy(...a),calcDamage:(...a)=>calcDamage(...a),itemStats:it=>itemStats(it),manaCost:(id,S)=>Mana.cost(id,S),xpNext:l=>CONFIG.xpNext(l)};
+const $=s=>document.querySelector(s);
+const pct=(v,d=1)=>(Math.round((v||0)*1000)/10).toFixed(d).replace(/\.0$/,'')+'%';
+const fmt=v=>typeof v==='number'?(Math.abs(v)>=1000?Math.round(v).toLocaleString():String(Math.round(v*100)/100)):v;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SLOTS=['weapon','helmet','armor','gloves','pants','boots','ring1','ring2','necklace'];
+/* SLOTN / RARN / RARS / TIERN มาจาก data.js ของเกม */
+const STATUS_KEYS=[['poison','พิษ'],['bleed','เลือดออก'],['burn','เผาไหม้'],['shock','ช็อต'],['stun','สตัน']];
+const STATN={watk:'ATK อาวุธ',wmatk:'M.ATK อาวุธ',def:'DEF',mdef:'M.DEF',hp:'HP',mp:'MP',critRate:'อัตราคริ',critDmg:'ดาเมจคริ',apen:'เจาะเกราะ',dr:'ลดดาเมจ',str:'STR',agi:'AGI',int:'INT',vit:'VIT',luk:'LUK',atk:'ATK',matk:'M.ATK',resFire:'ต้านไฟ',resLightning:'ต้านสายฟ้า',resPoison:'ต้านพิษ',resShadow:'ต้านเงา',mpRegen:'ฟื้น MP',mpCost:'ลดค่า MP',statusRes:'ต้านสถานะ',evasion:'หลบหลีก',apenPct:'เจาะเกราะ %',pcritRes:'ต้านคริกายภาพ',mcritRes:'ต้านคริเวท',...DATA.STATN2};
+
+/* ===== การแก้ค่า (เก็บเป็น diff เทียบกับค่าเดิมของเกม) ===== */
+const get=(o,p)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
+const set=(o,p,v)=>{const ks=p.split('.'),last=ks.pop();const t=ks.reduce((a,k)=>a[k],o);t[last]=v;};
+const setDeep=(o,p,v)=>{const ks=p.split('.'),last=ks.pop();let t=o;for(const k of ks){if(t[k]==null||typeof t[k]!=='object')t[k]={};t=t[k];}t[last]=v;};
+const delDeep=(o,p)=>{const ks=p.split('.'),last=ks.pop();const t=ks.reduce((a,k)=>a==null?a:a[k],o);if(t&&typeof t==='object')delete t[last];};
+let EDITS={},LIVE={},LIVE_AT=0,DB=null,CAN_WRITE=null,SYNC='กำลังเชื่อมต่อฐานข้อมูลของเกม…';
+/* ใส่ชุดค่าแก้ทั้งชุดลงตาราง (คืนค่าเดิมก่อน) */
+function applyEdits(E){for(const p in EDITS){const o=get(ORIG,p);if(o===undefined)delDeep(DATA,p);else setDeep(DATA,p,JSON.parse(JSON.stringify(o)));}
+  EDITS={};for(const p in E||{}){setDeep(DATA,p,E[p]);EDITS[p]=E[p];}}
+function saveEdits(){try{localStorage.setItem('cf_balance_draft',JSON.stringify(EDITS));}catch(e){}}
+const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function isDirty(){return!same(EDITS,LIVE);}
+try{const L=JSON.parse(localStorage.getItem('cf_balance_live')||'null');if(L&&L.edits){LIVE=L.edits;LIVE_AT=L.at||0;}}catch(e){}
+try{const d=JSON.parse(localStorage.getItem('cf_balance_draft')||'null');applyEdits(d||LIVE);}catch(e){applyEdits(LIVE);}
+async function pushLive(){const E=JSON.parse(JSON.stringify(EDITS)),at=Date.now();
+  try{localStorage.setItem('cf_balance_live',JSON.stringify({edits:E,at}));}catch(e){}
+  if(DB){try{await DB.doc('balance/live').set({edits:JSON.stringify(E),at,n:Object.keys(E).length});SYNC='อัปเดตเกมแล้ว · ผู้เล่นทุกคนได้ค่าใหม่';}catch(e){SYNC='อัปเดตฐานข้อมูลไม่ได้ ('+(e&&e.code||'error')+') · ใช้ได้แค่ในเบราว์เซอร์นี้';CAN_WRITE=false;}}
+  else SYNC='อัปเดตในเบราว์เซอร์นี้แล้ว (ไม่ได้เชื่อมฐานข้อมูล — ผู้เล่นคนอื่นยังไม่ได้ค่าใหม่)';
+  LIVE=E;LIVE_AT=at;render();}
+async function clearLive(){applyEdits({});saveEdits();await pushLive();}
+(async()=>{await null;try{if(!window.claude||!claude.use){SYNC='เปิดนอก claude.ai — ใช้ค่าในเบราว์เซอร์นี้';render();return;}
+  const db=await claude.use('db');if(!db){SYNC='ไม่ได้ล็อกอิน/ไม่มีฐานข้อมูล — ใช้ค่าในเบราว์เซอร์นี้';render();return;}DB=db;
+  try{const u=await claude.use('user');if(u&&u.isOwner)CAN_WRITE=!!(await u.isOwner());}catch(e){}
+  db.doc('balance/live').onSnapshot(s=>{let E={},at=0;if(s.exists){const d=s.data();try{E=JSON.parse(d.edits||'{}');}catch(e){}at=d.at||0;}
+    const wasClean=!isDirty();LIVE=E;LIVE_AT=at;if(wasClean)applyEdits(E);
+    SYNC=CAN_WRITE===false?'คุณดูได้อย่างเดียว (เจ้าของเกมเท่านั้นที่อัปเดตได้)':'เชื่อมฐานข้อมูลของเกมแล้ว';render();},e=>{SYNC='เชื่อมฐานข้อมูลไม่ได้ ('+e.code+')';render();});
+}catch(e){SYNC='เชื่อมฐานข้อมูลไม่ได้';render();}})();
+
+function ed(path,step,def){let v=get(DATA,path);const o=get(ORIG,path);if(v===undefined&&def!==undefined)v=def;if(typeof v!=='number')return esc(v??'—');
+  return `<input class="ed${!same(v,o===undefined?def:o)?' chg':''}" type="number" step="${step||'any'}" data-path="${path}" value="${v}" title="ค่าเดิม: ${o??def??'—'}">`;}
+function edText(path){const v=get(DATA,path),o=get(ORIG,path);return`<input class="ed${v!==o?' chg':''}" style="width:160px;text-align:left" data-path="${path}" data-kind="str" value="${esc(v??'')}" title="ค่าเดิม: ${esc(o??'')}">`;}
+function edSel(path,opts){const v=get(DATA,path),o=get(ORIG,path);return`<select class="${v!==o?'chg':''}" data-path="${path}" data-kind="str" title="ค่าเดิม: ${o}">${opts.map(([k,n])=>`<option value="${k}" ${v===k?'selected':''}>${n}</option>`).join('')}</select>`;}
+function edList(path){const v=get(DATA,path)||[],o=get(ORIG,path)||[];return`<input class="ed${JSON.stringify(v)!==JSON.stringify(o)?' chg':''}" style="width:220px;text-align:left" data-path="${path}" data-kind="list" value="${esc(v.join(', '))}" title="รหัสสกิลคั่นด้วยจุลภาค · ค่าเดิม: ${esc(o.join(', '))}">`;}
+document.addEventListener('change',e=>{const el=e.target;if(!el.dataset.path)return;const p=el.dataset.path,k=el.dataset.kind;let v;
+  if(k==='str')v=el.value;else if(k==='list'){v=el.value.split(/[,\s]+/).map(x=>x.trim()).filter(x=>SKILLS[x]);}else{v=Number(el.value);if(!isFinite(v))return;}
+  setDeep(DATA,p,v);const o=get(ORIG,p);if(same(v,o)||(o===undefined&&v===0))delete EDITS[p];else EDITS[p]=v;saveEdits();render();});
+
+/* ===== สถานะเครื่องคำนวณ ===== */
+Object.assign(ST,{lv:10,talent:'lucky',alloc:{str:0,agi:0,int:0,vit:0,luk:0},eq:{weapon:{base:'w_sword',rar:'rare',enh:5},armor:{base:'a_leather',rar:'normal',enh:0},helmet:{base:'h_leather',rar:'normal',enh:0}},
+  extra:{critRate:0,apen:0,apenPct:0,evasion:0,dr:0,statusRes:0},foe:'golem',foeLv:6,elite:false,skLv:1,stunned:false});
+try{Object.assign(ST,JSON.parse(localStorage.getItem('cf_balance_state')||'{}'));}catch(e){}
+function saveState(){try{localStorage.setItem('cf_balance_state',JSON.stringify(ST));}catch(e){}}
+
+function buildPlayer(){
+  const flat={},add=(k,v)=>flat[k]=(flat[k]||0)+v,setC={};
+  for(const s of SLOTS){const q=ST.eq[s];if(!q||!q.base||!BASES[q.base])continue;
+    const it={base:q.base,rar:q.rar||'normal',enh:+q.enh||0,ilvl:+q.ilvl||ST.lv,affixes:[],sockets:[]};
+    const st=F.itemStats(it);for(const k in st)add(k,st[k]);const b=BASES[q.base];if(b.set)setC[b.set]=(setC[b.set]||0)+1;}
+  const setsOn=[];for(const id in setC)for(const n in SETS[id].b)if(setC[id]>=+n){setsOn.push(SETS[id].n+' '+n+' ชิ้น');const b=SETS[id].b[n];for(const k in b)if(k!=='passive'&&k!=='d')add(k,b[k]);}
+  for(const k in ST.extra)if(ST.extra[k])add(k,+ST.extra[k]);
+  const attr={};for(const k in BASE_ATTR)attr[k]=Math.min(CONFIG.attrMax,BASE_ATTR[k]+(+ST.alloc[k]||0)+(flat[k]||0));
+  const S=F.derive(attr,flat,ST.lv,ST.talent,new Set());S.flat=flat;S.setsOn=setsOn;
+  const w=ST.eq.weapon&&BASES[ST.eq.weapon.base];S.wt=w?w.wt:'fist';S.res=S.res||{};return S;}
+function buildFoe(kind,lv,elite){const d=FOES[kind];const L=d.fixedLv||lv;const S=F.enemy(d,L,elite);S.kind=kind;S.def0=d;return S;}
+/* ดาเมจหนึ่งท่า: แบ่ง coef ตามจำนวนฮิต (เหมือนในเกม) และหัก DEF ทุกฮิต */
+function hitCalc(A,T,{coef,type,el,ignoreDef,hits=1,stunned=false}){
+  const h={coef:coef/hits,type,el,ignoreDef,stunned};
+  const R0=RNG;RNG=()=>.9999999;const nc=F.calcDamage(A,T,h).dmg;const c=F.calcDamage(A,T,Object.assign({},h,{forceCrit:true})).dmg;RNG=R0;
+  const p=clamp(Math.min(CONFIG.critCap,A.critRate||0)-((type==='magic'?T.mcritRes:T.pcritRes)||0),0,1);
+  return{nc:nc*hits,c:c*hits,exp:(nc*(1-p)+c*p)*hits,p};}
+function skillRows(S,T){const out=[];const lvc=(SKILL_UPGRADE.levels[ST.skLv]||{coef:1,cd:1});
+  const w=WEAPONS[S.wt]||WEAPONS.fist;
+  if(w)(w.light||[]).slice(0,3).forEach((m,i)=>{const r=hitCalc(S,T,{coef:m.dmg/10,type:'phys',el:w.el||'phys',stunned:ST.stunned});out.push({id:'light'+i,n:'ท่าเบา '+(i+1)+': '+m.n,tier:'basic',r,mp:0,cd:0,hits:1,el:w.el||'phys',type:'phys'});});
+  for(const id in SKILLS){const s=SKILLS[id];if(s.type==='passive'||s.type==='buff'||!s.coef)continue;
+    const el=s.el==='weapon'?(w&&w.el)||'phys':s.el||'phys',coef=s.coef*(s.tier==='unique'?lvc.coef:1);
+    const r=hitCalc(S,T,{coef,type:s.type,el,ignoreDef:!!s.ignoreDef,hits:s.multi||1,stunned:ST.stunned});
+    out.push({id,n:s.n,tier:s.tier,r,mp:s.tier==='ultimate'?'เกจ 100':F.manaCost(id,S),cd:s.cd*(s.tier==='unique'?lvc.cd:1),hits:s.multi||1,el,type:s.type,talent:s.talent,boss:s.bossOnly,status:s.status});}
+  return out;}
+
+/* ===== แท็บ ===== */
+const TABS=[['formulas','สูตรทั้งหมด'],['build','ตัวละคร'],['damage','ดาเมจ'],['enemies','ศัตรู'],['skills','สกิล'],['items','อุปกรณ์'],['loot','ดรอป & ระบบ'],['export','ส่งออกค่าที่แก้']];
+function curTab(){const h=location.hash.slice(1);return TABS.some(t=>t[0]===h)?h:'build';}
+function nav(){$('#nav').innerHTML=TABS.map(([k,n])=>`<a href="#${k}" class="${curTab()===k?'on':''}">${n}</a>`).join('');
+  const n=Object.keys(EDITS).length,d=isDirty();
+  $('#badge').innerHTML=`<span class="note">${esc(SYNC)}</span><br>ค่าในเกมตอนนี้: <b>${Object.keys(LIVE).length}</b> ค่าที่ปรับ${LIVE_AT?' · '+new Date(LIVE_AT).toLocaleString('th-TH'):''} · ร่าง: <b>${n}</b>
+    ${d?'<span class="bad">ยังไม่อัปเดต</span>':'<span class="good">ตรงกับเกม</span>'}
+    <button class="btn" id="pushBtn" ${!d||CAN_WRITE===false?'disabled':''}>อัปเดตเกม</button> <button class="btn ghost" id="revertBtn" ${!d?'disabled':''}>ยกเลิกร่าง</button>`;
+  const pb=$('#pushBtn');if(pb)pb.onclick=async()=>{pb.disabled=true;pb.textContent='กำลังอัปเดต…';await pushLive();};
+  const rb=$('#revertBtn');if(rb)rb.onclick=()=>{applyEdits(LIVE);saveEdits();render();};}
+addEventListener('hashchange',render);
+
+function render(){const t=curTab();nav();for(const [k] of TABS)$('#'+k).classList.toggle('on',k===t);({formulas:rFormulas,build:rBuild,damage:rDamage,enemies:rEnemies,skills:rSkills,items:rItems,loot:rLoot,export:rExport})[t]();saveState();}
+
+/* ---------- สูตร ---------- */
+function rFormulas(){const C=CONFIG,DV=C.derived;
+  const f=(t,b)=>`<div class="f"><b>${t}</b> — ${b}</div>`;
+  $('#formulas').innerHTML=`<p class="note">สูตรทั้งหมดในหน้านี้ถอดมาจากโค้ดเกมจริง ตัวเลขสีทองอ่านค่าปัจจุบัน (ถ้าแก้ในแท็บอื่นจะเปลี่ยนตาม) · ดูโค้ดต้นฉบับได้ที่ท้ายหน้า</p>
+  <h2>1. ค่าพลังหลัก (STR · AGI · INT · VIT · LUK)</h2>
+  ${f('ค่าพลัง','พื้นฐาน 10 + แต้มที่แจก + โบนัสอุปกรณ์ · สูงสุด <span class="gold">'+C.attrMax+'</span> · ได้ <span class="gold">'+C.levelPoints+'</span> แต้มต่อเลเวล')}
+  ${f('EXP ที่ต้องใช้','80 × เลเวล<sup>1.6</sup> (เลเวล 10 = '+F.xpNext(10).toLocaleString()+', เลเวล 30 = '+F.xpNext(30).toLocaleString()+')')}
+  <h2>2. ค่าที่คำนวณได้</h2>
+  ${f('HP สูงสุด','500 + VIT×20 + เลเวล×50 + HP อุปกรณ์')}
+  ${f('MP สูงสุด','(100 + INT×10 + MP อุปกรณ์) × (1 + โบนัสพรสวรรค์)')}
+  ${f('สตามินา','100 + (AGI − 10) × 2')}
+  ${f('พลังโจมตี (ATK)','ATK อาวุธ (ไม่มีอาวุธ = 10) + STR×2 + ATK อุปกรณ์')}
+  ${f('พลังเวท','(M.ATK อาวุธ + INT×3 + M.ATK อุปกรณ์) × (1 + โบนัสพรสวรรค์)')}
+  ${f('DEF','10 + DEF อุปกรณ์ + ⌊AGI/10⌋ × <span class="gold">'+DV.agiPer10Def+'</span>')}
+  ${f('M.DEF','10 + M.DEF อุปกรณ์')}
+  ${f('อัตราคริติคอล','5% + LUK×0.2% + อุปกรณ์ + พรสวรรค์ · เพดาน <span class="gold">'+pct(C.critCap)+'</span>')}
+  ${f('ดาเมจคริติคอล','150% + LUK×1% + อุปกรณ์ + พรสวรรค์ · เพดาน <span class="gold">'+pct(C.critDmgCap)+'</span> (Archmage +10% เฉพาะเวท)')}
+  ${f('หลบหลีก','⌊AGI/10⌋ × <span class="gold">'+pct(DV.agiPer10Eva)+'</span> + อุปกรณ์ · เพดาน <span class="gold">'+pct(DV.evaCap)+'</span> · ท่าสุดยอดและลำแสงหลบไม่ได้')}
+  ${f('ต้านคริกายภาพ / เวท','⌊DEF/10⌋ × <span class="gold">'+pct(DV.defPer10Crit)+'</span> / ⌊M.DEF/10⌋ × '+pct(DV.defPer10Crit)+' + อุปกรณ์ · เพดาน 75%')}
+  ${f('ต้านสถานะผิดปกติ','อุปกรณ์ + พรสวรรค์ + ⌊STR/10⌋ × <span class="gold">'+pct(DV.strPer10Res)+'</span> · เพดาน 75%')}
+  ${f('ลดดาเมจ (DR)','อุปกรณ์ + พรสวรรค์ + บัฟ · เพดาน <span class="gold">'+pct(C.drCap)+'</span>')}
+  ${f('เจาะเกราะ','คงที่: อุปกรณ์ + พรสวรรค์ (Piercer +100) · %: อุปกรณ์ (ไม่เกิน 100%)')}
+  <h2>3. ดาเมจ (calcDamage)</h2>
+  ${f('ขั้น 1 พลัง','กายภาพใช้ ATK · เวทใช้พลังเวท')}
+  ${f('ขั้น 2 หักเกราะ','กายภาพ: DEF × (1 − เจาะเกราะ%) − เจาะเกราะคงที่ · เวท: M.DEF × (1 − ลด M.DEF) · ท่าไม่สนเกราะ = 0')}
+  ${f('ขั้น 3 ดาเมจพื้นฐาน','max(1, พลัง × ตัวคูณท่า − เกราะที่หัก) — <span class="bad">ท่าหลายฮิตหักเกราะทุกฮิต</span> (ตัวคูณถูกแบ่งเท่าๆ กันตามจำนวนฮิต)')}
+  ${f('ขั้น 4 คริติคอล','โอกาส = อัตราคริ − ต้านคริของเป้า · ติดคริ × ดาเมจคริ')}
+  ${f('ขั้น 5 ธาตุ','× (1 − ค่าต้านธาตุของเป้า) (ค่าติดลบ = แพ้ทาง)')}
+  ${f('ขั้น 6 ตัวคูณสถานการณ์','สตัน ×'+(1+C.stunBonus)+' · คอมโบครบ ×'+(1+C.fullComboBonus)+' · จุดอ่อน · สวนกลับ ×1.1 · ความชำนาญอาวุธ · ประหาร ×1.3 · คลั่ง')}
+  ${f('ขั้น 7 ลดดาเมจ','× (1 − DR ของเป้า) (เพดาน '+pct(C.drCap)+') · ป้องกันได้ = รับ 10% · หลบได้ = 0')}
+  ${f('ตัวคูณท่า','ท่าเบา/หนักของอาวุธ: dmg ÷ 10 · สกิล: coef × ตัวคูณเลเวลสกิล (เฉพาะตัว Lv2–5 = '+[2,3,4,5].map(l=>'×'+SKILL_UPGRADE.levels[l].coef).join(' / ')+')')}
+  <h2>4. ศัตรู (Stats.enemy)</h2>
+  ${f('HP','HP พื้นฐาน × (1 + 12% × (เลเวล−1)) × หัวหน้า ×'+ELITE.hp+' × ความยาก')}
+  ${f('ATK','ATK พื้นฐาน × (1 + 10% × (เลเวล−1)) × หัวหน้า ×'+ELITE.atk+' × ความยาก')}
+  ${f('DEF / M.DEF','DEF พื้นฐาน + 1 ต่อเลเวล / M.DEF พื้นฐาน + 0.8 ต่อเลเวล')}
+  ${f('บอส','ต้านคริติคอล (กาย/เวท) เพิ่ม <span class="gold">'+pct(C.bossCritRes)+'</span> ทุกตัว (เพดาน 75%)')}
+  ${f('ค่ารองของศัตรู','ศัตรูมีค่าพลัง STR/AGI/INT/VIT/LUK (ค่าเริ่มต้น 10) แล้วคำนวณ คริ ดาเมจคริ หลบ ต้านสถานะ ต้านคริ และ DEF จาก AGI ด้วยสูตรเดียวกับผู้เล่น · ตั้งค่าคริเองได้ใน base.critRate')}
+  ${f('สกิลของศัตรู','ใส่ได้ที่ FOES[ศัตรู].skills · สกิลแต่ละอันตั้งได้ว่าใช้ได้โดย ทุกคน / ผู้เล่น / ศัตรู · สกิลพรสวรรค์เป็นของผู้เล่นเสมอ')}
+  ${f('ความยาก',Object.values(DIFFICULTY).map(d=>`${d.n}: HP ×${d.eHP} ATK ×${d.eATK}`).join(' · '))}
+  <h2>5. อุปกรณ์ (itemStats)</h2>
+  ${f('ค่าหลัก','ค่าฐาน × ตัวคูณความหายาก × (1 + 10% × (iLvl−1))')}
+  ${f('ตีบวกต่อขั้น','ทุกค่าของไอเทม (ค่าหลัก + ค่าติดตัว + affix ไม่รวมรูน): ค่าแบบหน่วย +<span class="gold">'+(C.enhFlat??1.5)+'</span> · ค่าแบบ % ×(1 + <span class="gold">'+pct(C.enhPct??.015)+'</span> × ขั้น)')}
+  ${f('ความหายาก',RARS.map(r=>`${RARN[r]} ×${RARITY[r].mult} (affix ${RARITY[r].affix.join('–')}, ช่องรูน ${RARITY[r].sockets})`).join(' · '))}
+  ${f('ตีบวก','อุปกรณ์ทั่วไปสูงสุด +'+C.enhanceMax+' · ของที่ตีเหล็ก (craft) เริ่ม +'+C.craftEnh+' สูงสุด +'+C.enhanceMaxCraft+' · โอกาสสำเร็จ '+C.enhanceRates.map((r,i)=>'+'+(i+1)+' '+pct(r,0)).join(', ')+' · ค่าใช้จ่าย: ทอง 40×(ขั้น+1)×ระดับความหายาก + แร่เหล็ก (ขั้น+1)')}
+  <h2>6. สถานะผิดปกติ</h2>
+  ${f('โอกาสติด','100% + โบนัสโอกาสติด (Hexweaver +25%) − ค่าต้านของเป้า · จำกัด 0–100%')}
+  ${f('ระยะเวลา','ค่าเริ่มต้น '+(C.statusDur/60)+' วินาที (ตั้งต่อสกิล/ท่าได้ที่ช่อง "นาน (วิ)") · เฉพาะ Hexweaver: + (โอกาสติดสถานะ% × <span class="gold">'+C.statusChanceDur+'</span> วิ) · +25% = +'+(25*C.statusChanceDur).toFixed(2)+' วิ · ซ้อนพิษ/เลือดออกได้ '+C.maxStacks+' สแตก')}
+  ${f('ดาเมจต่อวินาที','พิษ 5×สแตก · เลือดออก 10 + 5×(สแตก−1) · เผาไหม้ 20 · ช็อต 10 (แล้วสตัน)')}
+  <h2>7. ระบบป้องกัน</h2>
+  ${f('การ์ด','ป้องกันได้ <span class="gold">'+C.guard.max+'</span> ครั้ง แล้วแตก <span class="gold">'+(C.guard.breakT/60)+'</span> วินาที · ปัดป้องติด = รีเซ็ต')}
+  <h2>8. โค้ดต้นฉบับ</h2>
+  ${Object.entries(GAME.fns).map(([k,v])=>`<details><summary>${k}</summary><pre>${esc(v)}</pre></details>`).join('')}`;}
+
+/* ---------- ตัวละคร ---------- */
+function rBuild(){const S=buildPlayer();
+  const attrs=Object.keys(BASE_ATTR).map(k=>`<div class="attr"><b>${k.toUpperCase()}</b><input type="range" min="0" max="${CONFIG.attrMax-BASE_ATTR[k]}" value="${ST.alloc[k]||0}" data-st="alloc.${k}"><span>${S[k]} <small class="note">(+${ST.alloc[k]||0})</small></span></div>`).join('');
+  const used=Object.values(ST.alloc).reduce((a,b)=>a+(+b||0),0),have=(ST.lv-1)*CONFIG.levelPoints;
+  const eqRows=SLOTS.map(s=>{const q=ST.eq[s]||{},type=s.startsWith('ring')?'ring':s;const opts=Object.keys(BASES).filter(k=>BASES[k].type===type);
+    return`<tr><td>${SLOTN[s]}</td><td><select data-eq="${s}.base"><option value="">— ไม่ใส่ —</option>${opts.map(k=>`<option value="${k}" ${q.base===k?'selected':''}>${BASES[k].n}</option>`).join('')}</select></td>
+    <td><select data-eq="${s}.rar">${RARS.map(r=>`<option value="${r}" ${q.rar===r?'selected':''}>${RARN[r]}</option>`).join('')}</select></td>
+    <td><input type="number" min="0" max="10" value="${q.enh||0}" data-eq="${s}.enh" style="width:52px"></td></tr>`;}).join('');
+  const kv=(n,v,c='')=>`<span>${n}</span><b class="${c}">${v}</b>`;
+  $('#build').innerHTML=`<div class="grid g3">
+   <div class="card"><h3>ตัวละคร</h3>
+    <div class="row"><div><label>เลเวล</label><input type="number" min="1" max="99" value="${ST.lv}" data-st="lv"></div>
+     <div><label>พรสวรรค์</label><select data-st="talent">${Object.keys(TALENTS).map(k=>`<option value="${k}" ${ST.talent===k?'selected':''}>${TALENTS[k].th}</option>`).join('')}</select></div></div>
+    <p class="note">${esc(TALENTS[ST.talent].desc)}</p>
+    <h3>แจกแต้ม <small class="note">ใช้ ${used} / มี ${have} ${used>have?'<span class="bad">(เกิน)</span>':''}</small></h3>${attrs}
+    <h3>โบนัสเพิ่ม (จำลอง affix/รูน)</h3><div class="row">${Object.keys(ST.extra).map(k=>`<div><label>${STATN[k]||k}</label><input type="number" step="0.01" value="${ST.extra[k]}" data-st="extra.${k}"></div>`).join('')}</div>
+    <p class="note">ค่าเป็นสัดส่วน เช่น 0.05 = 5%</p></div>
+   <div class="card"><h3>อุปกรณ์ <small class="note">iLvl = เลเวลตัวละคร · ยังไม่รวม affix สุ่ม</small></h3>
+    <table><tr><th>ช่อง</th><th>ไอเทม</th><th>ความหายาก</th><th>+</th></tr>${eqRows}</table>
+    <p class="note">โบนัสเซ็ต: ${S.setsOn.length?S.setsOn.join(', '):'—'}</p>
+    <p class="note">ค่าจากอุปกรณ์รวม: ${Object.entries(S.flat).map(([k,v])=>`${STATN[k]||k} ${v<1&&v>0?pct(v):fmt(v)}`).join(' · ')||'—'}</p></div>
+   <div class="card"><h3>ค่าสถานะสุดท้าย <small class="note">(คำนวณด้วย Stats.derive ของเกม)</small></h3><div class="kv">
+    ${kv('HP สูงสุด',fmt(S.maxHP))}${kv('MP สูงสุด',fmt(S.maxMP))}${kv('สตามินา',fmt(S.maxSTA))}
+    ${kv('พลังโจมตี',fmt(S.ap),'gold')}${kv('พลังเวท',fmt(S.mpow),'gold')}
+    ${kv('DEF / M.DEF',S.def+' / '+S.mdef)}${kv('อัตราคริ',pct(S.critRate))}${kv('ดาเมจคริ',pct(S.critDmg,0)+(S.mcritDmg?' (+'+pct(S.mcritDmg,0)+' เวท)':''))}
+    ${kv('เจาะเกราะ',S.apen+' / '+pct(S.apenPct))}${kv('หลบหลีก',pct(S.evasion),'blue')}${kv('ต้านคริ กาย/เวท',pct(S.pcritRes)+' / '+pct(S.mcritRes))}
+    ${kv('ลดดาเมจ',pct(S.dr))}${kv('ต้านสถานะ',pct(S.statusRes))}${kv('โอกาสติดสถานะ +',pct(S.statusChance||0))}
+    ${kv('ความเร็ว',pct(S.spd,0))}${kv('EXP เลเวลถัดไป',F.xpNext(ST.lv).toLocaleString())}</div></div></div>
+   <p class="note">ไปแท็บ <a href="#damage" style="color:var(--gold2)">ดาเมจ</a> เพื่อดูว่าตัวละครนี้ตีศัตรูแต่ละตัวได้เท่าไร และโดนตีเท่าไร</p>`;}
+document.addEventListener('input',e=>{const el=e.target;
+  if(el.dataset.st&&el.type==='range'){set(ST,el.dataset.st,Number(el.value));clearTimeout(window.__rt);window.__rt=setTimeout(render,60);}
+});
+document.addEventListener('change',e=>{const el=e.target;if(el.dataset.eq){const [s,k]=el.dataset.eq.split('.');ST.eq[s]=ST.eq[s]||{rar:'normal',enh:0};ST.eq[s][k]=k==='enh'?Number(el.value):el.value;render();}});
+document.addEventListener('change',e=>{const el=e.target;if(!el.dataset.st)return;
+  if(el.tagName==='SELECT')set(ST,el.dataset.st,el.value);else if(el.type==='checkbox')set(ST,el.dataset.st,el.checked);else if(el.type==='number')set(ST,el.dataset.st,Number(el.value));else return;render();});
+
+/* ---------- ดาเมจ ---------- */
+function foeSel(){return`<div class="row"><div><label>ศัตรู</label><select data-st="foe">${Object.keys(FOES).map(k=>`<option value="${k}" ${ST.foe===k?'selected':''}>${FOES[k].n}${FOES[k].boss?' (บอส)':''}</option>`).join('')}</select></div>
+  <div><label>เลเวลศัตรู</label><input type="number" min="1" max="99" value="${ST.foeLv}" data-st="foeLv"></div>
+  <div><label>ความยาก</label><select data-st="diff">${Object.keys(DIFFICULTY).map(k=>`<option value="${k}" ${ST.diff===k?'selected':''}>${DIFFICULTY[k].n}</option>`).join('')}</select></div>
+  <div><label><input type="checkbox" data-st="elite" ${ST.elite?'checked':''}> หัวหน้า (elite)</label></div>
+  <div><label><input type="checkbox" data-st="stunned" ${ST.stunned?'checked':''}> เป้าติดสตัน (+${pct(CONFIG.stunBonus,0)})</label></div>
+  <div><label>เลเวลสกิลเฉพาะตัว</label><input type="number" min="1" max="5" value="${ST.skLv}" data-st="skLv"></div></div>`;}
+function rDamage(){const S=buildPlayer(),T=buildFoe(ST.foe,ST.foeLv,ST.elite),d=T.def0;
+  const rows=skillRows(S,T).sort((a,b)=>b.r.exp-a.r.exp);const maxE=Math.max(...rows.map(r=>r.r.exp));
+  const ttk=e=>Math.ceil(T.maxHP/Math.max(1,e));
+  const tr=rows.map(x=>`<tr><td>${esc(x.n)} ${x.talent?'<span class="tag">'+TALENTS[x.talent].th+'</span>':''}${x.boss?'<span class="tag">บอส</span>':''}</td><td>${TIERN[x.tier]||'ท่าพื้นฐาน'}</td><td>${x.type==='magic'?'เวท':'กาย'} · ${ELN[x.el]||x.el}</td>
+    <td class="n">${x.hits}</td><td class="n">${fmt(x.r.nc)}</td><td class="n">${fmt(x.r.c)}</td><td class="n gold">${fmt(x.r.exp)}</td><td style="width:110px"><div class="bar"><i style="width:${x.r.exp/maxE*100}%"></i></div></td>
+    <td class="n">${x.mp}</td><td class="n">${x.cd?x.cd+'s':'—'}</td><td class="n">${x.cd?fmt(x.r.exp/x.cd):'—'}</td><td class="n">${ttk(x.r.exp)}</td></tr>`).join('');
+  // ศัตรูตีเรา
+  const mv=(d.moves||[]).map(m=>{const r=hitCalc(T,S,{coef:m.dmg/10,type:'phys',el:m.el||d.el||'phys',hits:m.multi||1});const eva=(m.beam?0:S.evasion);
+    return`<tr><td>${esc(m.n)}${m.beam?' <span class="tag">ลำแสง</span>':''}${m.proj?' <span class="tag">กระสุน</span>':''}</td><td class="n">${fmt(m.dmg/10)}</td><td class="n">${fmt(r.nc)}</td><td class="n">${fmt(r.c)}</td><td class="n gold">${fmt(r.exp*(1-eva))}</td><td class="n">${fmt(Math.max(1,Math.round(r.nc*.1)))}</td><td class="n">${Math.ceil(S.maxHP/Math.max(1,r.exp*(1-eva)))}</td></tr>`;}).join('');
+  const fsk=(d.skills||[]).filter(id=>SKILLS[id]&&SKILLS[id].user!=='player').map(id=>{const s=SKILLS[id],el=s.el==='weapon'?'phys':s.el||'phys',r=hitCalc(T,S,{coef:s.coef||0,type:s.type==='magic'?'magic':'phys',el,hits:s.multi||1,ignoreDef:!!s.ignoreDef});const eva=(s.tier==='ultimate'||s.beam)?0:S.evasion;
+    return`<tr><td>${esc(s.n)} <span class="tag">สกิล${TIERN[s.tier]}</span></td><td class="n">${s.coef||0}</td><td class="n">${fmt(r.nc)}</td><td class="n">${fmt(r.c)}</td><td class="n gold">${fmt(r.exp*(1-eva))}</td><td class="n">${fmt(Math.max(1,Math.round(r.nc*.1)))}</td><td class="n">${Math.ceil(S.maxHP/Math.max(1,r.exp*(1-eva)))}</td></tr>`;}).join('');
+  $('#damage').innerHTML=foeSel()+`<div class="grid g2">
+   <div class="card"><h3>${esc(d.n)} · Lv.${T.level}${ST.elite?' ★':''}</h3><div class="kv"><span>HP</span><b>${fmt(T.maxHP)}</b><span>ATK</span><b>${fmt(T.ap)}</b><span>คริ / ดาเมจคริ</span><b>${pct(T.critRate)} / ${pct(T.critDmg,0)}</b><span>หลบ / ต้านสถานะ</span><b>${pct(T.evasion)} / ${pct(T.statusRes)}</b><span>DEF / M.DEF</span><b>${T.def} / ${T.mdef}</b><span>ต้านคริ</span><b>${pct(T.pcritRes)} / ${pct(T.mcritRes)}</b><span>ต้านธาตุ</span><b>${Object.entries(T.res).map(([k,v])=>(ELN[k]||k)+' '+pct(v)).join(' · ')||'—'}</b></div></div>
+   <div class="card"><h3>ตัวละครของเรา (จากแท็บตัวละคร)</h3><div class="kv"><span>HP</span><b>${fmt(S.maxHP)}</b><span>ATK / พลังเวท</span><b>${S.ap} / ${S.mpow}</b><span>คริ</span><b>${pct(S.critRate)} × ${pct(S.critDmg,0)}</b><span>DEF / หลบ / DR</span><b>${S.def} / ${pct(S.evasion)} / ${pct(S.dr)}</b></div></div></div>
+   <h2>เราตี ${esc(d.n)} <small class="note">ดาเมจรวมต่อการใช้ 1 ครั้ง (ทุกฮิต) · เฉลี่ย = รวมโอกาสคริแล้ว · ตีกี่ครั้งตาย = HP ÷ เฉลี่ย</small></h2>
+   <div class="tw"><table><tr><th>ท่า</th><th>ระดับ</th><th>ประเภท</th><th class="n">ฮิต</th><th class="n">ปกติ</th><th class="n">คริ</th><th class="n">เฉลี่ย</th><th></th><th class="n">MP</th><th class="n">คูลดาวน์</th><th class="n">ดาเมจ/วิ (คูลดาวน์)</th><th class="n">ใช้กี่ครั้งตาย</th></tr>${tr}</table></div>
+   <h2>${esc(d.n)} ตีเรา <small class="note">เฉลี่ยรวมโอกาสหลบแล้ว · กัน = ดาเมจเมื่อป้องกันได้ (10%)</small></h2>
+   <div class="tw"><table><tr><th>ท่า</th><th class="n">ตัวคูณ</th><th class="n">ปกติ</th><th class="n">คริ</th><th class="n">เฉลี่ย</th><th class="n">กัน</th><th class="n">โดนกี่ครั้งตาย</th></tr>${mv}${fsk}${!mv&&!fsk?'<tr><td colspan=7 class="note">ศัตรูแบบนักสู้ (rig) ใช้ท่าอาวุธ — ดูตัวคูณที่แท็บอุปกรณ์</td></tr>':''}</table></div>`;}
+
+/* ---------- ศัตรู ---------- */
+const FOE_SKIP=new Set(['map','pal','look','kind','sc','hw','h','eye','hover','noFlip','weakY','loot','wpn','meterStart','challenge','addMove','aura','hy','hh','tok','anim','idx']);
+const FOE_LBL={n:'ชื่อ',spd:'ความเร็วเดิน',range:'ระยะเข้าโจมตี',cd:'ช่วงพักระหว่างโจมตี (เฟรม min–max)',xp:'EXP',boss:'บอส (1/0)',miniboss:'มินิบอส (1/0)',fixedLv:'เลเวลคงที่',
+  base:'ค่าพื้นฐาน',hp:'HP',atk:'ATK',def:'DEF',mdef:'M.DEF',critRate:'อัตราคริ (ตั้งเอง)',attr:'ค่าพลัง',str:'STR',agi:'AGI',int:'INT',vit:'VIT',luk:'LUK',
+  res:'ต้านธาตุ (ติดลบ = แพ้ทาง)',statusRes:'ต้านสถานะ (แยกประเภท)',statusDur:'ระยะเวลาสถานะ (วิ)',status:'ดีบัฟสถานะ (สแตกต่อครั้งที่โดน)',stunImmuneAfter:'กันสตันหลังโดนสตัน (เฟรม)',phases:'เฟส',at:'เริ่มเมื่อ HP ≤',cdMul:'ตัวคูณพักโจมตี',spdMul:'ตัวคูณความเร็ว',
+  weakPoint:'จุดอ่อน',after:'หลังท่า',t:'นาน (เฟรม)',mul:'ตัวคูณดาเมจ',moves:'ท่าโจมตี',s:'เฟรมเตรียม',a:'เฟรมโจมตี',r:'เฟรมฟื้นตัว',dmg:'ดาเมจ (÷10 = ตัวคูณ)',reach:'ระยะ',kb:'กระเด็น',hs:'สะดุ้ง',
+  lunge:'พุ่ง',kd:'ล้ม (1/0)',low:'ท่าต่ำ (1/0)',quake:'แผ่นดินไหว (1/0)',multi:'จำนวนฮิต',el:'ธาตุ',skills:'สกิล (รหัส คั่นด้วยจุลภาค)',far:'ระยะไกล (1/0)',beam:'ลำแสง (1/0)',rain:'ฝน (1/0)',inv:'อมตะ (1/0)',poison:'พิษ',bleed:'เลือดออก',burn:'เผาไหม้',shock:'ช็อต',stun:'สตัน'};
+function edTree(o,path,depth){if(o==null)return'';
+  if(Array.isArray(o)){if(o.every(x=>typeof x==='number'))return o.map((x,i)=>ed(path+'.'+i,1)).join(' – ');
+    if(path.endsWith('.skills'))return edList(path);
+    if(o.every(x=>typeof x==='string'))return esc(o.join(', '));
+    return o.map((x,i)=>`<div class="card" style="margin:4px 0;padding:6px 10px"><b class="gold">${esc(x&&x.n||('#'+(i+1)))}</b>${edTree(x,path+'.'+i,depth+1)}</div>`).join('');}
+  if(typeof o!=='object')return'';
+  const keys=Object.keys(o).filter(k=>!FOE_SKIP.has(k));
+  if(depth===0){for(const k of ['attr','skills','res'])if(!keys.includes(k))keys.push(k);}
+  if(path.endsWith('.res'))for(const e of Object.keys(ELN))if(!keys.includes(e))keys.push(e);
+  if(path.endsWith('.attr'))for(const e of Object.keys(BASE_ATTR))if(!keys.includes(e))keys.push(e);
+  if(/\.moves\.\d+$/.test(path))for(const e of ['multi','status','statusDur'])if(!keys.includes(e))keys.push(e);
+  if(path.endsWith('.status'))for(const e of ['poison','bleed','burn','shock','stun'])if(!keys.includes(e))keys.push(e);
+  return`<div class="kv" style="grid-template-columns:auto 1fr;margin:4px 0 4px ${depth?10:0}px">`+keys.map(k=>{const v=o[k],p=path+'.'+k,lbl=(FOE_LBL[k]||ELN[k]||k);
+    if(typeof v==='number')return`<span>${lbl}</span><b style="text-align:left">${ed(p,Math.abs(v)<1&&v!==0?.01:1)}</b>`;
+    if(v===undefined&&path.endsWith('.res'))return`<span>${lbl}</span><b style="text-align:left">${ed(p,.05,0)}</b>`;
+    if(v===undefined&&k==='statusDur')return`<span>ระยะเวลาสถานะ (วิ)</span><b style="text-align:left">${ed(p,.5,CONFIG.statusDur/60)}</b>`;
+    if(v===undefined&&k==='multi')return`<span>${lbl}</span><b style="text-align:left">${ed(p,1,1)}</b>`;
+    if(v===undefined&&path.endsWith('.status'))return`<span>${lbl}</span><b style="text-align:left">${ed(p,1,0)}</b>`;
+    if(v===undefined&&k==='status')return`<span style="grid-column:1/-1;color:var(--gold);margin-top:6px">ดีบัฟสถานะ (สแตกต่อครั้งที่โดน)</span><div style="grid-column:1/-1">${edTree({},p,depth+1)}</div>`;
+    if(v===undefined&&path.endsWith('.attr'))return`<span>${lbl}</span><b style="text-align:left">${ed(p,1,BASE_ATTR[k])}</b>`;
+    if(v===undefined&&k==='skills')return`<span>${lbl}</span><b style="text-align:left">${edList(p)}</b>`;
+    if(v===undefined&&(k==='attr'||k==='res'))return`<span style="grid-column:1/-1;color:var(--gold);margin-top:6px">${lbl}</span><div style="grid-column:1/-1">${edTree({},p,depth+1)}</div>`;
+    if(typeof v==='string')return k==='n'||k==='after'?`<span>${lbl}</span><b style="text-align:left">${edText(p)}</b>`:k==='el'?`<span>${lbl}</span><b style="text-align:left">${edSel(p,Object.keys(ELN).map(e=>[e,ELN[e]]))}</b>`:'';
+    if(Array.isArray(v)&&k==='skills')return`<span>${lbl}</span><b style="text-align:left">${edList(p)}<div class="sm note">${v.map(id=>SKILLS[id]?SKILLS[id].n:id).join(', ')}</div></b>`;
+    if(typeof v==='object')return`<span style="grid-column:1/-1;color:var(--gold);margin-top:6px">${lbl}</span><div style="grid-column:1/-1">${edTree(v,p,depth+1)}</div>`;
+    return'';}).join('')+`</div>`;}
+function rEnemies(){const lv=ST.foeLv;
+  const rows=Object.keys(FOES).map(k=>{const d=FOES[k],T=buildFoe(k,lv,ST.elite);return`<tr><td>${esc(d.n)} ${d.boss?'<span class="tag">บอส</span>':''}${d.fixedLv?'<span class="tag">Lv คงที่ '+d.fixedLv+'</span>':''}</td><td>${d.kind}</td>
+   <td class="n">${ed('FOES.'+k+'.base.hp',10)}</td><td class="n">${ed('FOES.'+k+'.base.atk',1)}</td><td class="n">${ed('FOES.'+k+'.base.def',1)}</td><td class="n">${ed('FOES.'+k+'.base.mdef',1)}</td>
+   <td class="n gold">${fmt(T.maxHP)}</td><td class="n gold">${fmt(T.ap)}</td><td class="n">${T.def}/${T.mdef}</td><td class="n">${d.xp??'—'}</td><td>${Object.entries(d.res||{}).map(([e,v])=>(ELN[e]||e)+' '+pct(v)).join(', ')||'—'}</td>
+   <td class="sm">${(d.moves||[]).map(m=>esc(m.n)+' '+(m.dmg/10)).join(' · ')}</td></tr>`;}).join('');
+  const ATT=Object.keys(BASE_ATTR);
+  const rows2=Object.keys(FOES).map(k=>{const d=FOES[k],T=buildFoe(k,lv,ST.elite);if(!d.attr)d.attr={};if(!d.skills)d.skills=[];if(!ORIG.FOES[k].attr)ORIG.FOES[k].attr={};if(!ORIG.FOES[k].skills)ORIG.FOES[k].skills=[];
+   for(const a of ATT){if(d.attr[a]==null)d.attr[a]=BASE_ATTR[a];if(ORIG.FOES[k].attr[a]==null)ORIG.FOES[k].attr[a]=BASE_ATTR[a];}
+   const bad=d.skills.filter(id=>SKILLS[id]&&SKILLS[id].user==='player');
+   return`<tr><td>${esc(d.n)}</td>${ATT.map(a=>`<td class="n">${ed('FOES.'+k+'.attr.'+a,1)}</td>`).join('')}
+    <td class="n">${pct(T.critRate)}</td><td class="n">${pct(T.critDmg,0)}</td><td class="n">${pct(T.evasion)}</td><td class="n">${pct(T.statusRes)}</td><td class="n">${pct(T.pcritRes)} / ${pct(T.mcritRes)}</td>
+    <td>${edList('FOES.'+k+'.skills')}<div class="sm note">${d.skills.map(id=>SKILLS[id]?SKILLS[id].n:id).join(', ')}${bad.length?' <span class="bad">· '+bad.map(id=>SKILLS[id].n).join(', ')+' ตั้งเป็นผู้เล่นเท่านั้น จึงไม่ถูกใช้</span>':''}</div></td></tr>`;}).join('');
+  $('#enemies').innerHTML=foeSel()+`
+   <h2>แก้ทุกค่าของศัตรู <small class="note">เลือกศัตรูแล้วแก้ได้ทุกช่อง · ช่องที่แก้แล้วเป็นกรอบทอง</small></h2>
+   <div class="row"><div><label>ศัตรู</label><select data-st="edFoe">${Object.keys(FOES).map(k=>`<option value="${k}" ${(ST.edFoe||'golem')===k?'selected':''}>${FOES[k].n}</option>`).join('')}</select></div></div>
+   <div class="card">${(()=>{const k=ST.edFoe&&FOES[ST.edFoe]?ST.edFoe:'golem';return edTree(FOES[k],'FOES.'+k,0);})()}</div>
+<p class="note">แก้ค่าพื้นฐาน (ช่องกรอก) ได้ · คอลัมน์สีทองคือค่าจริงที่เลเวล ${lv} ความยาก ${DIFFICULTY[ST.diff].n}${ST.elite?' แบบหัวหน้า':''}</p>
+   <div class="tw"><table><tr><th>ศัตรู</th><th>แบบ</th><th class="n">HP ฐาน</th><th class="n">ATK ฐาน</th><th class="n">DEF ฐาน</th><th class="n">M.DEF ฐาน</th><th class="n">HP จริง</th><th class="n">ATK จริง</th><th class="n">DEF/M.DEF</th><th class="n">EXP</th><th>ต้านธาตุ</th><th>ท่า (ตัวคูณ)</th></tr>${rows}</table></div>
+   <h2>ค่าพลังและสกิลของศัตรู <small class="note">ค่ารองคำนวณด้วยสูตรเดียวกับผู้เล่น · สกิลใส่เป็นรหัส คั่นด้วยจุลภาค (ดูรหัสที่แท็บสกิล)</small></h2>
+   <div class="tw"><table><tr><th>ศัตรู</th>${ATT.map(a=>`<th class="n">${a.toUpperCase()}</th>`).join('')}<th class="n">คริ</th><th class="n">ดาเมจคริ</th><th class="n">หลบ</th><th class="n">ต้านสถานะ</th><th class="n">ต้านคริ กาย/เวท</th><th>สกิล</th></tr>${rows2}</table></div>
+   <p class="note">AI ศัตรู: ท่าสุดยอดใช้เมื่อ HP ต่ำกว่า 60% · ท่าระยะไกล (กระสุน/ลำแสง/เวท) ใช้เมื่อห่างเกิน 110 · ท่าประชิดใช้เมื่อห่างไม่เกิน 100 · คูลดาวน์ตามสกิล (บอส ×0.7)</p>`;}
+
+/* ---------- สกิล ---------- */
+function rSkills(){const S=buildPlayer(),T=buildFoe(ST.foe,ST.foeLv,ST.elite),R={};for(const r of skillRows(S,T))R[r.id]=r;
+  const tiers=['common','rare','unique','ultimate'];
+  $('#skills').innerHTML=`<p class="note">ดาเมจเฉลี่ยคิดจากตัวละครในแท็บตัวละคร ตี ${esc(FOES[ST.foe].n)} Lv.${ST.foeLv} · แก้ตัวคูณ (coef) / คูลดาวน์ / MP ได้ · ท่าหลายฮิตหักเกราะทุกฮิต</p>`+tiers.map(t=>{
+   const ks=Object.keys(SKILLS).filter(k=>SKILLS[k].tier===t);
+   return`<h2>${TIERN[t]} (${ks.length})</h2><div class="tw"><table><tr><th>สกิล</th><th>ประเภท</th><th class="n">coef</th><th class="n">จำนวนฮิต</th><th class="n">คูลดาวน์</th><th class="n">MP</th><th>ดีบัฟสถานะ (สแตกต่อครั้ง · พิษ/เลือดออกสูงสุด ${CONFIG.maxStacks} · เผาไหม้/ช็อต/สตันไม่ซ้อน)</th><th class="n">ดาเมจเฉลี่ย</th><th>ใช้ได้โดย</th><th>ที่มา</th><th>คำอธิบาย</th></tr>`+ks.map(k=>{const s=SKILLS[k],r=R[k];
+    return`<tr><td>${esc(s.n)} <span class="note sm">${k}</span></td><td>${s.type==='magic'?'เวท':s.type==='phys'?'กาย':s.type==='passive'?'พาสซีฟ':'บัฟ'} ${s.el?'· '+(s.el==='weapon'?'ตามอาวุธ':ELN[s.el]||s.el):''}</td>
+     <td class="n">${s.coef!=null?ed('SKILLS.'+k+'.coef',.1):'—'}</td><td class="n">${s.type==='passive'||s.type==='buff'?'—':ed('SKILLS.'+k+'.multi',1,1)}</td><td class="n">${s.cd!=null?ed('SKILLS.'+k+'.cd',1):'—'}</td>
+     <td class="n">${s.mpPct?pct(s.mpPct,0)+' ของ MP':s.mp!=null?ed('SKILLS.'+k+'.mp',5):t==='ultimate'?'เกจ 100':'—'}</td>
+     <td class="sm">${s.type==='passive'||s.type==='buff'?'':STATUS_KEYS.map(([sk,sn])=>`<label style="display:inline-block;margin:0 4px 2px 0">${sn} ${ed('SKILLS.'+k+'.status.'+sk,1,0).replace('class="ed','style="width:44px" class="ed')}</label>`).join('')+`<label style="display:inline-block;margin:0 4px 2px 0;color:var(--gold)">นาน (วิ) ${ed('SKILLS.'+k+'.statusDur',.5,CONFIG.statusDur/60).replace('class="ed','style="width:52px" class="ed')}</label>`}${s.armorBreak?`<div>เกราะแตก: DEF × ${ed('SKILLS.'+k+'.armorBreak.def',.05)} นาน ${ed('SKILLS.'+k+'.armorBreak.t',30)} เฟรม</div>`:''}${s.lifesteal?' ดูดเลือด '+pct(s.lifesteal,0):''}${s.jackpot?' คริแน่นอน '+s.jackpot+' ครั้ง':''}${s.ignoreDef?' ไม่สนเกราะ':''}${s.unblockable?' ทะลุการป้องกัน':''}</td>
+     <td class="n gold">${r?fmt(r.r.exp):'—'}</td><td>${edSel('SKILLS.'+k+'.user',[['all','ทุกคน'],['player','ผู้เล่น'],['enemy','ศัตรู']])}</td><td class="sm">${s.talent?'พรสวรรค์ '+TALENTS[s.talent].th:s.bossOnly?'ชนะบอส':'ตำรา/ดรอป'}</td><td class="sm note">${esc(s.desc||'')}</td></tr>`;}).join('')+`</table></div>`;}).join('');}
+
+/* ---------- อุปกรณ์ ---------- */
+function rItems(){const types=[...new Set(Object.values(BASES).map(b=>b.type))];
+  $('#items').innerHTML=`<p class="note">ค่าฐานของอุปกรณ์ (แก้ได้) · คอลัมน์ขวาแสดงค่าจริงเมื่อเป็นระดับ ตำนาน iLvl 10 +5 เพื่อเทียบ</p>`+types.map(t=>`<h2>${SLOTN[t]||t}</h2><div class="tw"><table><tr><th>ไอเทม</th><th class="n">ATK</th><th class="n">M.ATK</th><th class="n">DEF</th><th class="n">M.DEF</th><th>ค่าติดตัว</th><th>เซ็ต</th><th>ตำนาน Lv10 +5</th></tr>`+
+   Object.keys(BASES).filter(k=>BASES[k].type===t).map(k=>{const b=BASES[k],st=F.itemStats({base:k,rar:'legendary',enh:5,ilvl:10,affixes:[],sockets:[]});
+    return`<tr><td>${esc(b.n)} <span class="note sm">${k}</span></td>${['atk','matk','def','mdef'].map(s=>`<td class="n">${b[s]!=null?ed('BASES.'+k+'.'+s,1):'—'}</td>`).join('')}
+     <td class="sm">${b.implicit?Object.entries(b.implicit).map(([a,v])=>(STATN[a]||a)+' '+v).join(', '):''}</td><td class="sm">${b.set?SETS[b.set].n:''}</td><td class="sm gold">${Object.entries(st).map(([a,v])=>(STATN[a]||a)+' '+fmt(v)).join(' · ')}</td></tr>`;}).join('')+`</table></div>`).join('')+
+   `<h2>ความหายาก</h2><table><tr><th>ระดับ</th><th class="n">ตัวคูณค่า</th><th>จำนวน affix</th><th>คุณภาพ affix</th><th class="n">ช่องรูน</th><th>พาสซีฟพิเศษ</th></tr>${RARS.map(r=>`<tr><td>${RARN[r]}</td><td class="n">${ed('RARITY.'+r+'.mult',.05)}</td><td>${RARITY[r].affix.join('–')}</td><td>${RARITY[r].q.join('–')}</td><td class="n">${RARITY[r].sockets}</td><td>${RARITY[r].uniq||'—'}</td></tr>`).join('')}</table>
+   <h2>เซ็ต</h2><table><tr><th>เซ็ต</th><th>โบนัส</th></tr>${Object.values(SETS).map(s=>`<tr><td>${esc(s.n)}</td><td>${Object.entries(s.b).map(([n,b])=>`${n} ชิ้น: ${b.d||Object.entries(b).map(([a,v])=>(STATN[a]||a)+' '+(v<1&&v>0?pct(v):v)).join(', ')}`).join('<br>')}</td></tr>`).join('')}</table>
+   <h2>Affix ที่สุ่มได้</h2><table><tr><th>ค่า</th><th>ช่วง</th></tr>${Object.entries(AFFIX).map(([k,a])=>`<tr><td>${STATN[k]||k}</td><td class="sm">${esc(JSON.stringify(a))}</td></tr>`).join('')}</table>
+   <h2>อาวุธ (ท่าเบา/หนัก ตัวคูณ = dmg ÷ 10)</h2><table><tr><th>อาวุธ</th><th>ธาตุ</th><th>ท่าเบา</th><th>ท่าหนัก</th></tr>${Object.values(WEAPONS).map(w=>`<tr><td>${esc(w.n)}</td><td>${ELN[w.el]||w.el||''}</td><td class="sm">${(w.light||[]).map(m=>esc(m.n)+' '+m.dmg/10).join(' · ')}</td><td class="sm">${(w.heavy?[].concat(w.heavy):[]).map(m=>esc(m.n)+' '+m.dmg/10).join(' · ')}</td></tr>`).join('')}</table>`;}
+
+/* ---------- ดรอปและระบบ ---------- */
+function rLoot(){const L=LOOT_CONFIG,C=CONFIG;
+  $('#loot').innerHTML=`<h2>โอกาสดรอป</h2><table><tr><th>ประเภทศัตรู</th><th class="n">โอกาสดรอป</th><th>จำนวน</th>${RARS.map(r=>`<th class="n">${RARN[r]}</th>`).join('')}</tr>
+   ${Object.entries(L.classes).map(([k,c])=>`<tr><td>${k}</td><td class="n">${ed('LOOT_CONFIG.classes.'+k+'.chance',.01)}</td><td>${ed('LOOT_CONFIG.classes.'+k+'.qty.0',1)} – ${ed('LOOT_CONFIG.classes.'+k+'.qty.1',1)}</td>${RARS.map(r=>`<td class="n">${typeof c.rar==='object'?ed('LOOT_CONFIG.classes.'+k+'.rar.'+r,.1):'(เหมือนบอส)'}</td>`).join('')}</tr>`).join('')}</table>
+   <p class="note">น้ำหนักความหายากคิดเป็นสัดส่วน · LUK เพิ่มโอกาสดรอปแบบสุ่ม +${pct(L.luck.perPoint)} ต่อแต้มเหนือ ${L.luck.base} (เพดาน +${pct(L.luck.cap,0)}) ไม่เปลี่ยนน้ำหนักความหายาก</p>
+   <h2>ความยาก</h2><table><tr><th>ระดับ</th><th class="n">HP ศัตรู</th><th class="n">ATK ศัตรู</th><th class="n">ความเร็ว</th><th class="n">คูลดาวน์ AI</th><th class="n">EXP</th><th class="n">ทอง</th></tr>
+   ${Object.entries(DIFFICULTY).map(([k,d])=>`<tr><td>${d.n}</td>${['eHP','eATK','eSpd','aiCD','xp','gold'].map(f=>`<td class="n">${ed('DIFFICULTY.'+k+'.'+f,.05)}</td>`).join('')}</tr>`).join('')}</table>
+   <h2>ค่าระบบหลัก (CONFIG)</h2><div class="grid g3">
+    <div class="card"><h3>เพดาน</h3><div class="kv"><span>คริ</span><b>${ed('CONFIG.critCap',.01)}</b><span>ดาเมจคริ</span><b>${ed('CONFIG.critDmgCap',.1)}</b><span>ลดดาเมจ</span><b>${ed('CONFIG.drCap',.01)}</b><span>ค่าพลังสูงสุด</span><b>${ed('CONFIG.attrMax',1)}</b><span>แต้มต่อเลเวล</span><b>${ed('CONFIG.levelPoints',1)}</b></div></div>
+    <div class="card"><h3>ค่ารอง (ทุก 10)</h3><div class="kv"><span>DEF → ต้านคริ</span><b>${ed('CONFIG.derived.defPer10Crit',.005)}</b><span>AGI → หลบ</span><b>${ed('CONFIG.derived.agiPer10Eva',.005)}</b><span>AGI → DEF</span><b>${ed('CONFIG.derived.agiPer10Def',1)}</b><span>STR → ต้านสถานะ</span><b>${ed('CONFIG.derived.strPer10Res',.005)}</b><span>เพดานหลบ</span><b>${ed('CONFIG.derived.evaCap',.05)}</b></div></div>
+    <div class="card"><h3>ต่อสู้</h3><div class="kv"><span>โบนัสสตัน</span><b>${ed('CONFIG.stunBonus',.05)}</b><span>โบนัสคอมโบครบ</span><b>${ed('CONFIG.fullComboBonus',.05)}</b><span>สถานะ (เฟรม)</span><b>${ed('CONFIG.statusDur',10)}</b><span>บอสต้านคริเพิ่ม</span><b>${ed('CONFIG.bossCritRes',.05)}</b><span>ศัตรูตีเราลอยได้ (ฮิต)</span><b>${ed('CONFIG.playerJuggleMax',1)}</b><span>วิที่เพิ่มต่อโอกาสติด 1%</span><b>${ed('CONFIG.statusChanceDur',.01)}</b><span>สแตกสูงสุด</span><b>${ed('CONFIG.maxStacks',1)}</b><span>การ์ด (ครั้ง)</span><b>${ed('CONFIG.guard.max',1)}</b><span>การ์ดแตก (เฟรม)</span><b>${ed('CONFIG.guard.breakT',30)}</b><span>ตีบวกสูงสุด (ทั่วไป)</span><b>${ed('CONFIG.enhanceMax',1)}</b><span>ตีบวกสูงสุด (craft)</span><b>${ed('CONFIG.enhanceMaxCraft',1)}</b><span>ตีบวก +หน่วย/ขั้น</span><b>${ed('CONFIG.enhFlat',.1)}</b><span>ตีบวก +%/ขั้น</span><b>${ed('CONFIG.enhPct',.005)}</b><span>craft เริ่มที่ +</span><b>${ed('CONFIG.craftEnh',1)}</b></div></div></div>
+   <h2>พาสซีฟพรสวรรค์</h2><table><tr><th>พรสวรรค์</th><th>ค่า</th><th>สกิลเฉพาะตัว</th></tr>${Object.entries(TALENTS).map(([k,t])=>`<tr><td>${t.n}<br><span class="note">${t.th}</span></td><td>${Object.keys(TALENT_PASSIVE[k]).map(p=>`${STATN[p]||p} ${ed('TALENT_PASSIVE.'+k+'.'+p,.01)}`).join(' &nbsp; ')}</td><td>${esc(SKILLS[t.skill].n)}<br><span class="note sm">${esc(SKILLS[t.skill].desc)}</span></td></tr>`).join('')}</table>
+   <h2>EXP ต่อเลเวล</h2><table><tr>${[1,2,3,5,8,10,15,20,30,40,50].map(l=>`<th class="n">Lv${l}</th>`).join('')}</tr><tr>${[1,2,3,5,8,10,15,20,30,40,50].map(l=>`<td class="n">${F.xpNext(l).toLocaleString()}</td>`).join('')}</tr></table>`;}
+
+/* ---------- ส่งออก ---------- */
+function rExport(){const ks=Object.keys(EDITS);
+  const lines=ks.map(p=>`${p}: ${JSON.stringify(get(ORIG,p)??null)} → ${JSON.stringify(EDITS[p])}`).join('\n');
+  const msg=ks.length?`ปรับบาลานซ์ Cave Forge ตามนี้ (จาก Balance Lab):\n${lines}\n\nJSON:\n${JSON.stringify(EDITS,null,1)}`:'';
+  $('#export').innerHTML=`<h2>ค่าที่แก้ (${ks.length})</h2>${ks.length?`<p class="note">กด "คัดลอก" แล้ววางในแชทให้ Claude เพื่อใส่ค่าเหล่านี้ลงเกมจริง</p>
+   <table><tr><th>ค่า</th><th class="n">เดิม</th><th class="n">ใหม่</th><th></th></tr>${ks.map(p=>`<tr><td><code>${esc(p)}</code></td><td class="n">${esc(JSON.stringify(get(ORIG,p)??'—'))}</td><td class="n gold">${esc(JSON.stringify(EDITS[p]))}</td><td><button class="btn ghost" data-undo="${esc(p)}">คืนค่า</button></td></tr>`).join('')}</table>
+   <p><button class="btn" id="copy">คัดลอกข้อความ</button> <button class="btn ghost" id="resetAll">คืนค่าเดิมทั้งหมด</button> <span id="cpm" class="note"></span></p><textarea id="out" readonly>${esc(msg)}</textarea>`
+   :'<p class="note">ยังไม่ได้แก้ค่าใดเลย · แก้ตัวเลขในช่องกรอก (กรอบทอง) ที่แท็บ ศัตรู / สกิล / อุปกรณ์ / ดรอป & ระบบ แล้วค่าที่แก้จะมารวมที่นี่</p>'}
+   <h2>การอัปเดต</h2><p class="note">กด "อัปเดตเกม" (มุมขวาบน) → ค่าที่แก้ถูกบันทึกในฐานข้อมูลของเกม ผู้เล่นทุกคนที่เปิดเกมจะได้ค่าใหม่ทันที (ถ้ากำลังเล่นอยู่จะขึ้นข้อความแจ้ง) · ค่าเดิมของเกมยังอยู่ในไฟล์ data.js เสมอ · ถ้าต้องการฝังค่าลงไฟล์เกมถาวร ส่งข้อความด้านบนให้ Claude</p>
+   <p><button class="btn ghost" id="clearLive" ${CAN_WRITE===false?'disabled':''}>คืนค่าเกมเป็นค่าเริ่มต้น (ลบค่าที่ปรับทั้งหมด)</button></p>`;
+  const c=$('#copy');if(c)c.onclick=async()=>{const t=$('#out');try{await navigator.clipboard.writeText(t.value);$('#cpm').textContent='คัดลอกแล้ว';}catch(e){t.select();$('#cpm').textContent='เลือกข้อความแล้ว กด Ctrl+C';}};
+  const r=$('#resetAll');if(r)r.onclick=()=>{applyEdits({});saveEdits();render();};
+  const cl=$('#clearLive');if(cl)cl.onclick=async()=>{cl.disabled=true;await clearLive();};}
+document.addEventListener('click',e=>{const u=e.target.dataset&&e.target.dataset.undo;if(u){const o=get(ORIG,u);if(o===undefined)delDeep(DATA,u);else setDeep(DATA,u,JSON.parse(JSON.stringify(o)));delete EDITS[u];saveEdits();render();}});
+render();
+})();
+</script>
+</body>
+</html>
