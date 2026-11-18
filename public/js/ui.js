@@ -45,12 +45,13 @@ const UI={
   /* ---- talent selection (character creation) ---- */
   diffSel:'normal',
   scr_create(){const L=Object.assign({},DEFLOOK,G.look);
-    const sw=(arr,key)=>arr.map(c=>`<button class="sw ${L[key]===c?'on':''}" data-${key==='skin'?'skin':'hair'}="${c}" style="background:${c}" aria-label="${c}"></button>`).join('');
+    const sw=(arr,key)=>arr.map(c=>`<button class="sw ${L[key]===c?'on':''}" data-lk="${key}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')+
+      `<label class="sw pick" title="เลือกสีเอง"><input type="color" id="pc-${key}" value="${/^#[0-9a-f]{6}$/i.test(L[key]||'')?L[key]:'#888888'}"></label>`;
     return`<h2>${ico('brush',22)} สร้างตัวละคร</h2><div class="eqg"><div><canvas id="pv" width="220" height="270"></canvas></div><div class="cr">
       <h3>ชื่อ</h3><p><input id="pname" maxlength="12" placeholder="ตั้งชื่อตัวละคร (ไม่เกิน 12 ตัว)" value="${(L.name||'').replace(/"/g,'')}" style="width:260px"></p>
       <h3>เพศ</h3><div class="swrow"><button class="btn sm ${L.sex==='m'?'':'ghost'}" data-sex="m">♂ ชาย</button><button class="btn sm ${L.sex==='f'?'':'ghost'}" data-sex="f">♀ หญิง</button></div>
       <h3>ทรงผม</h3><div class="swrow">${Object.entries(HAIR_STYLES).map(([k,n])=>`<button class="btn sm ${L.hstyle===k?'':'ghost'}" data-hstyle="${k}">${n}</button>`).join('')}</div>
-      <h3>สีผิว</h3><div class="swrow">${sw(SKIN_TONES,'skin')}</div><h3>สีผม</h3><div class="swrow">${sw(HAIR_COLORS,'hair')}</div>
+      <h3>สีผิว</h3><div class="swrow">${sw(SKIN_TONES,'skin')}</div><h3>สีผม</h3><div class="swrow">${sw(HAIR_COLORS,'hair')}</div><h3>สีตา</h3><div class="swrow">${sw(EYE_COLORS,'eye')}</div>
       <p><button class="btn sm" data-lookrand="1">🎲 สุ่ม</button> <button class="btn sm ghost" data-lookreset="1">รีเซ็ต</button></p>
       <p class="dim">${UI.creating?'เลือกรูปลักษณ์ก่อนเริ่มผจญภัย ขั้นต่อไปคือเลือกพรสวรรค์':'เปลี่ยนรูปลักษณ์ได้ทุกเมื่อ (ไม่เสียค่าใช้จ่าย)'}</p>
       <p>${UI.creating?'<button class="btn" data-open="talent">ต่อไป: เลือกพรสวรรค์ ▶</button>':'<button class="btn" data-close="1">เสร็จ</button>'}</p></div></div>`;},
@@ -60,7 +61,7 @@ const UI={
     const S=StatSync.get(),bar=(v,m,c)=>`<div class="mbar"><i style="width:${Math.max(0,Math.min(100,v/Math.max(1,m)*100))}%;background:${c}"></i></div>`;
     return`<div class="emenu"><div class="emn-l">
         <div class="mlist">${R('char','status','สถานะตัวละคร','C')}${R('equip','equip','อุปกรณ์และกระเป๋า','I')}${R('skills','skill','สกิล','K')}${R('quests','scroll','เควสต์','Q')}${R('map','map','แผนที่โลก','M')}${R('ency','ency','สารานุกรมศัตรู','B')}</div>
-        <div class="mlist sub">${A('save','save','บันทึกเกม','')}${A('load','load','โหลดเกม','')}${R('controls','controls','ปุ่มควบคุม','?')}${A('title','home','กลับหน้าหลัก (บันทึกก่อน)','')}${R('debug','gear','เครื่องมือดีบัก','`')}<a class="mrow" href="balance.html" style="text-decoration:none"><span class="mi">${ico('controls')}</span><span class="ml">Balance Lab (ปรับค่าเกม)</span></a></div>
+        <div class="mlist sub">${A('save','save','บันทึกเกม','')}${A('load','load','โหลดเกม','')}${R('controls','controls','ปุ่มควบคุม','?')}${A('title','home','กลับหน้าหลัก (บันทึกก่อน)','')}${R('debug','gear','เครื่องมือดีบัก','`')}${window.CF_WS?'':`<a class="mrow" href="balance.html" style="text-decoration:none"><span class="mi">${ico('controls')}</span><span class="ml">Balance Lab (ปรับค่าเกม)</span></a>`}</div>
       </div>
       <div class="emn-r"><div class="sumcard">
         <div class="emn-head">${pname()}</div>
@@ -125,7 +126,7 @@ const UI={
       const runes=Object.keys(G.mats).filter(k=>MATS[k].rune);
       det=itemTip(sel,!eqd&&cur?cur:null)+`<div class="acts">${eqd?`<button class="btn sm" data-uneq="${sel.uid}">ถอด</button>`:`<button class="btn sm" data-eq="${sel.uid}" ${Equip.canEquip(sel)?'':'disabled'}>สวมใส่</button>`}
         <span class="dim">ตีบวก +${sel.enh}/+${Equip.maxEnh(sel)} · ตีบวกได้ที่โต๊ะตีเหล็ก (ข้างโบโร)</span>
-        ${eqd?'':`<button class="btn ghost sm" data-salv="${sel.uid}">แยกชิ้นส่วน</button>`}${eqd?'':`<button class="btn sm" data-sell="${sel.uid}">${UI.sellArm===sel.uid?'ยืนยันขาย':'ขาย'} ${Inv.sellPrice(sel)} ทอง</button>`}</div>`+
+        ${eqd?'':`<button class="btn ghost sm" data-salv="${sel.uid}">แยกชิ้นส่วน</button>`}${eqd?'':`<span class="dim" style="align-self:center">${ico('coin',14)} ขายได้ที่ร้านค้าลุงชายเท่านั้น</span>`}</div>`+
         (sel.sockets.length?`<div class="acts">`+sel.sockets.map((r,i)=>r?`<button class="btn ghost sm" data-unsock="${i}">${mIco(r,14)} ถอดรูน (รูนจะแตก)</button>`:
           (runes.length?runes.map(k=>`<button class="btn ghost sm" data-sock="${i}" data-rune="${k}">ใส่ ${mIco(k,14)}${MATS[k].n} ช่อง ${i+1}</button>`).join(''):`<span class="dim">ช่อง ${i+1} ว่าง (ไม่มีรูน)</span>`)).join('')+'</div>':'');}
     const mats=Object.keys(G.mats).map(k=>{const m=MATS[k];return`<span class="mat">${mIco(k,14)} ${m.n} ×${G.mats[k]}${m.scroll||m.use||m.manaPotion?` <button class="btn sm" data-use="${k}">ใช้</button>`:''}</span>`;}).join('')||'<span class="dim">—</span>';
@@ -282,24 +283,45 @@ const UI={
   enhList(){    const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
     return`<div class="slist">`+(list.map(it=>{const c=Equip.enhanceCost(it),mx=it.enh>=Equip.maxEnh(it);
       return`<div class="srow"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}${Equip.isEquipped(it)?' <b class="good">สวมอยู่</b>':''}</span><small class="dim">${mx?'สูงสุด':`โอกาส ${pct(c.rate)} · ${c.gold} ทอง + แร่ ${c.ore}`}</small>${mx?'<span></span>':`<button class="btn sm" data-enh="${it.uid}" ${G.gold>=c.gold&&(G.mats.ore||0)>=c.ore?'':'disabled'}>ตีบวก +${it.enh+1}</button>`}</div>`;}).join('')||'<div class="dim">ไม่มีอุปกรณ์</div>')+`</div>`;},
-  scr_reitem(){const rs=this.reRes||[],full=G.bag.length>=LOOT_CONFIG.inventory.equipSlots,can=G.gold>=REITEM.cost;
+  scr_reitem(){const rs=this.reRes||[],full=G.bag.length>=LOOT_CONFIG.inventory.equipSlots,can=G.gold>=REITEM.cost,done=!!this.reBought,buyOk=G.gold>=REITEM.buy;
     const slots=[0,1,2,3].map(i=>{const it=rs[i];if(!it)return`<div class="it"><span class="dim">ว่าง</span></div>`;
-      return`<button class="it" data-reclaim="${i}" ${full?'disabled':''}><span class="ic" ${rc(it.rar)}>${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}</span><br><small>${RARN[it.rar]} · ${full?'กระเป๋าเต็ม':'กดเพื่อรับ'}</small></button>`;}).join('');
+      const st=done?(this.reBought===it.uid?'<b class="good">ซื้อแล้ว</b>':'ปิดการขาย'):full?'กระเป๋าเต็ม':!buyOk?'เหรียญไม่พอ':`ซื้อ ${REITEM.buy} เหรียญ`;
+      return`<button class="it" data-reclaim="${i}" ${done||full||!buyOk?'disabled':''}><span class="ic" ${rc(it.rar)}>${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}</span><br><small>${RARN[it.rar]} · ${st}</small></button>`;}).join('');
     return`<h2>${ico('gem',22)} Re-Item Master</h2>
-      <p class="dim">สุ่มรับไอเทมระดับต่าง ๆ จำนวน 4 ช่อง · รีไอเทม 1 ครั้ง ${REITEM.cost} เหรียญ · ไอเทมที่ยังไม่รับจะหายเมื่อรีใหม่</p>
+      <p class="dim">สุ่มไอเทม 4 ช่อง ครั้งละ <b>${REITEM.cost}</b> เหรียญ · ซื้อได้ <b>1 ชิ้นต่อการสุ่ม</b> ชิ้นละ <b>${REITEM.buy}</b> เหรียญ · สุ่มใหม่แล้วของเดิมหาย</p>
       <div class="inv">${slots}</div>
       <p class="dim">อัตรา: ${reitemOdds().map(([r,p])=>`${RARN[r]} ${p}%`).join(' · ')}</p>
-      <div class="acts"><button class="btn" data-reroll="1" ${can?'':'disabled'}>${ico('craft',14)} รีไอเทม — ${REITEM.cost} เหรียญ</button></div>
+      <div class="acts"><button class="btn" data-reroll="1" ${can?'':'disabled'}>${ico('craft',14)} สุ่มไอเทม — ${REITEM.cost} เหรียญ</button></div>
       <p class="dim">เหรียญของคุณ ${G.gold}</p>`;},
+  scr_alchemy(){const sel=(this.alSel||[]).map(itemByUid).filter(Boolean),first=sel[0];
+    const list=G.bag.filter(it=>!Equip.isEquipped(it)),cnt={};for(const it of list)cnt[it.base]=(cnt[it.base]||0)+1;
+    const pool=list.filter(it=>cnt[it.base]>=2).sort((a,b)=>a.base<b.base?-1:a.base>b.base?1:RARS.indexOf(b.rar)-RARS.indexOf(a.rar));
+    const chip=it=>{const on=sel.includes(it),dis=first&&!on&&(it.base!==first.base||sel.length>=2);
+      return`<button class="it${on?' on':''}" data-alsel="${it.uid}" ${dis?'disabled':''} style="border-color:${on?'#ffe27a':RARC[it.rar]+'88'}"><span class="ic">${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}</span><br><small>${RARN[it.rar]} · ${it.affixes.map(x=>AFFIX[x.k]?AFFIX[x.k].n:x.k).join(', ')||'ไม่มีค่าเสริม'}</small></button>`;};
+    const ok=sel.length===2&&Alchemy.canFuse(sel[0],sel[1]),ps=G.mats.philostone||0,L=this.alLock;
+    const lockRow=ok&&ps?`<div class="tset">${mIco('philostone',14)} ศิลานักปราชญ์ ×${ps} — เลือกค่าเสริม 1 ค่าที่จะ<b>ล็อกไว้</b> (ใช้ 1 ก้อน) หรือไม่ล็อกก็ได้:<div class="acts">`+
+      [...sel[0].affixes,...sel[1].affixes].map(x=>{const on=L&&L.k===x.k&&L.v===x.v;return`<button class="btn sm ${on?'':'ghost'}" data-allock="${x.k}|${x.v}">${on?'🔒 ':''}${STATN2[x.k]||x.k} ${fmtStat(x.k,x.v)}</button>`;}).join('')+`</div></div>`:'';
+    return`<h2>${ico('gem',22)} นักเล่นแร่แปรธาตุ</h2>
+      <p class="dim">"อาจารย์ของข้าหายไปในหอคอยทางเหนือ… ถ้าเจอศิลานักปราชญ์ เอามาให้ข้า จะล็อกค่าที่ชอบไว้ให้"</p><p class="dim">เลือกอุปกรณ์ <b>ชนิดเดียวกัน 2 ชิ้น</b> แล้วหลอมรวม → ได้ชิ้นเดิม 1 ชิ้นที่ <b>สุ่มค่าเสริมใหม่ทั้งหมด</b> · ได้ระดับ / iLv / ตีบวก ของชิ้นที่สูงกว่า · รูนที่ใส่ไว้จะหาย · ของที่สวมอยู่ใช้ไม่ได้</p>
+      ${this.alRes?`<div class="cres win"><div class="big good">✨ แปรธาตุสำเร็จ!</div>${itemTip(this.alRes)}</div>`:''}
+      ${pool.length?`<div class="inv">${pool.map(chip).join('')}</div>`:'<p class="dim">ยังไม่มีอุปกรณ์ชนิดเดียวกันซ้ำ 2 ชิ้นในกระเป๋า</p>'}
+      ${lockRow}<div class="acts"><button class="btn" data-alfuse="1" ${ok?'':'disabled'}>${ico('craft',14)} หลอมรวม (${sel.length}/2)${L?' + ล็อก 1 ค่า':''}</button> <button class="btn ghost" data-alclear="1">ล้างที่เลือก</button></div>`;},
   scr_arena(){return`<h2>🏟️ ลานประลอง Collawarrie</h2>
-    <p class="dim">สู้กันแบบนักสู้ต่อนักสู้ ชนะ 2 ใน 3 ยก · <b>ใช้เลเวล ค่าพลัง อุปกรณ์ และสกิล 4 ช่องของตัวเอง</b> (ออนไลน์: ชุดของเพื่อนส่งไปตอนเข้าห้อง) · ไม่ใช้ยา · ไม่ได้ EXP ไม่ได้ของ ไม่เสียอะไร ไม่กระทบความยาก</p>
+    <p class="dim">สู้กันแบบนักสู้ต่อนักสู้ ชนะ 2 ใน 3 ยก · <b>ใช้เลเวล ค่าพลัง อุปกรณ์ และสกิล 4 ช่องของตัวเอง</b> (ออนไลน์: ชุดของเพื่อนส่งไปตอนเข้าห้อง) · ไม่ใช้ยา · ชนะได้รางวัลสุ่ม 1 ชิ้น (อัตราเดียวกับร้านรีไอเทม) · ไม่ได้ EXP ไม่เสียอะไร</p>
     <div class="tal" style="grid-template-columns:1fr">
       <button class="talc" data-open="room"><div class="ti">🌐</div><b>ห้องออนไลน์ (เชิญเพื่อน)</b><p>สร้างห้อง ส่งรหัสให้เพื่อน แล้วสู้กันคนละเครื่อง</p>
         <div class="sk">ต้องให้เพื่อนเปิดเกมนี้อยู่พร้อมกัน</div></button></div>
     <div style="text-align:right;margin-top:10px"><button class="btn" data-close="1">ออก</button></div>`;},
   vsResult(w,wins,net){this.cur='vsres';G.mode='menu';ov.classList.remove('hidden');SFX.loot('legendary');
     const again=net==='host'?'<button class="btn" data-net="again">⚔️ แก้มืออีกครั้ง</button>':net==='guest'?'<span class="dim">รอเจ้าของห้องเริ่มยกใหม่… </span>':'';
-    pn.innerHTML=`<h2>🏆 ${w}${net?(w==='P1'?' (เจ้าของห้อง)':' (เพื่อน)'):''} ชนะการประลอง!</h2><div class="big" style="font-size:2em">P1 ${wins[0]} — ${wins[1]} P2</div>
+    // ผู้ชนะได้รางวัลสุ่ม 1 ชิ้น ด้วยอัตราเดียวกับร้านรีไอเทม (ฝั่งใครฝั่งมัน)
+    const me=net==='guest'?'P2':'P1';let rw='';
+    if(net&&w===me){const it=reitemRoll(),full=G.bag.length>=LOOT_CONFIG.inventory.equipSlots;
+      if(full){const g=Inv.sellPrice(it);G.gold+=g;rw=`<div class="big">🎁 รางวัลผู้ชนะ: <span ${rc(it.rar)}>${bIco(it.base,18)} ${itemName(it)}</span><br><small class="dim">กระเป๋าเต็ม — ขายให้อัตโนมัติ ได้ ${g} ทอง</small></div>`;}
+      else{Inv.addItem(it);rw=`<div class="big">🎁 รางวัลผู้ชนะ: <span ${rc(it.rar)}>${bIco(it.base,18)} ${itemName(it)}</span> <small class="dim">(${RARN[it.rar]} · เข้ากระเป๋าแล้ว)</small></div>`;}
+      if(it.rar!=='normal')SFX.loot(it.rar);try{Save.save();}catch(e){}UI.hud&&UI.hud();}
+    else if(net)rw=`<div class="dim">แพ้ครั้งนี้ ชนะเพื่อรับรางวัลสุ่ม 1 ชิ้น</div>`;
+    pn.innerHTML=`<h2>🏆 ${w}${net?(w==='P1'?' (เจ้าของห้อง)':' (เพื่อน)'):''} ชนะการประลอง!</h2><div class="big" style="font-size:2em">P1 ${wins[0]} — ${wins[1]} P2</div>${rw}
       <div style="text-align:right;margin-top:14px">${again} <button class="btn" data-close="1">ออกจากลาน</button></div>`;},
   scr_room(){const L=Net.lobby,back='<div style="text-align:right;margin-top:10px"><button class="btn" data-net="leave">ยกเลิก / กลับ</button></div>';
     if(L.phase==='hosting')return`<h2>🌐 ห้องของคุณ</h2><div class="big" style="font-size:3em;letter-spacing:.3em;text-align:center;margin:10px 0">${Net.code}</div><p class="dim" style="text-align:center">ส่งรหัสนี้ให้เพื่อน แล้วให้เพื่อนเปิดเกมนี้ → ลานประลอง → ห้องออนไลน์ → เข้าห้อง<br>${Net.label()}</p>
@@ -307,7 +329,7 @@ const UI={
       <div style="text-align:center;margin-top:12px"><button class="btn" data-net="start" ${L.peer?'':'disabled'}>⚔️ เริ่มสู้</button></div>${back}`;
     if(L.phase==='connecting')return`<h2>🌐 กำลังเชื่อมต่อระบบออนไลน์…</h2><p class="dim">อาจใช้เวลาถึง 10 วินาที</p>${back}`;
     if(L.phase==='joining')return`<h2>🌐 กำลังเข้าห้อง ${Net.code}…</h2><p class="dim">กำลังหาเจ้าของห้อง · ${Net.label()}</p>${back}`;
-    if(L.phase==='joined')return`<h2>🌐 เข้าห้อง ${Net.code} แล้ว</h2><div class="big" style="text-align:center">✅ รอเจ้าของห้องกดเริ่มสู้…</div><p class="dim" style="text-align:center">${Net.label()}<br>ปุ่มของคุณ: A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J หรือ , ตี · K หรือ . เตะ · Space หรือ / กลิ้ง</p>${back}`;
+    if(L.phase==='joined')return`<h2>🌐 เข้าห้อง ${Net.code} แล้ว</h2><div class="big" style="text-align:center">✅ รอเจ้าของห้องกดเริ่มสู้…</div><p class="dim" style="text-align:center">${Net.label()}<br>ปุ่มของคุณ: A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J หรือ , ตี · K หรือ . เตะ · Space หรือ / พุ่งหลบ</p>${back}`;
     return`<h2>🌐 ห้องออนไลน์</h2><p class="dim">สู้กับเพื่อนคนละเครื่อง · เจ้าของห้องเป็นฝั่ง P1 ซ้าย เพื่อนเป็น P2 ขวา · ใช้เลเวล อุปกรณ์ และสกิลของแต่ละคน · ไม่เสียอะไร<br>เพื่อนต้องล็อกอิน Claude และเปิดเกมจากลิงก์ที่คุณแชร์ให้ (เชิญผ่านปุ่มแชร์ของ artifact) — คนที่ไม่ได้ล็อกอินเข้าห้องออนไลน์ไม่ได้</p>${L.err?'<p class="bad">⚠ '+esc(L.err)+'</p>':''}
       <div class="tal" style="grid-template-columns:1fr 1fr"><button class="talc" data-net="host"><div class="ti">➕</div><b>สร้างห้อง</b><p>ได้รหัส 4 ตัวไปส่งให้เพื่อน</p></button>
       <div class="talc"><div class="ti">🔑</div><b>เข้าห้องของเพื่อน</b><p><input id="roomCode" maxlength="4" placeholder="รหัส 4 ตัว" style="width:7em;text-transform:uppercase;font:inherit;font-size:1.3em;letter-spacing:.2em;text-align:center"></p><button class="btn" data-net="join">เข้าห้อง</button></div></div>
@@ -361,7 +383,8 @@ const UI={
   }
 };
 /* ---- event wiring ---- */
-pn.addEventListener('input',e=>{if(e.target.id==='pname'){G.look=Object.assign({},DEFLOOK,G.look,{name:e.target.value.slice(0,12)});}});
+pn.addEventListener('input',e=>{if(e.target.id==='pname'){G.look=Object.assign({},DEFLOOK,G.look,{name:e.target.value.slice(0,12)});}
+  const m=/^pc-(skin|hair|eye)$/.exec(e.target.id||'');if(m&&/^#[0-9a-f]{6}$/i.test(e.target.value)){G.look=Object.assign({},DEFLOOK,G.look,{[m[1]]:e.target.value});}});   // ตัวอย่างวาดใหม่ทุกเฟรม จึงเห็นสีทันที
 pn.addEventListener('click',e=>{
   if(!e.target.closest('button')){const row=e.target.closest('.srow.sel');const c=row&&row.querySelector('[data-ssel]');if(c){c.click();return;}}   // คลิกทั้งแถวเพื่อเลือก
   const t=e.target.closest('button');if(!t)return;const d=t.dataset;
@@ -373,8 +396,8 @@ pn.addEventListener('click',e=>{
   if(d.net){const a=d.net;if(a==='host')Net.host();else if(a==='join')Net.join(($('#roomCode')||{}).value);else if(a==='start'||a==='again')Net.beginHost();else if(a==='leave'){Net.leave();UI.open('arena');}return;}
   if(d.diff&&UI.cur==='talent'){UI.diffSel=d.diff;UI.rerender();return;}
   if(d.sex||d.hstyle){G.look=Object.assign({},DEFLOOK,G.look);if(d.sex){G.look.sex=d.sex;if(UI.creating&&G.look.hstyle==='short'&&d.sex==='f')G.look.hstyle='ponytail';else if(UI.creating&&G.look.hstyle==='ponytail'&&d.sex==='m')G.look.hstyle='short';}if(d.hstyle)G.look.hstyle=d.hstyle;UI.rerender();return;}
-  if(d.skin||d.hair){G.look=Object.assign({},DEFLOOK,G.look);if(d.skin)G.look.skin=d.skin;if(d.hair)G.look.hair=d.hair;UI.rerender();return;}
-  if(d.lookrand){G.look=Object.assign({},DEFLOOK,G.look,{skin:pick(SKIN_TONES),hair:pick(HAIR_COLORS),hstyle:pick(Object.keys(HAIR_STYLES))});UI.rerender();return;}
+  if(d.lk&&d.c){G.look=Object.assign({},DEFLOOK,G.look,{[d.lk]:d.c});UI.rerender();return;}
+  if(d.lookrand){G.look=Object.assign({},DEFLOOK,G.look,{skin:pick(SKIN_TONES),hair:pick(HAIR_COLORS),eye:pick(EYE_COLORS),hstyle:pick(Object.keys(HAIR_STYLES))});UI.rerender();return;}
   if(d.lookreset){G.look=Object.assign({},DEFLOOK,{name:(G.look||{}).name||''});UI.rerender();return;}
   if(d.tal){newGame(d.tal);return;}
   if(d.al){Prog.allocate(d.al);UI.rerender();UI.hud();return;}
@@ -385,7 +408,7 @@ pn.addEventListener('click',e=>{
   if(d.uneq){for(const s of SLOTS)if(G.eq[s]===+d.uneq)G.eq[s]=null;UI.rerender();return;}
   if(d.enh){const r=Equip.enhance(itemByUid(+d.enh));toast(r.msg);r.ok?SFX.craft():SFX.fail();UI.rerender();return;}
   if(d.salv){Inv.salvage(itemByUid(+d.salv));UI.sel=null;SFX.pick();UI.rerender();return;}
-  if(d.sell){const it=itemByUid(+d.sell);if(!it){UI.sellArm=null;UI.rerender();return;}
+  if(d.sell&&UI.cur==='shop'){const it=itemByUid(+d.sell);if(!it){UI.sellArm=null;UI.rerender();return;}
     if(UI.sellArm!==it.uid){UI.sellArm=it.uid;UI.rerender();return;}   // กดสองครั้งเพื่อยืนยัน กันขายผิด
     const price=Inv.sellPrice(it);if(Inv.sell(it)){UI.sel=null;UI.sellArm=null;SFX.pick();toast('ขาย '+itemName(it)+' ได้ '+price+' ทอง');}else toast('สวมอยู่ ถอดก่อนจึงขายได้');UI.rerender();return;}
   if(d.sock!==undefined&&d.rune){Equip.socket(UI.sel&&itemByUid(UI.sel),+d.sock,d.rune);SFX.pick();UI.rerender();return;}
@@ -411,16 +434,22 @@ pn.addEventListener('click',e=>{
   if(d.shoptab){UI.shopTab=d.shoptab;UI.bulkArm=null;UI.sellArm=null;UI.sellSel.clear();UI.rerender();return;}
   if(d.ssel){const S=UI.sellSel;S.has(d.ssel)?S.delete(d.ssel):S.add(d.ssel);UI.bulkArm=null;UI.rerender();return;}
   if(d.sselall){const S=UI.sellSel;if(d.sselall==='none')S.clear();else if(d.sselall==='gear')G.bag.filter(it=>!Equip.isEquipped(it)).forEach(it=>S.add('i:'+it.uid));else Object.keys(G.mats).filter(k=>Inv.matPrice(k)>0).forEach(k=>S.add('m:'+k));UI.bulkArm=null;UI.rerender();return;}
-  if(d.sellsel){if(UI.bulkArm!=='sel'){UI.bulkArm='sel';UI.rerender();return;}UI.bulkArm=null;let g=0,n=0;
+  if(d.sellsel&&UI.cur==='shop'){if(UI.bulkArm!=='sel'){UI.bulkArm='sel';UI.rerender();return;}UI.bulkArm=null;let g=0,n=0;
     for(const k of [...UI.sellSel]){const v=k.slice(2);if(k[0]==='i'){const it=itemByUid(+v);if(it&&!Equip.isEquipped(it)){g+=Inv.sellPrice(it);Inv.sell(it);n++;}}else if(G.mats[v]>0){n+=G.mats[v];g+=Inv.sellMat(v,G.mats[v]);}}
     UI.sellSel.clear();if(n){SFX.loot('rare');toast(`ขาย ${n} ชิ้น ได้ ${g} ทอง`);}UI.rerender();UI.hud();return;}
   if(d.ctab){UI.craftTab=d.ctab;if(UI.cur!=='craft')UI.open('craft');else UI.rerender();return;}
   if(d.smtab){UI.smTab=d.smtab;UI.rerender();return;}
-  if(d.reroll){if(G.gold<REITEM.cost){SFX.fail();toast('เหรียญไม่พอ');return;}G.gold-=REITEM.cost;UI.reRes=[0,1,2,3].map(()=>reitemRoll());UI.rerender();Save.save();return;}
-  if(d.reclaim!==undefined){const i=+d.reclaim,it=(UI.reRes||[])[i];if(!it)return;if(G.bag.length>=LOOT_CONFIG.inventory.equipSlots){SFX.fail();toast('🎒 กระเป๋าเต็ม');return;}Inv.addItem(it);UI.reRes[i]=null;toast('รับ '+itemName(it)+' แล้ว');UI.rerender();Save.save();return;}
-  if(d.sellall){const k='g:'+d.sellall;if(UI.bulkArm!==k){UI.bulkArm=k;UI.rerender();return;}UI.bulkArm=null;const r=Inv.sellAllGear(d.sellall==='all'?null:d.sellall);if(r.n){SFX.loot('rare');toast(`ขายอุปกรณ์ ${r.n} ชิ้น ได้ ${r.g} ทอง`);}UI.rerender();UI.hud();return;}
-  if(d.selljunk){if(UI.bulkArm!=='junk'){UI.bulkArm='junk';UI.rerender();return;}UI.bulkArm=null;const r=Inv.sellAllJunk();if(r.n){SFX.pick();toast(`ขายวัตถุดิบ ${r.n} ชิ้น ได้ ${r.g} ทอง`);}UI.rerender();UI.hud();return;}
-  if(d.sellmat){const k=d.sellmat;if(d.q==='all'){if(UI.bulkArm!=='m:'+k){UI.bulkArm='m:'+k;UI.rerender();return;}UI.bulkArm=null;}
+  if(d.alsel){UI.alLock=null;const u=+d.alsel,S=UI.alSel=UI.alSel||[];const i=S.indexOf(u);if(i>=0)S.splice(i,1);else if(S.length<2)S.push(u);UI.alRes=null;UI.rerender();return;}
+  if(d.alclear){UI.alSel=[];UI.alRes=null;UI.alLock=null;UI.rerender();return;}
+  if(d.allock){const [k,v]=d.allock.split('|');const L=UI.alLock;UI.alLock=L&&L.k===k&&String(L.v)===v?null:{k,v:+v};UI.rerender();return;}
+  if(d.alfuse){const [a,b]=(UI.alSel||[]).map(itemByUid);const r=Alchemy.fuse(a,b,UI.alLock);UI.alLock=null;if(!r.ok){SFX.fail();toast(r.err);return;}UI.alSel=[];UI.alRes=r.item;SFX.loot(r.item.rar);StatSync.invalidate('alchemy');Save.save();UI.rerender();return;}
+  if(d.reroll){if(G.gold<REITEM.cost){SFX.fail();toast('เหรียญไม่พอ');return;}G.gold-=REITEM.cost;UI.reRes=[0,1,2,3].map(()=>reitemRoll());UI.reBought=null;UI.rerender();UI.hud();Save.save();return;}
+  if(d.reclaim!==undefined){const i=+d.reclaim,it=(UI.reRes||[])[i];if(!it||UI.reBought)return;   // ซื้อได้ชิ้นเดียวต่อการสุ่ม
+    if(G.bag.length>=LOOT_CONFIG.inventory.equipSlots){SFX.fail();toast('🎒 กระเป๋าเต็ม');return;}if(G.gold<REITEM.buy){SFX.fail();toast('เหรียญไม่พอ');return;}
+    G.gold-=REITEM.buy;Inv.addItem(it);UI.reBought=it.uid;SFX.pick();toast('ซื้อ '+itemName(it)+' แล้ว ('+REITEM.buy+' เหรียญ)');UI.rerender();UI.hud();Save.save();return;}
+  if(d.sellall&&UI.cur==='shop'){const k='g:'+d.sellall;if(UI.bulkArm!==k){UI.bulkArm=k;UI.rerender();return;}UI.bulkArm=null;const r=Inv.sellAllGear(d.sellall==='all'?null:d.sellall);if(r.n){SFX.loot('rare');toast(`ขายอุปกรณ์ ${r.n} ชิ้น ได้ ${r.g} ทอง`);}UI.rerender();UI.hud();return;}
+  if(d.selljunk&&UI.cur==='shop'){if(UI.bulkArm!=='junk'){UI.bulkArm='junk';UI.rerender();return;}UI.bulkArm=null;const r=Inv.sellAllJunk();if(r.n){SFX.pick();toast(`ขายวัตถุดิบ ${r.n} ชิ้น ได้ ${r.g} ทอง`);}UI.rerender();UI.hud();return;}
+  if(d.sellmat&&UI.cur==='shop'){const k=d.sellmat;if(d.q==='all'){if(UI.bulkArm!=='m:'+k){UI.bulkArm='m:'+k;UI.rerender();return;}UI.bulkArm=null;}
     const g=Inv.sellMat(k,d.q==='all'?(G.mats[k]||0):1);if(g){SFX.pick();toast(`ขาย ${MATS[k].n} ได้ ${g} ทอง`);}UI.rerender();UI.hud();return;}
   if(d.buygear){const c=+d.cost;if(G.gold<c)return;if(G.bag.length>=LOOT_CONFIG.inventory.equipSlots){toast('กระเป๋าเต็ม');return;}G.gold-=c;const it=Inv.addItem(newItem(d.buygear,'normal',G.level));SFX.pick();toast('ซื้อ '+itemName(it)+' แล้ว');UI.rerender();UI.hud();return;}
   if(d.buy){const c=+d.cost;if(G.gold<c)return;if((G.mats[d.buy]||0)+1>LOOT_CONFIG.inventory.stackMax){toast('ช่องวัตถุดิบเต็ม');return;}G.gold-=c;Inv.add(d.buy,1);SFX.pick();UI.rerender();UI.hud();return;}
@@ -511,9 +540,9 @@ function drawVSUI(b){
   if(b.comboT>0&&b.comboShow>=2){const left=b.comboWho===p;outlineText(b.comboShow+' HITS',left?110:850,180,36,'#ffd23a');}
   if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd23a');
   // (คำแนะนำคอมโบ VS ถูกนำออก)
-  if(b.net){outlineText(b.net==='guest'?'คุณคือ P2 (ขวา) · A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J หรือ , ตี · K หรือ . เตะ · Space หรือ / กลิ้ง · ถือ E=กัน':'คุณคือ P1 (ซ้าย) · A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J ตี · K เตะ · Space กลิ้ง · ถือ E=กัน',480,520,12,'rgba(122,216,255,.9)');}else{
-  outlineText('P1: A/D เดิน · W กระโดด · S ย่อ · คลิกซ้าย ต่อย · คลิกขวา เตะ · Space กลิ้ง · ถือ E กัน',240,520,11,'rgba(122,216,255,.85)');
-  outlineText('P2: ←/→ เดิน · ↑ กระโดด · ↓ ย่อ · , ตี · . เตะ · / กลิ้ง · ถือ \' =กัน',720,520,11,'rgba(255,154,138,.85)');}
+  if(b.net){outlineText(b.net==='guest'?'คุณคือ P2 (ขวา) · A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J หรือ , ตี · K หรือ . เตะ · Space หรือ / พุ่งหลบ · ถือ E=กัน':'คุณคือ P1 (ซ้าย) · A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J ตี · K เตะ · Space พุ่งหลบ · ถือ E=กัน',480,520,12,'rgba(122,216,255,.9)');}else{
+  outlineText('P1: A/D เดิน · W กระโดด · S ย่อ · คลิกซ้าย ต่อย · คลิกขวา เตะ · Space พุ่งหลบ · ถือ E กัน',240,520,11,'rgba(122,216,255,.85)');
+  outlineText('P2: ←/→ เดิน · ↑ กระโดด · ↓ ย่อ · , ตี · . เตะ · / พุ่งหลบ · ถือ \' =กัน',720,520,11,'rgba(255,154,138,.85)');}
   outlineText('เดินหน้า+คลิกซ้าย = ท่าหนัก · ลานประลองใช้เลเวล อุปกรณ์ และสกิลของแต่ละคน ไม่ใช้ยา',480,536,11,'rgba(255,255,255,.5)');
   if(b.intro>0){outlineText(b.intro>30?`ROUND ${v.round}`:'FIGHT!',480,250,b.intro>30?52:76,b.intro>30?'#fff':'#ffd23a');if(b.intro>30)outlineText('P1  VS  P2',480,310,22,'#fff');}
   if(b.msg)outlineText(b.msg.t,480,250,b.msg.t==='K.O.'?96:64,b.msg.c);
@@ -555,7 +584,7 @@ function drawBattleUI(){
     D.fillStyle='#3a6ad0';D.fillRect(X+(m.s+m.a)*k,Y,m.r*k,10);D.fillStyle=p.didHit?(G.t%8<4?'#ffe27a':'#fff6c8'):'rgba(255,226,122,.25)';D.fillRect(X+(m.s+m.a)*k,Y-2,Math.min(CONFIG.comboWindow,m.r)*k,14);
     if(p.state==='attack'){const el=p.phase==='startup'?p.pt:p.phase==='active'?m.s+p.pt:m.s+m.a+p.pt;D.fillStyle='#fff';D.fillRect(X+el*k-1.5,Y-5,3,20);}
     D.globalAlpha=1;outlineText(m.n,480,Y+26,15,'#fff');}
-  outlineText('คลิกซ้าย ต่อย · เดินหน้า+คลิกซ้าย หนัก · คลิกขวา เตะ · S+คลิกขวา กวาดขา · ถือ E กัน · 1-4 สกิล · L สุดยอด · R ยามานา · Space กลิ้ง · W กระโดด · F หนี',480,530,12,'rgba(255,255,255,.6)');
+  outlineText('คลิกซ้าย ต่อย · เดินหน้า+คลิกซ้าย หนัก · คลิกขวา เตะ · S+คลิกขวา กวาดขา · ถือ E กัน · 1-4 สกิล · L สุดยอด · R ยามานา · Space พุ่งหลบ · W กระโดด · F หนี',480,530,12,'rgba(255,255,255,.6)');
   if(b.small)outlineText(b.small.t,p.x*S,(p.y-p.h-26)*S,15,'#9fe6ff');
   if(b.flash){const f=b.flash.f,lft=f.x<240;D.save();D.beginPath();D.moveTo(0,190);D.lineTo(960,150);D.lineTo(960,300);D.lineTo(0,340);D.closePath();
     const gr=D.createLinearGradient(0,0,960,0);gr.addColorStop(0,'rgba(10,8,20,.95)');gr.addColorStop(.5,ELC[b.flash.m.el]||'#ffd23a');gr.addColorStop(1,'rgba(10,8,20,.95)');D.fillStyle=gr;D.fill();D.clip();

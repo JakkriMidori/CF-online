@@ -5,13 +5,17 @@
 const CONFIG={
   statusDur:180,            // 3 s (frames @60fps) — default duration for all statuses
   dotTick:60,               // DOT ticks once per second
+  dot:{poison:{base:50,per:15},bleed:{base:60,per:20},burn:{base:80,per:0},shock:{base:50,per:0}},   // ดาเมจต่อวินาที: base + per × (สแตก−1) · พิษ 50→185 · เลือดออก 60→240 · เผาไหม้ 80 · ช็อต 50
   maxStacks:10,   // พิษ/เลือดออก ซ้อนได้สูงสุด 10 (สกิล Blood Pact / Toxic Curse ใส่ 10 สแตก)
   stunImmuneAfter:300,      // CC-loop guard: stun immunity after a stun ends (frames)
   critCap:.75, critDmgCap:3.5, drCap:.75 /* spec v3: 75% (was 70%) */, stunBonus:.20,
   comboWindow:14,           // frames after hit-confirm (into recovery) that accept the next combo step
   comboFailPenalty:14,      // extra recovery frames on a mistimed combo input
   fullComboBonus:.20,
-  levelPoints:5,
+  dashCD:90,dashFrames:16,dashSpeed:7,   // พุ่ง 16 เฟรม × 7 = ~110 พิกเซล ทะลุตัวศัตรูได้
+    // พุ่งหลบ (Space): คูลดาวน์ 1.5 วิ · อมตะตลอด 18 เฟรม
+  levelPoints:3,             // แต้มค่าพลังต่อเลเวล
+  enemyStartupMul:1.3,       // ท่าโจมตีปกติของศัตรู: ช่วงง้าง (startup) ช้าลง 30%
   levelCap:30,              // เลเวลสูงสุดของเมืองแรก (ปราบบอสครบแล้วไม่เกิน Lv.30)
   craftRates:{normal:.50,rare:.30,epic:.20,legendary:.20,god:.10},
   maxRarity:'epic',         // ระดับไอเทมสูงสุดที่สร้าง/ดรอปได้ตอนนี้ (ตำนาน/เทพ จะเพิ่มภายหลัง)  // base success (fixed)
@@ -55,54 +59,63 @@ const WEAPONS={
   fist:{n:'มือเปล่า',col:'#f2c9a0',fx:'#ffffff',len:0,el:'phys',
     light:[M('หมัดซ้าย',4,2,9,4,38,1,14,{anim:'jab'}),M('หมัดขวา',5,2,10,5,44,1,15,{anim:'straight'}),M('อัปเปอร์คัต',6,3,16,7,36,2,22,{anim:'upper',hy:80,hh:80,launch:1})],
     heavy:M('หมัดทะลวง',11,3,18,11,46,4,24,{anim:'straight',kd:1})},
-  club:{n:'กระบองรากไม้',col:'#8a5a32',fx:'#e8c89a',len:10,el:'phys',
+  club:{n:'กระบองรากไม้',col:'#8a5a32',fx:'#e8c89a',len:10,shape:'club',el:'phys',
     light:[M('ฟาดซ้าย',6,3,12,6,48,2,16,{anim:'slash'}),M('ฟาดขวา',6,3,14,7,48,2,18,{anim:'slash2'})],
     heavy:M('ทุบลงพื้น',14,4,22,14,50,5,28,{anim:'heavyslash',kd:1})},
-  sword:{n:'ดาบเหล็กโบโร',col:'#d8dde6',fx:'#ffffff',len:13,el:'phys',
+  sword:{n:'ดาบเหล็กโบโร',col:'#d8dde6',fx:'#ffffff',len:13,shape:'sword',el:'phys',
     light:[M('ฟันเฉียง',5,3,10,5,54,1,15,{anim:'slash'}),M('ฟันกลับ',5,3,10,5,54,1,15,{anim:'slash2'}),M('แทงตรง',6,3,15,8,60,3,22,{anim:'thrust',launch:1})],
     heavy:M('ฟันผ่าหิน',13,4,20,14,58,5,28,{anim:'heavyslash',kd:1})},
-  spear:{n:'หอกเขี้ยวถ้ำ',col:'#e8dcc0',fx:'#fff4d0',len:18,thrust:1,el:'poison',
+  spear:{n:'หอกเขี้ยวถ้ำ',col:'#e8dcc0',fx:'#fff4d0',len:18,shape:'spear',thrust:1,el:'poison',
     light:[M('แทงเร็ว',4,2,9,4,68,1,13,{anim:'thrust'}),M('แทงคู่',4,2,9,4,68,1,13,{anim:'thrust'}),M('แทงงัด',6,3,14,6,66,2,20,{anim:'thrust',launch:1})],
     heavy:M('แทงพุ่ง',10,6,22,12,70,5,26,{anim:'thrust',lunge:3,kd:1})},
-  flame:{n:'ดาบถ่านแดง',col:'#ff8a3a',fx:'#ffb060',len:14,el:'fire',
+  flame:{n:'ดาบถ่านแดง',col:'#ff8a3a',fx:'#ffb060',len:14,shape:'flame',el:'fire',
     light:[M('ฟันเพลิง',5,3,10,6,56,1,15,{anim:'slash'}),M('ฟันเพลิงกลับ',5,3,10,6,56,1,15,{anim:'slash2'}),M('จุดระเบิด',7,3,15,9,60,3,22,{anim:'thrust',launch:1})],
     heavy:M('เปลวพิฆาต',13,5,20,16,60,5,28,{anim:'heavyslash',kd:1})},
-  gaunt:{n:'สนับมือฟ้าคำราม',col:'#7fd8ff',fx:'#c8f2ff',len:0,el:'lightning',
+  gaunt:{n:'สนับมือฟ้าคำราม',col:'#7fd8ff',fx:'#c8f2ff',len:0,shape:'gaunt',el:'lightning',
     light:[M('หมัดสายฟ้า 1',3,2,7,3,38,0,12,{anim:'jab'}),M('หมัดสายฟ้า 2',3,2,7,3,40,0,12,{anim:'straight'}),M('หมัดสายฟ้า 3',3,2,7,3,38,0,12,{anim:'jab'}),M('ฟ้าผ่าเปิด',5,3,14,7,38,2,22,{anim:'upper',hy:80,hh:80,launch:1})],
     heavy:M('หมัดฟ้าคำราม',9,4,16,12,40,3,26,{anim:'upper',hy:80,hh:80,launch:1})},
-  firepan:{n:'กระทะเพลิงมรดกพ่อ',col:'#3a3a40',fx:'#ff9a3a',len:10,pan:1,el:'fire',
+  firepan:{n:'กระทะเพลิงมรดกพ่อ',col:'#3a3a40',fx:'#ff9a3a',len:10,shape:'pan',pan:1,el:'fire',
     light:[M('ฟาดกระทะ',7,3,12,9,50,3,20,{anim:'slash'}),M('พลิกกระทะ',7,3,14,10,50,3,22,{anim:'slash2',launch:1})],
     heavy:M('โป๊ก!',12,4,20,20,52,6,34,{anim:'heavyslash',kd:1})},
-  hammer:{n:'ค้อนชีสหินผา',col:'#8a5a32',fx:'#ffe58a',len:11,hammer:1,el:'phys',
+  hammer:{n:'ค้อนชีสหินผา',col:'#8a5a32',fx:'#ffe58a',len:11,shape:'hammer',hammer:1,el:'phys',
     light:[M('ทุบชีส',8,4,14,8,52,3,20,{anim:'slash'}),M('ทุบชีสซ้ำ',8,4,16,9,52,3,22,{anim:'slash2'})],
     heavy:M('ชีสถล่ม',16,5,24,20,56,6,34,{anim:'heavyslash',kd:1})},
-  kageblade:{n:'ดาบเงาจันทร์มืด',col:'#4a4a5e',fx:'#b08aff',len:14,el:'shadow',
+  kageblade:{n:'ดาบเงาจันทร์มืด',col:'#4a4a5e',fx:'#b08aff',len:14,shape:'katana',el:'shadow',
     light:[M('ฟันเงา',5,3,11,5,54,1,15,{anim:'slash'}),M('ฟันเงากลับ',5,3,11,5,54,1,15,{anim:'slash2'}),M('แทงเงา',7,3,16,8,60,3,22,{anim:'thrust'})],
     heavy:M('ผ่าเงา',14,4,22,13,58,5,28,{anim:'heavyslash',kd:1})},
-  lavablade:{n:'ดาบหัวใจภูเขาไฟ',col:'#ff5a1a',fx:'#ffe06a',len:16,el:'fire',
+  lavablade:{n:'ดาบหัวใจภูเขาไฟ',col:'#ff5a1a',fx:'#ffe06a',len:16,shape:'greatsword',el:'fire',
     light:[M('ฟันลาวา',5,3,10,6,60,1,15,{anim:'slash'}),M('ฟันลาวากลับ',5,3,10,6,60,1,15,{anim:'slash2'}),M('ปะทุ',6,3,14,9,64,3,22,{anim:'thrust',launch:1})],
     heavy:M('ภูเขาไฟระเบิด',13,5,20,18,64,5,28,{anim:'heavyslash',kd:1})},
-  mswd:{n:'ดาบมนตรา',col:'#b08aff',fx:'#e0c8ff',len:14,el:'arcane',
+  mswd:{n:'ดาบมนตรา',col:'#b08aff',fx:'#e0c8ff',len:14,shape:'magicsword',el:'arcane',
     light:[M('ฟันเวท',5,3,10,6,54,1,15,{anim:'slash'}),M('ฟันเวทกลับ',5,3,10,6,54,1,15,{anim:'slash2'})],
     heavy:M('คลื่นพลังเวท',12,4,18,12,0,2,20,{anim:'heavyslash',type:'magic',proj:{spd:5,r:12,hits:1}})},
-  mstaff:{n:'คทาดาราจักร',col:'#7a5ad8',fx:'#d8c0ff',len:0,el:'arcane',
+  mstaff:{n:'คทาดาราจักร',col:'#7a5ad8',fx:'#d8c0ff',len:15,shape:'staff',el:'arcane',
     light:[M('ลูกบอลเวท',6,3,12,8,0,1,14,{anim:'thrust',type:'magic',proj:{spd:6,r:8,hits:1}}),M('ลูกบอลเวทซ้ำ',6,3,12,8,0,1,14,{anim:'thrust',type:'magic',proj:{spd:6,r:8,hits:1}})],
     heavy:M('ลำแสงเวททะลุ',14,6,20,16,0,2,24,{anim:'thrust',type:'magic',proj:{spd:8,r:10,hits:3}})},
-  adagger:{n:'กริชอาคมพราย',col:'#9a6ad0',fx:'#e0c8ff',len:9,el:'arcane',
+  adagger:{n:'กริชอาคมพราย',col:'#9a6ad0',fx:'#e0c8ff',len:9,shape:'dagger',el:'arcane',
     light:[M('กรีดเร็ว',3,2,6,4,40,0,10,{anim:'thrust'}),M('กรีดเร็ว 2',3,2,6,4,40,0,10,{anim:'thrust'}),M('กรีดเร็ว 3',3,2,7,5,42,1,12,{anim:'thrust'})],
     heavy:M('กรีดอาคม',6,3,12,10,46,2,22,{anim:'slash'})},
-  wand_fire:{n:'ไม้เท้าเปลวอัคคี',col:'#ff6a2a',fx:'#ffb060',len:0,el:'fire',
+  wand_fire:{n:'ไม้เท้าเปลวอัคคี',col:'#ff6a2a',fx:'#ffb060',len:9,shape:'wand',el:'fire',
     light:[M('ลูกไฟ',5,3,10,7,0,1,14,{anim:'thrust',type:'magic',proj:{spd:6,r:8,hits:1}})],
     heavy:M('ระเบิดเพลิง',12,5,18,14,0,3,24,{anim:'thrust',type:'magic',proj:{spd:4.5,r:14,hits:1}})},
-  wand_ice:{n:'ไม้เท้าเกล็ดหิมะ',col:'#9fe8ff',fx:'#e0f8ff',len:0,el:'ice',
+  wand_ice:{n:'ไม้เท้าเกล็ดหิมะ',col:'#9fe8ff',fx:'#e0f8ff',len:9,shape:'wand',el:'ice',
     light:[M('ลูกน้ำแข็ง',5,3,10,7,0,1,14,{anim:'thrust',type:'magic',proj:{spd:6,r:8,hits:1}})],
     heavy:M('พายุหิมะ',12,5,18,14,0,3,24,{anim:'thrust',type:'magic',proj:{spd:4.5,r:14,hits:1}})},
-  wand_lightning:{n:'ไม้เท้าอสนีบาต',col:'#9fe6ff',fx:'#e8f8ff',len:0,el:'lightning',
+  wand_lightning:{n:'ไม้เท้าอสนีบาต',col:'#9fe6ff',fx:'#e8f8ff',len:9,shape:'wand',el:'lightning',
     light:[M('ลูกสายฟ้า',4,2,9,7,0,1,14,{anim:'thrust',type:'magic',proj:{spd:8,r:6,hits:1}})],
     heavy:M('สายฟ้าแตกกระจาย',12,5,18,14,0,3,24,{anim:'thrust',type:'magic',proj:{spd:7,r:10,hits:2}})},
-  scythe:{n:'เคียวสุญญตา',col:'#2a1a3a',fx:'#9a7ad8',len:16,el:'shadow',
+  scythe:{n:'เคียวสุญญตา',col:'#cfc8e8',fx:'#9a7ad8',len:16,shape:'scythe',el:'shadow',
     light:[M('ฟันความว่าง',6,4,12,8,60,2,18,{anim:'heavyslash'}),M('ฟันความว่างกลับ',6,4,12,8,60,2,18,{anim:'slash2'})],
-    heavy:M('เคียวกลืนเงา',14,5,22,18,64,5,28,{anim:'heavyslash',kd:1})}
+    heavy:M('เคียวกลืนเงา',14,5,22,18,64,5,28,{anim:'heavyslash',kd:1})},
+  gsword:{n:'ดาบใหญ่สองมือ',col:'#c8ccd8',fx:'#ffffff',len:19,shape:'greatsword',twoHand:1,el:'phys',   // ถือ 2 มือ: ช้าแต่แรง
+    light:[M('ฟันกวาด',10,4,18,12,64,3,22,{anim:'slash'}),M('ฟันกวาดกลับ',11,4,20,14,64,3,24,{anim:'slash2'})],
+    heavy:M('ผ่าปฐพี',18,6,26,24,68,6,34,{anim:'heavyslash',kd:1})},
+  ghammer:{n:'ค้อนศึกสองมือ',col:'#9aa0ae',fx:'#ffe58a',len:17,shape:'warhammer',twoHand:1,el:'phys',  // ถือ 2 มือ: ช้าแต่แรง + มีโอกาสสตัน 3 วิ
+    light:[M('ทุบเหวี่ยง',11,4,20,13,58,4,24,{anim:'slash',stunChance:.2,stunDur:3}),M('ทุบเหวี่ยงกลับ',12,4,22,15,58,4,26,{anim:'slash2',stunChance:.2,stunDur:3})],
+    heavy:M('ทุบสะเทือนพื้น',20,6,28,26,62,7,36,{anim:'heavyslash',kd:1,stunChance:.35,stunDur:3})},
+  wand_poison:{n:'ไม้เท้าปรอท',col:'#9ae8b0',fx:'#d0ffe0',len:10,shape:'wand',el:'poison',
+    light:[M('ลูกปรอท',5,3,10,7,0,1,14,{anim:'thrust',type:'magic',proj:{spd:6,r:8,hits:1},status:{poison:1}})],
+    heavy:M('หมอกปรอท',12,5,18,14,0,3,24,{anim:'thrust',type:'magic',proj:{spd:4,r:14,hits:2},status:{poison:2}})}
 };
 const UNI={
   cjab:M('หมัดต่ำ',4,2,8,3,36,1,12,{anim:'cjab',hy:40,hh:34,crouch:1}),
@@ -143,6 +156,9 @@ const SKILLS={
   bloodmoon:{ic:'🩸',n:'จันทร์โลหิต',tier:'rare',type:'phys',el:'shadow',coef:2.2,cd:9,mp:80,range:'ใกล้ (60)',anim:'heavyslash',reach:60,status:{bleed:3},combo:1,desc:'ฟันจันทร์เสี้ยว เลือดออก 3 สแตก'},
   toxiccloud:{ic:'☠️',n:'หมอกพิษ',tier:'rare',type:'magic',el:'poison',coef:1.6,multi:4,cd:10,mp:85,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',rain:1,status:{poison:2},combo:1,desc:'หมอกพิษปกคลุมพื้น 4 ฮิต'},
   twinfang:{ic:'🐺',n:'เขี้ยวคู่',tier:'rare',type:'phys',el:'phys',coef:2.4,multi:4,cd:8,mp:70,range:'พุ่ง (46)',anim:'rush',lunge:2.2,reach:46,status:{bleed:1},combo:1,desc:'จู่โจมต่อเนื่อง 4 ครั้ง'},
+  acidflask:{ic:'🧪',n:'ขวดกรด',tier:'common',type:'magic',el:'poison',coef:1.0,cd:4,mp:0,range:'ไกล',anim:'cast',proj:{spd:4.4,r:8,hits:1},status:{poison:2},user:'enemy',desc:'ขว้างขวดกรด ติดพิษ 2 สแตก'},
+  fireflask:{ic:'🧪',n:'ขวดเพลิง',tier:'common',type:'magic',el:'fire',coef:1.1,cd:5,mp:0,range:'ไกล',anim:'cast',proj:{spd:4.4,r:9,hits:1},status:{burn:1},user:'enemy',desc:'ขว้างขวดเพลิง ติดเผาไหม้'},
+  sparkflask:{ic:'🧪',n:'ขวดสายฟ้า',tier:'common',type:'magic',el:'lightning',coef:.9,cd:6,mp:0,range:'ไกล',anim:'cast',proj:{spd:5.2,r:7,hits:1},status:{shock:1},user:'enemy',desc:'ขว้างขวดประกายไฟ ติดช็อต'},
   earthshatter:{ic:'💥',n:'ธรณีแยก',tier:'rare',type:'phys',el:'phys',coef:2.4,cd:9,mp:90,range:'ใกล้ (70) ต่ำ',anim:'heavyslash',reach:70,hy:8,hh:20,low:1,kd:1,combo:1,desc:'ทุบพื้น ต้องย่อจึงกันได้ ล้มลง'},
   galeblade:{ic:'🌪️',n:'ดาบพายุ',tier:'rare',type:'phys',el:'weapon',coef:2.2,cd:9,mp:85,range:'ไกล (กระสุน 3 ฮิต)',anim:'heavyslash',proj:{spd:4,r:14,hits:3},combo:1,desc:'พายุหมุนพุ่งไปข้างหน้า'},
   guardbreak:{ic:'🛡️',n:'ทลายโล่',tier:'rare',type:'phys',el:'phys',coef:2.0,cd:12,mp:100,range:'ใกล้ (56)',anim:'thrust',reach:56,status:{stun:1},armorBreak:{def:.6,t:300},combo:1,desc:'แทงทะลวงโล่ ทำให้มึน 3 วินาที'},
@@ -166,7 +182,7 @@ const SKILLS={
   dragonstorm:{ic:'🐲',n:'พายุมังกร',tier:'ultimate',type:'magic',el:'fire',coef:7,cd:10,range:'ไกล (กระสุน 4 ฮิต)',anim:'cast',proj:{spd:3.6,r:22,hits:4},status:{burn:1},desc:'มังกรเพลิงพุ่งกลืนศัตรู'},
   thunderking:{ic:'👑',n:'ราชันย์อสนี',tier:'ultimate',type:'magic',el:'lightning',coef:6.5,multi:5,cd:10,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',rain:1,status:{shock:1},desc:'สายฟ้าผ่าลงซ้ำ 5 ครั้ง'},
   abyssgate:{ic:'🕳️',n:'ประตูนรก',tier:'ultimate',type:'magic',el:'shadow',coef:7,multi:10,cd:10,range:'ทั้งจอ',anim:'beam',beam:1,status:{bleed:2},desc:'ลำแสงเงา 10 ฮิต เลือดออก'},
-  bluejudge:{bossOnly:1,ic:'🐉',n:'คำพิพากษาตาคราม',tier:'ultimate',type:'magic',el:'lightning',coef:3,cd:10,range:'ทั้งจอ',anim:'beam',beam:1,multi:3,status:{shock:1},desc:'มังกรขาวยักษ์ตาสีฟ้า ปล่อยลำแสงสายฟ้า 300% ATK'},
+  bluejudge:{bossOnly:1,ic:'🐉',n:'คำพิพากษาตาคราม',tier:'ultimate',type:'magic',el:'lightning',coef:3,cd:10,range:'ทั้งจอ',anim:'beam',beam:1,multi:3,status:{shock:1},dragon:{body:'#f4f6fa',shade:'#b8c4d4',eye:'#4ab8ff',mane:'#8ad8ff'},desc:'มังกรขาวยักษ์ตาสีฟ้า ปล่อยลำแสงสายฟ้า 300% ATK'},
   eyejudge:{bossOnly:1,ic:'👁️',n:'ดวงตาพิพากษา',tier:'ultimate',type:'magic',el:'holy',coef:7.5,multi:10,cd:10,range:'ทั้งจอ',anim:'beam',beam:1,desc:'ลำแสงศักดิ์สิทธิ์ทะลุทั้งจอ 10 ฮิต'},
   thousandcuts:{ic:'⚔️',n:'พันคมดาบ',tier:'ultimate',type:'phys',el:'weapon',coef:7.5,multi:12,cd:10,range:'พุ่ง (52)',anim:'rush',lunge:1.8,reach:52,desc:'ฟันรัว 12 ครั้ง'},
   toxicworld:{ic:'🧪',n:'โลกพิษ',tier:'ultimate',type:'magic',el:'poison',coef:6,multi:6,cd:10,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',rain:1,status:{poison:3},desc:'ฝนพิษ 6 ระลอก พิษ 3 สแตก'},
@@ -199,6 +215,14 @@ const COMBOS=[
   {id:'finisher',n:'ปิดฉาก',seq:['L1','L2','H','S3']},
   {id:'aerial',n:'คอมโบกลางอากาศ',seq:['AJ','AJ','AK']},   // กระโดด → J → J → K (ตีโดนแล้วกดต่อ)
   {id:'lowcombo',n:'คอมโบตีต่ำ',seq:['C','C','D']}           // ↓J → ↓J → ↓K
+];
+/* คอมโบคำสั่ง: กดปุ่มพร้อมทิศตามลำดับ (แต่ละครั้งห่างกันไม่เกิน window เฟรม) แล้วออกท่าพิเศษ
+   D=↓(S)  B=ถอยหลัง  F=เดินหน้า  U=↑(W) หรืออยู่กลางอากาศ · J=ต่อย K=เตะ */
+const CMD_COMBOS=[
+  {id:'phaseswap',n:'สลับช่วง',seq:['DJ','BJ','FK'],keys:['SJ','AJ','DK'],window:45,
+   move:M('สลับช่วง',6,4,14,10,72,2,20,{anim:'straight',swap:1,stunChance:1,stunDur:1,sta:15,super:1})},       // วาร์ปไปหลังศัตรูแล้วต่อย · ศัตรูสตัน 1 วิ
+  {id:'riderkick',n:'ไรเดอร์คิก',seq:['DK','FK','UK'],keys:['SK','DK','WK'],window:45,
+   move:M('ไรเดอร์คิก',9,16,16,24,64,7,30,{anim:'airkick',hy:12,hh:50,rider:1,lunge:5,kd:1,sta:20,super:1})}       // กระโดดถีบพุ่งเฉียงลง
 ];
 const TOKN={L1:'J',L2:'J',L3:'J',L4:'J',H:'→J',K:'K',D:'↓K',C:'↓J',S1:'1',S2:'2',S3:'3',S4:'4',AJ:'อากาศJ',AK:'อากาศK'};
 
@@ -252,29 +276,40 @@ const BASES={
   w_wand_fire:{n:'ไม้เท้าเปลวอัคคี',type:'weapon',wt:'wand_fire',atk:5,matk:24,ic:'🔥'},
   w_wand_ice:{n:'ไม้เท้าเกล็ดหิมะ',type:'weapon',wt:'wand_ice',atk:5,matk:24,ic:'❄️'},
   w_wand_lightning:{n:'ไม้เท้าอสนีบาต',type:'weapon',wt:'wand_lightning',atk:5,matk:24,ic:'⚡'},
+  w_gs1:{n:'ดาบใหญ่เหล็กกล้า',type:'weapon',wt:'gsword',atk:30,matk:2,ic:'⚔️',fixRar:'normal',look:{wcol:'#c8ccd8'}},
+  w_gs2:{n:'ดาบใหญ่ฟันมังกร',type:'weapon',wt:'gsword',atk:38,matk:4,ic:'⚔️',fixRar:'rare',look:{wcol:'#e8c070',wfx:'#ff8a3a'}},
+  w_gs3:{n:'ดาบใหญ่ราตรีพิฆาต',type:'weapon',wt:'gsword',atk:46,matk:6,ic:'⚔️',fixRar:'epic',look:{wcol:'#6a5a8a',wfx:'#c9a0ff'}},
+  w_wh1:{n:'ค้อนศึกเหล็ก',type:'weapon',wt:'ghammer',atk:32,matk:0,ic:'🔨',fixRar:'normal',look:{wcol:'#9aa0ae'}},
+  w_wh2:{n:'ค้อนศึกศิลาฟ้า',type:'weapon',wt:'ghammer',atk:40,matk:2,ic:'🔨',fixRar:'rare',look:{wcol:'#7fb8d8',wfx:'#c8f2ff'}},
+  w_wh3:{n:'ค้อนศึกธรณีกัมปนาท',type:'weapon',wt:'ghammer',atk:48,matk:4,ic:'🔨',fixRar:'epic',look:{wcol:'#c8962a',wfx:'#ffe58a'}},
+  w_mercstaff:{n:'ไม้เท้าปรอท',type:'weapon',wt:'wand_poison',atk:5,matk:32,ic:'🪄',fixRar:'epic',look:{wcol:'#9ae8b0'}},
+  h_alch:{n:'หมวกนักแปรธาตุ',type:'helmet',def:5,mdef:10,ic:'🎩',set:'alchemist',look:{head:'wizard',hc:'#2a4a3a',hc2:'#7af0c0'}},
+  a_alch:{n:'เสื้อคลุมนักแปรธาตุ',type:'armor',def:9,mdef:14,ic:'🧥',set:'alchemist',look:{body:'#2a4a3a',trim:'#7af0c0',robe:'#23402f',sleeve:'#2a4a3a'}},
+  g_alch:{n:'ถุงมือนักแปรธาตุ',type:'gloves',def:3,mdef:5,ic:'🧤',set:'alchemist',look:{gloves:'#3a6a4a'}},
+  b_alch:{n:'รองเท้านักแปรธาตุ',type:'boots',def:3,mdef:5,ic:'🥾',set:'alchemist',look:{boots:'#2a3a30',trail:'#7af0c0'}},
   w_scythe:{n:'เคียวสุญญตา',type:'weapon',wt:'scythe',atk:34,matk:12,ic:'🌑',fixRar:'epic'},
-  h_mage:{n:'หมวกปลายแหลมนักปราชญ์',type:'helmet',def:4,mdef:9,ic:'🎩',set:'mage',look:{head:'band',hc:'#4a2a8a',hc2:'#d88aff'}},
-  a_mage:{n:'เสื้อคลุมนักปราชญ์',type:'armor',def:8,mdef:12,ic:'🧥',set:'mage',look:{body:'#3a2a6a',trim:'#d88aff'}},
+  h_mage:{n:'หมวกปลายแหลมนักปราชญ์',type:'helmet',def:4,mdef:9,ic:'🎩',set:'mage',look:{head:'wizard',hc:'#4a2a8a',hc2:'#d88aff'}},
+  a_mage:{n:'เสื้อคลุมนักปราชญ์',type:'armor',def:8,mdef:12,ic:'🧥',set:'mage',look:{body:'#3a2a6a',trim:'#d88aff',robe:'#2e2258',sleeve:'#3a2a6a'}},
   p_mage:{n:'กางเกงนักปราชญ์',type:'pants',def:4,mdef:6,ic:'👖',set:'mage',look:{pants:'#2a2050'}},
   b_mage:{n:'รองเท้านักปราชญ์',type:'boots',def:3,mdef:5,ic:'🥾',set:'mage',look:{boots:'#2a2050',trail:'#d88aff'}},
-  h_boss:{n:'หมวกเขาจอมทัพ',type:'helmet',def:9,mdef:6,ic:'👹',set:'boss',look:{head:'horns',hc:'#3a1a2a',hc2:'#ffd23a'}},
-  a_boss:{n:'เกราะจอมทัพ',type:'armor',def:16,mdef:8,ic:'🛡️',set:'boss',look:{body:'#3a1a2a',trim:'#ffd23a'}},
+  h_boss:{n:'หมวกเขาจอมทัพ',type:'helmet',def:9,mdef:6,ic:'👹',set:'boss',look:{head:'helm',hc:'#3a1a2a',hc2:'#ffd23a',horns:'#ffd23a',plume:'#c41a3a'}},
+  a_boss:{n:'เกราะจอมทัพ',type:'armor',def:16,mdef:8,ic:'🛡️',set:'boss',look:{body:'#3a1a2a',trim:'#ffd23a',plate:1,pads:1,sleeve:'#2a1420',cape:{col:'#7a1a2a',col2:'#3a0a14'}}},
   g_boss:{n:'ถุงมือจอมทัพ',type:'gloves',def:5,mdef:3,ic:'🧤',set:'boss',look:{gloves:'#3a1a2a'}},
   b_boss:{n:'รองเท้าจอมทัพ',type:'boots',def:6,mdef:3,ic:'🥾',set:'boss',look:{boots:'#2a1420',trail:'#ffd23a'}},
-  h_leather:{n:'หมวกหนังนักเดินทาง',type:'helmet',def:4,mdef:2,ic:'🪖',look:{head:'helm',hc:'#7a4a2a',hc2:'#3a2414'}},
-  h_iron:{n:'หมวกเหล็กทหารยาม',type:'helmet',def:8,mdef:3,ic:'⛑️',look:{head:'helm',hc:'#9aa0ae',hc2:'#3a3f4e'}},
+  h_leather:{n:'หมวกหนังนักเดินทาง',type:'helmet',def:4,mdef:2,ic:'🪖',look:{head:'cap',hc:'#7a4a2a',hc2:'#3a2414'}},
+  h_iron:{n:'หมวกเหล็กทหารยาม',type:'helmet',def:8,mdef:3,ic:'⛑️',look:{head:'helm',hc:'#9aa0ae',hc2:'#3a3f4e',plume:'#c94a3a'}},
   h_band:{n:'ผ้าคาดผากนักสู้',type:'helmet',def:3,mdef:5,ic:'🎗️',look:{head:'band',hc:'#2a3a8a',hc2:'#d8dce8'}},
   h_shadow:{n:'ผ้าคาดผากสนธยา',type:'helmet',def:5,mdef:6,ic:'🥷',set:'shadow',look:{head:'band',hc:'#c94a3a',hc2:'#c8ccd8'}},
   h_horns:{n:'มงกุฎเขาอสูร',type:'helmet',def:6,mdef:8,ic:'😈',look:{head:'horns',hc:'#ece4d4',hc2:'#c41a3a'}},
-  h_halo:{n:'วงรัศมีรุ่งอรุณ',type:'helmet',def:9,mdef:14,ic:'😇',set:'seraph',look:{head:'crown',hc:'#fff2a8',hc2:'#f4f0e0'}},
+  h_halo:{n:'วงรัศมีรุ่งอรุณ',type:'helmet',def:9,mdef:14,ic:'😇',set:'seraph',look:{head:'halo',hc:'#fff2a8',hc2:'#f4f0e0'}},
   h_crown:{n:'มงกุฎแมกมา',type:'helmet',def:10,mdef:10,ic:'👑',set:'magma',look:{head:'crown',hc:'#ffb03a',hc2:'#ff3a2a'}},
   a_cloth:{n:'เสื้อป่านชาวบ้าน',type:'armor',def:5,mdef:3,ic:'👕',look:{body:'#5a7a5a',trim:'#3a2a1a'}},
-  a_leather:{n:'เกราะหนังพราน',type:'armor',def:9,mdef:4,ic:'🦺',look:{body:'#7a4a2a',trim:'#c89a5a',pads:1,sleeve:'#5a3a22'}},
+  a_leather:{n:'เกราะหนังพราน',type:'armor',def:9,mdef:4,ic:'🦺',look:{body:'#7a4a2a',trim:'#c89a5a',pads:1,belt:'#3a2414',sleeve:'#5a3a22'}},
   a_shadow:{n:'ชุดนินจาสนธยา',type:'armor',def:10,mdef:8,ic:'🥷',set:'shadow',look:{body:'#262a3a',trim:'#c94a3a',scarf:'#c94a3a',sleeve:'#1c1c2a'}},
-  a_dragon:{n:'เกราะเกล็ดมังกรแดง',type:'armor',def:16,mdef:10,ic:'🐉',look:{body:'#a42a1a',trim:'#f3c969',pads:1,sleeve:'#7a1a10',cape:{col:'#b0262a',col2:'#6a1018'}}},
-  a_golem:{n:'เกราะศิลาโกเลม',type:'armor',def:20,mdef:6,ic:'🪨',set:'golem',look:{body:'#6e6458',trim:'#5fe0a0',pads:1,sleeve:'#5a5248'}},
-  a_seraph:{n:'เสื้อคลุมรุ่งอรุณ',type:'armor',def:18,mdef:20,ic:'🪽',set:'seraph',look:{body:'#e8e0c4',trim:'#8aa89a',pads:1,sleeve:'#cfc6a8',cape:{col:'#f4f0e0',col2:'#b9b6c4'},aura:'#fff2a8'}},
-  a_magma:{n:'เกราะแมกมาเดือด',type:'armor',def:22,mdef:14,ic:'🌋',set:'magma',look:{body:'#3a1a14',trim:'#ff7a1a',pads:1,sleeve:'#2a1210',cape:{col:'#ff5a1a',col2:'#7a1a0a'},aura:'#ff8a3a'}},
+  a_dragon:{n:'เกราะเกล็ดมังกรแดง',type:'armor',def:16,mdef:10,ic:'🐉',look:{body:'#a42a1a',trim:'#f3c969',pads:1,plate:1,scales:'#7a1a10',sleeve:'#7a1a10',cape:{col:'#b0262a',col2:'#6a1018'}}},
+  a_golem:{n:'เกราะศิลาโกเลม',type:'armor',def:20,mdef:6,ic:'🪨',set:'golem',look:{body:'#6e6458',trim:'#5fe0a0',pads:1,plate:1,sleeve:'#5a5248'}},
+  a_seraph:{n:'เสื้อคลุมรุ่งอรุณ',type:'armor',def:18,mdef:20,ic:'🪽',set:'seraph',look:{body:'#e8e0c4',trim:'#8aa89a',pads:1,robe:'#ddd4b4',sleeve:'#cfc6a8',cape:{col:'#f4f0e0',col2:'#b9b6c4'},aura:'#fff2a8'}},
+  a_magma:{n:'เกราะแมกมาเดือด',type:'armor',def:22,mdef:14,ic:'🌋',set:'magma',look:{body:'#3a1a14',trim:'#ff7a1a',pads:1,plate:1,glowTrim:1,sleeve:'#2a1210',cape:{col:'#ff5a1a',col2:'#7a1a0a'},aura:'#ff8a3a'}},
   g_leather:{n:'ถุงมือหนังพราน',type:'gloves',def:2,mdef:1,ic:'🧤',look:{gloves:'#7a4a2a'}},
   g_iron:{n:'ถุงมือเหล็กทหาร',type:'gloves',def:4,mdef:1,ic:'🧤',look:{gloves:'#9aa0ae'}},
   g_shadow:{n:'ถุงมือสนธยา',type:'gloves',def:3,mdef:3,ic:'🧤',set:'shadow',look:{gloves:'#2a2a3a'}},
@@ -319,6 +354,7 @@ const SETS={
   golem:{n:'ชุดศิลาโกเลม',b:{2:{def:20},3:{dr:.10}}},
   magma:{n:'ชุดแมกมาเดือด',b:{2:{resFire:.3,atk:15},3:{passive:'magmaBurn',d:'โจมตีมีโอกาส 30% ทำให้เผาไหม้'}}},
   mage:{n:'ชุดนักปราชญ์ดารา',b:{2:{matk:12},4:{mpowPct:.2,d:'พลังเวท +20%'}}},
+  alchemist:{n:'ชุดนักแปรธาตุ',b:{2:{statusChance:.10},4:{dotPct:.30,d:'ดาเมจสถานะ (DoT) ที่ทำ +30%'}}},
   boss:{n:'ชุดจอมทัพ',b:{2:{def:10},4:{dmgPct:.2,d:'ดาเมจ +20%'}}}
 };
 const MATS={
@@ -327,6 +363,8 @@ const MATS={
   lavaore:{n:'แร่ลาวา',ic:'🟧'},essence:{n:'แก่นลาวาเทพ',ic:'🌟',rareMat:1},
   rune_str:{n:'รูนพลัง',ic:'🔴',rune:{str:6}},rune_crit:{n:'รูนคม',ic:'🟡',rune:{critRate:.03}},rune_vit:{n:'รูนอึด',ic:'🟢',rune:{vit:6}},rune_fire:{n:'รูนเพลิง',ic:'🟠',rune:{resFire:.15,atk:4}},
   potion:{n:'ยาฟื้น HP',ic:'❤️',use:'potion',desc:'ฟื้น HP 40%'},
+  mercury:{n:'ปรอท',ic:'💧',desc:'โลหะเหลวจากสไลม์ปรอท ใช้ตีไม้เท้าปรอท'},philostone:{n:'ศิลานักปราชญ์',ic:'🔮',rareMat:1,desc:'ใช้ที่นักเล่นแร่แปรธาตุ: ล็อกค่าเสริม 1 ค่าไว้ตอนหลอมรวม'},
+  sc_merc:{n:'คัมภีร์สูตร: ไม้เท้าปรอท',ic:'📙',scroll:'mercstaff'},
   mp_s:{n:'ยามานา (เล็ก)',ic:'🧪',manaPotion:100},mp_m:{n:'ยามานา (กลาง)',ic:'🧪',manaPotion:250},
   mp_l:{n:'ยามานา (ใหญ่)',ic:'🧪',manaPotion:500},mp_x:{n:'ยามานา (สูงสุด)',ic:'🧪',manaPotion:1000},
   sealbreaker:{n:'ตราทำลายผนึกเฉพาะตัว',ic:'🗝️',rareMat:1,use:'sealbreak',desc:'หายากที่สุด — ปลดผนึกสกิลเฉพาะตัวเพื่อเปลี่ยนเป็นสกิลเฉพาะตัวอื่น (ใช้ที่หน้าสกิล)'},
@@ -372,6 +410,13 @@ const RECIPES=[
   {id:'golemgloves',out:{base:'g_golem'},rar:'rare',mats:{core:1,ore:1},clue:'ศิลาจารึกโกเลม: "แกนหนึ่ง เหล็กหนึ่ง = ถุงมือหิน"'},
   {id:'golempants',out:{base:'p_golem'},rar:'rare',mats:{core:1,hide:2},clue:'ศิลาจารึกโกเลม: "แกนหนึ่ง หนังสอง = สนับขาหิน"'},
   {id:'magma',out:{base:'a_magma'},rar:'epic',mats:{lavaore:4,core:1},clue:'บันทึกคนงานเหมือง: "แร่ลาวาสี่ก้อนรอบแกนโกเลมหนึ่ง กลายเป็นเกราะแมกมา"'},
+  {id:'gs1',out:{base:'w_gs1'},rar:'normal',mats:{ore:3,wood:1},known:1,clue:'โบโรเล่า: "แร่สามก้อนตีเป็นใบยาว ด้ามไม้หนึ่ง — ถือสองมือนะ หนักใช่เล่น"'},
+  {id:'gs2',out:{base:'w_gs2'},rar:'rare',mats:{ore:4,fire:1,fang:2},known:1,clue:'โบโรเล่า: "แร่สี่ ไฟหนึ่ง เขี้ยวสอง ชุบใบดาบใหญ่ให้คมดั่งเขี้ยวมังกร"'},
+  {id:'gs3',out:{base:'w_gs3'},rar:'epic',mats:{ore:4,core:1,cloth:2},known:1,clue:'โบโรเล่า: "แกนโกเลมหนึ่ง ผ้าเงาสอง หลอมกับแร่สี่ — ดาบใหญ่แห่งราตรี"'},
+  {id:'wh1',out:{base:'w_wh1'},rar:'normal',mats:{ore:3,wood:2},known:1,clue:'โบโรเล่า: "หัวค้อนแร่สามก้อน ด้ามไม้สองท่อน ทุบทีหัวมึนเลย"'},
+  {id:'wh2',out:{base:'w_wh2'},rar:'rare',mats:{ore:4,thunder:1,hide:1},known:1,clue:'โบโรเล่า: "แร่สี่ หินสายฟ้าหนึ่ง พันด้ามด้วยหนัง — ค้อนศิลาฟ้า"'},
+  {id:'wh3',out:{base:'w_wh3'},rar:'epic',mats:{core:1,lavaore:3,ore:2},known:1,clue:'โบโรเล่า: "แกนโกเลมเป็นหัวค้อน แร่ลาวาสาม แร่เหล็กสอง — ทุบทีแผ่นดินสะเทือน"'},
+  {id:'mercstaff',out:{base:'w_mercstaff'},rar:'epic',mats:{mercury:4,core:1,fire:1},clue:'บันทึกอาจารย์นักแปรธาตุ: "ปรอทสี่หยด หลอมรอบแกนโกเลมหนึ่ง จุดด้วยไฟหนึ่ง — ไม้เท้าที่ยิงหมอกพิษ"'},
   {id:'god',out:{base:'w_god'},rar:'epic',mats:{essence:1,lavaore:5,fire:2},clue:'คัมภีร์เทพ: "แก่นลาวาเทพหนึ่ง แร่ลาวาห้า คริสตัลไฟสอง — ดาบแห่งภูเขาไฟ"'}
 ];
 const RECIPE_ILVL={normal:1,rare:5,epic:9,legendary:9,god:17};
@@ -402,8 +447,8 @@ const FOES={
   rockling:{n:'หินเดินได้',kind:'mon',map:'GOLEM',pal:'rockling',sc:3,hw:24,h:50,spd:.9,range:34,cd:[30,64],armor:1,el:'phys',
     base:{hp:320,atk:48,def:10,mdef:2},res:{phys:.15,lightning:-.4,fire:.2},xp:48,loot:'stonecave',statusRes:{bleed:.5},
     moves:[M('หมัดหิน',12,4,20,12,40,3,18,{hy:30,hh:36}),M('กลิ้งชน',18,12,24,14,30,4,22,{hy:30,hh:44,lunge:2.8,kd:1})]},
-  duelist:{n:'bbqy legendary',kind:'rig',fixedLv:100,look:'DUELIST',wpn:'sword',hw:14,h:100,el:'lightning',boss:1,challenge:1,
-    attr:{str:30,agi:40,int:20,vit:20,luk:50},skills:['bluejudge','orb','slashwave'],base:{hp:5000,atk:198,def:60,mdef:60},res:{lightning:.2,shadow:-.2},statusRes:{stun:.5,bleed:.5,shock:.4},xp:2200,loot:'duelist',meterStart:0},
+  duelist:{n:'bbqy legendary',kind:'rig',fixedLv:100,look:'DUELIST',wpn:'sword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,
+    attr:{str:30,agi:40,int:20,vit:20,luk:50},skills:['bluejudge','orb','slashwave'],base:{hp:5000,atk:234,def:60,mdef:60},res:{lightning:.2,shadow:-.2},statusRes:{stun:.5,bleed:.5,shock:.4},xp:2200,loot:'duelist',meterStart:0},
   kage:{n:'คาเงะ นักดาบเงา',kind:'rig',look:'KAGE',wpn:'kageblade',hw:14,h:100,el:'shadow',miniboss:1,
     attr:{str:20,agi:40,int:10,vit:12,luk:30},skills:['moonfall','slashwave'],base:{hp:520,atk:60,def:16,mdef:10,critRate:.08},res:{shadow:.5,fire:-.2},statusRes:{stun:.3},xp:180,loot:'kage',meterStart:40},
   shade:{n:'เงาสาวก',kind:'rig',look:'SHADE',wpn:'kageblade',hw:14,h:100,el:'shadow',
@@ -421,6 +466,17 @@ const FOES={
     weakPoint:{after:'ทุบลาวา',t:150,mul:1.5},
     moves:[M('หมัดแมกมา',16,4,22,12,58,4,22,{hy:60,hh:50,el:'fire'}),M('ทุบลาวา',24,6,30,16,100,6,30,{hy:6,hh:16,low:1,quake:1,kd:1,el:'fire'}),
       M('พุ่งชนเพลิง',22,14,28,13,44,6,26,{hy:50,hh:80,lunge:2.8,kd:1,el:'fire'}),M('ขว้างหินเพลิง',18,3,24,11,0,4,22,{proj:{spd:4,r:11,hits:1,rock:1},far:1,el:'fire'})]},
+  mslime:{n:'สไลม์ปรอท',kind:'mon',map:'SLIME',pal:'mslime',sc:4,hw:22,h:34,spd:1.1,range:32,cd:[26,56],el:'phys',
+    attr:{str:20,agi:10,int:5,vit:30,luk:5},base:{hp:300,atk:58,def:14,mdef:6},res:{phys:.3,fire:-.4},xp:60,loot:'tower',
+    phases:[{at:.4,n:'สไลม์ปรอทรวมร่างใหม่!',cdMul:.85,spdMul:1.1,heal:.25}]},   // ครั้งเดียว: ฟื้น HP 25%
+  homunc:{n:'ฮอมุนคูลัสร่างทดลอง',kind:'rig',look:'HOMUNC',wpn:'adagger',hw:14,h:100,el:'poison',
+    attr:{str:15,agi:25,int:35,vit:15,luk:10},skills:['acidflask','fireflask','sparkflask'],base:{hp:340,atk:62,def:12,mdef:16},res:{poison:.5,ice:-.3},xp:75,loot:'tower',meterStart:0},
+  gargoyle:{n:'การ์กอยล์ศิลา',kind:'rig',look:'GARGOYLE',wpn:'ghammer',hw:16,h:100,el:'phys',
+    attr:{str:28,agi:8,int:5,vit:24,luk:5},skills:['earthshatter'],base:{hp:380,atk:68,def:24,mdef:10},res:{phys:.2,lightning:-.4},statusRes:{stun:.4},xp:160,loot:'tower',meterStart:0},
+  homunculus:{n:'ฮอมุนคูลัสผู้ล้มเหลว',kind:'rig',look:'HOMUNCULUS',wpn:'mstaff',hw:16,h:100,el:'poison',boss:1,fixedLv:45,
+    attr:{str:30,agi:30,int:60,vit:40,luk:20},skills:['acidflask','fireflask','sparkflask'],base:{hp:6200,atk:340,def:58,mdef:55},res:{poison:.6},
+    statusRes:{stun:.5,poison:.8,bleed:.3},xp:1250,loot:'homunculus',meterStart:0,
+    phases:[{at:.6,n:'ดื่มยาแปลงร่าง! (เฟส 2)',cdMul:.7,spdMul:1.3,aura:'poison'},{at:.3,n:'ธาตุแปรปรวน! (เฟส 3)',cdMul:.55,spdMul:1.35,elemCycle:1}]},
   seraph:{n:'เซราฟตาเดียว',kind:'mon',map:'ANGEL',pal:'angel',sc:4,hw:30,h:112,spd:1,range:56,cd:[26,56],boss:1,fixedLv:50,armor:1,el:'holy',noFlip:1,hover:1,eye:[0,80],weakY:20,
     attr:{str:15,agi:25,int:45,vit:30,luk:20},skills:['thunderclap'],base:{hp:7400,atk:425,def:64,mdef:69},res:{holy:.6,shadow:-.3,lightning:-.2,fire:.1},xp:1928,loot:'seraph',
     statusRes:{stun:.6,burn:.4,shock:.4,bleed:.4,poison:.5},stunImmuneAfter:600,
@@ -437,9 +493,13 @@ const DUELIST_LOOK={hair:'#16161a',skin:'#e6c4a4',body:'#1f3440',trim:'#d8b050',
 const SHADE_LOOK={hair:'#3a1a4a',skin:'#c8a8c0',body:'#2a1030',trim:'#9a3aff',pants:'#1a0a20',boots:'#0a0410',gloves:'#2a1a3a',head:'band',hc:'#9a3aff',hc2:'#ff4af0',scarf:'#9a3aff',mask:1,weapon:'kageblade',wcol:'#6a3a9a',sleeve:'#1a0a20',eye:'#ff4af0'};
 const SKIN_TONES=['#fbe0c8','#f2c9a0','#e0a878','#c68a5a','#9a6440','#6a4430'];
 const HAIR_COLORS=['#2a1c14','#5a3820','#9a4a22','#d8a040','#e8d890','#c8c8d4','#d84a5a','#4a7ad8','#4ab88a','#9a5ad8'];
-const HAIR_STYLES={short:'สั้น',spiky:'ตั้งแหลม',long:'ยาวสลวย',ponytail:'หางม้า',bun:'มวยผม',twin:'ไว้เปียคู่',bald:'ไม่มีผม'};
-const LOOK_BY_NAME={KAGE:KAGE_LOOK,SHADE:SHADE_LOOK,ICEKNIGHT:ICEKNIGHT_LOOK,DUELIST:DUELIST_LOOK};
-const DEFLOOK={hair:'#9a4a22',skin:'#f2c9a0',hstyle:'short',sex:'m',name:''};
+const HAIR_STYLES={short:'สั้น',spiky:'ตั้งแหลม',long:'ยาวสลวย',ponytail:'หางม้า',bun:'มวยผม',twin:'ไว้เปียคู่',bob:'บ๊อบ',hime:'เจ้าหญิงหน้าม้า',braid:'เปียเดี่ยว',curly:'หยิกฟู',sidebang:'ปัดปิดตา',mohawk:'โมฮอว์ก',bald:'ไม่มีผม'};
+const EYE_COLORS=['#1a1020','#5a3820','#3a7ad8','#3ab8d8','#3ab86a','#e8b030','#d84a5a','#9a5ad8','#c8c8d4'];
+const HOMUNC_LOOK={hair:'#3a3040',skin:'#9ad8a0',body:'#4a3a5a',trim:'#7af0c0',pants:'#2a2236',boots:'#1a1420',gloves:'#5a7a5a',head:'band',hc:'#7af0c0',hc2:'#e8fff0',sleeve:'#3a2a4a',weapon:'adagger'};
+const GARGOYLE_LOOK={hair:'#4a4a52',skin:'#8a8a92',body:'#6a6a72',trim:'#3a3a42',pants:'#4a4a52',boots:'#2a2a32',gloves:'#5a5a62',head:'helm',hc:'#5a5a62',hc2:'#3a3a42',horns:'#c8c8d0',pads:1,plate:1,sleeve:'#5a5a62',weapon:'ghammer',wcol:'#7a7a84'};
+const HOMUNCULUS_LOOK={hair:'#e8f0f0',hstyle:'long',skin:'#b8e8c0',body:'#4a2a6a',trim:'#7af0c0',pants:'#2a1a3a',boots:'#1a1024',gloves:'#7af0c0',head:'wizard',hc:'#2a1a4a',hc2:'#7af0c0',robe:'#3a1a5a',sleeve:'#4a2a6a',cape:{col:'#3a1a5a',col2:'#1a0a2a'},weapon:'mstaff',eye:'#7af0c0'};
+const LOOK_BY_NAME={HOMUNC:HOMUNC_LOOK,GARGOYLE:GARGOYLE_LOOK,HOMUNCULUS:HOMUNCULUS_LOOK,KAGE:KAGE_LOOK,SHADE:SHADE_LOOK,ICEKNIGHT:ICEKNIGHT_LOOK,DUELIST:DUELIST_LOOK};
+const DEFLOOK={hair:'#9a4a22',skin:'#f2c9a0',eye:'#1a1020',hstyle:'short',sex:'m',name:''};
 const pname=()=>((G.look&&G.look.name)||'').trim()||'คุณ';
 const ELITE={chance:.2,hp:2.5,atk:1.4,xp:3,prefix:'★ หัวหน้า'};
 
@@ -493,6 +553,12 @@ const LOOT_TABLES={
   golem:{guaranteed:[{gold:[150,200]},{mat:'core',q:2},{mat:'sc_golem',q:1}],entries:[
     {base:'h_horns',w:10,rar:'any',unique:1},{base:'a_golem',w:8,rar:'any',unique:1},{gear:'any',w:25,rar:'any'},{mat:'mp_l',w:10},
     {book:'rare',w:12,rar:['rare','legendary']},{book:'ultimate',w:6,rar:['legendary','god']},{mat:'divine',w:4,rar:['god']}]},
+  tower:{guaranteed:[{gold:[40,70]}],entries:[
+    {mat:'mercury',w:30,min:1,max:2},{mat:'ore',w:15},{mat:'mp_m',w:10},{mat:'potion',w:8},{gear:'any',w:22,rar:'any'},{set:'alchemist',w:8,rar:'any'},
+    {mat:'philostone',w:2,rar:['rare']},{book:'common',w:6,rar:['rare']},{book:'rare',w:4,rar:['legendary']}]},
+  homunculus:{guaranteed:[{gold:[600,800]},{mat:'philostone',q:1},{mat:'sc_merc',q:1},{mat:'mercury',q:3}],entries:[
+    {set:'alchemist',w:30,rar:'any'},{base:'w_mercstaff',w:6,rar:'any',unique:1},{gear:'any',w:20,rar:'any'},{mat:'mp_x',w:8},
+    {book:'rare',w:10,rar:['rare','legendary']},{book:'ultimate',w:8,rar:['legendary','god']},{mat:'divine',w:5,rar:['god']}]},
   seraph:{guaranteed:[{gold:[700,900]},{mat:'essence',q:1}],entries:[
     {base:'h_halo',w:10,rar:'any',unique:1},{base:'w_seraph',w:8,rar:'any',unique:1},{set:'seraph',w:18,rar:'any'},{mat:'sk_eyejudge',w:10},{gear:'any',w:16,rar:'any'},{mat:'mp_x',w:8},
     {book:'ultimate',w:10,rar:['legendary','god']},{mat:'divine',w:8,rar:['god']}]},
@@ -514,6 +580,8 @@ const ZONE_INFO={town:{n:'เมือง Collawarrie',lv:1,biome:'town',safe:1}
   ice1:{n:'ถ้ำน้ำแข็ง ชั้น 1',lv:18,biome:'ice',danger:1},ice2:{n:'ถ้ำน้ำแข็ง ชั้น 2',lv:20,biome:'ice',danger:1},
   stone1:{n:'ถ้ำหินโกเลม ชั้น 1',lv:5,biome:'cave',danger:1},stone2:{n:'ถ้ำหินโกเลม ชั้น 2',lv:7,biome:'cave',danger:1},
   golemroom:{n:'ห้องบอส: โกเลมหิน',lv:7,biome:'crystal',danger:1},
+  tower1:{n:'หอคอยนักแปรธาตุ ชั้น 1',lv:14,biome:'tower',danger:1},tower2:{n:'หอคอยนักแปรธาตุ ชั้น 2',lv:16,biome:'tower',danger:1},
+  towerroom:{n:'ห้องทดลองยอดหอ (บอส)',lv:17,biome:'tower',danger:1},
   sanctum:{n:'วิหารน้ำแข็งดวงตาเทวทูต (บอส)',lv:25,biome:'sanctum',danger:1}};
 const QUESTS={
   main1:{n:'ผู้บุกรุกในถ้ำชีส',type:'หลัก',steps:['คุยกับช่างตีเหล็กโบโร','สร้างอาวุธที่โต๊ะตีเหล็ก','ทุบหินเปิดทางถ้ำชั้นใน','ผ่านด่านคาเงะ นักดาบเงา','ปราบโกเลมหิน'],reward:{xp:300,gold:100,mats:{sc_dragon:1}}},

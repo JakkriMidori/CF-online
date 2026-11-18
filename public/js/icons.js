@@ -90,7 +90,8 @@ const BASE_ICO={
   w_club:['club','#c8925a'],w_sword:['sword','#d8dde6'],w_spear:['spear','#f0e2c0'],w_flame:['flameblade','#ff8a3a'],w_gaunt:['gauntlet','#7fd8ff'],
   w_firepan:['pan','#ff9a3a'],w_hammer:['hammer','#ffd56a'],w_kage:['katana','#b08aff'],w_seraph:['featherblade','#fff2a8'],w_god:['greatsword','#ff5a1a'],
   w_mswd:['magicsword','#c9a0ff'],w_mstaff:['staff','#a98aff'],w_adagger:['dagger','#d88aff'],w_wand_fire:['wand','#ff7a2a'],w_wand_ice:['wand','#bff0ff'],
-  w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],
+  w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],w_mercstaff:['wand','#9ae8b0'],h_alch:['wizardhat','#7af0c0'],a_alch:['robe','#7af0c0'],g_alch:['glove','#7af0c0'],b_alch:['boot','#7af0c0'],w_gs1:['greatsword','#c8ccd8'],w_gs2:['greatsword','#e8c070'],w_gs3:['greatsword','#a98aff'],
+  w_wh1:['hammer','#b8bfcc'],w_wh2:['hammer','#7fb8d8'],w_wh3:['hammer','#e8b040'],
   h_mage:['wizardhat','#b58aff'],a_mage:['robe','#b58aff'],p_mage:['pants','#b58aff'],b_mage:['boot','#b58aff'],
   h_boss:['horns','#ffd23a'],a_boss:['plate','#ffd23a'],g_boss:['glove','#ffd23a'],b_boss:['boot','#ffd23a'],
   h_leather:['cap','#c8925a'],h_iron:['helm','#b8bfcc'],h_band:['band','#6a8aff'],h_shadow:['band','#ff6a5a'],h_horns:['horns','#ff5a6a'],
@@ -108,7 +109,7 @@ const MAT_ICO={
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
   rune_str:['rune','#ff5a5a'],rune_crit:['rune','#ffd23a'],rune_vit:['rune','#6ae07a'],rune_fire:['rune','#ff8a3a'],
   potion:['potion','#ff5a6a'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
-  sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],reset:['scroll','#e8d8b0']
+  sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],reset:['scroll','#e8d8b0']
 };
 const _icoc=(name,col,size)=>`<span class="iic" style="color:${col}">${ico(name,size)}</span>`;
 function bIco(id,size=18){const e=BASE_ICO[id]||[TYPE_ICO[(typeof BASES!=='undefined'&&BASES[id]&&BASES[id].type)]||'gem','#d8dde6'];return _icoc(e[0],e[1],size);}

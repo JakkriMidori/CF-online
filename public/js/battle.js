@@ -8,7 +8,7 @@ function mkF(o){const f=Object.assign({x:0,y:GY,vx:0,vy:0,dir:1,onGround:true,st
   penalty:0,failedThis:false,cmb:null,fullMove:null,buffT:0,armorBuff:0,hits:0,weakT:0,ph:0},o);f.guardLeft=CONFIG.guard.max;f.guardBroken=0;f.S0=f.S;f.mods=[];Status.init(f);return f;}
 /* ฉากหลังการต่อสู้ — แยกตามคู่ต่อสู้ (สไตล์ Elden Ring: มืด มีหมอก เน้นแสงทองเล็กน้อย) */
 const SCENE_OF={rat:'cave',shade:'cave',kage:'cave',lavarat:'lava',lavaking:'lava',rat2:'cave',
-  golem:'stone',rockling:'stone',mudslime:'stone',seraph:'cathedral',
+  golem:'stone',rockling:'stone',mudslime:'stone',seraph:'cathedral',mslime:'tower',homunc:'tower',gargoyle:'tower',homunculus:'tower',
   frostslime:'frost',frostwolf:'frost',iceknight:'frost',icegolem:'frost',arena:'arena'};
 const SCENE_PAL={
   cave:{sky:['#0c0a10','#1a1420'],wall:[58,50,64],wallD:[36,30,42],fog:'rgba(120,110,140,.18)',glow:'#e8c674',floor:[46,40,48]},
@@ -16,6 +16,7 @@ const SCENE_PAL={
   lava:{sky:['#120404','#2a0a06'],wall:[52,30,26],wallD:[30,16,14],fog:'rgba(255,120,60,.16)',glow:'#ff8a3a',floor:[40,22,18]},
   cathedral:{sky:['#0a0c14','#1a2236'],wall:[84,92,110],wallD:[46,52,66],fog:'rgba(210,225,255,.16)',glow:'#fff2b8',floor:[70,76,92]},
   frost:{sky:['#060b12','#12202e'],wall:[120,150,170],wallD:[70,92,112],fog:'rgba(200,230,255,.2)',glow:'#bfe4ff',floor:[110,140,160]},
+  tower:{sky:['#08060c','#1a1226'],wall:[66,54,84],wallD:[38,30,52],fog:'rgba(140,240,190,.14)',glow:'#7af0c0',floor:[50,42,62]},
   arena:{sky:['#0b0a0c','#1c1714'],wall:[88,72,58],wallD:[52,42,34],fog:'rgba(200,170,120,.12)',glow:'#f3c969',floor:[96,74,52]}
 };
 function buildBattleBg(scene){
@@ -137,10 +138,19 @@ function useSkill(p,slot,fromBuf){
   if(SKILLS[id].tier==='ultimate')Ult.spend();else p.mp-=Mana.cost(id,p.S);
   if(p.cd)p.cd[id]=Skills.cdFrames(id,p.S);else G.skills.cd[id]=Skills.cdFrames(id,p.S);return true;
 }
-function pressAttack(p,btn){const m=pickMove(p,btn);if(m&&m.skill!==undefined)return useSkill(p,m.skill);return attemptMove(p,m);}
+function cmdDir(p){const k=kk(p),F=p.dir>0?k.R:k.L,Bk=p.dir>0?k.L:k.R;return(down(...k.U)||!p.onGround)?'U':down(...k.D)?'D':down(...F)?'F':down(...Bk)?'B':'N';}
+// ทิศตามปุ่มจริงบนคีย์บอร์ด (W/A/S/D) ไม่สนว่าหันซ้ายหรือขวา
+function cmdKey(p){const k=kk(p);return(down(...k.U)||!p.onGround)?'W':down(...k.D)?'S':down(...k.L)?'A':down(...k.R)?'D':'N';}
+function cmdCheck(p,btn){p.cmdBuf=p.cmdBuf||[];p.cmdBuf.push({c:cmdDir(p)+btn,l:cmdKey(p)+btn,t:G.t});if(p.cmdBuf.length>6)p.cmdBuf.shift();
+  for(const C of CMD_COMBOS){const L=C.seq.length;if(p.cmdBuf.length<L)continue;const tail=p.cmdBuf.slice(-L);let ok=true;
+    const lit=C.keys&&tail.every((x,i)=>x.l===C.keys[i]);for(let i=0;i<L;i++){if(!lit&&tail[i].c!==C.seq[i]){ok=false;break;}if(i&&tail[i].t-tail[i-1].t>C.window){ok=false;break;}}
+    if(ok){p.cmdBuf=[];return C;}}return null;}
+function pressAttack(p,btn){const C=cmdCheck(p,btn);
+  if(C){const m=C.move;if(p.state==='attack'||p.state==='air')p.state='idle';if(beginMove(p,m)){BT.fullCombo={n:C.n,t:90};SFX.perfect();return true;}}
+  const m=pickMove(p,btn);if(m&&m.skill!==undefined)return useSkill(p,m.skill);return attemptMove(p,m);}
 function control(p,e){
   if(p.state==='ko'||BT.result)return;
-  if(p.cd)for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;
+  if(p.cd)for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;if(p.dashCD>0)p.dashCD--;
   const n=numDir(p);if(n!==p.lastN){p.hist.push({n,t:G.t});if(p.hist.length>14)p.hist.shift();p.lastN=n;}
   const K=kk(p),fwdK=p.dir>0?K.R:K.L,backK=p.dir>0?K.L:K.R,holdB=down(...backK),Dn=down(...K.D),Rt=down(...K.R),Lt=down(...K.L);
   const blk=down(...(K.B||[]));if(tap(...(K.B||[])))p.backPressT=G.t;   // กด E ตรงจังหวะ = ปัดป้อง
@@ -151,7 +161,8 @@ function control(p,e){
   if(tap(...K.J))pressAttack(p,'J');else if(tap(...K.K))pressAttack(p,'K');
   if(!actionable(p))return;
   const spd=p.S.spd,swift=p.S.passives.has('swift')?.7:1;
-  if(tap(...K.X)){const c=CONFIG.staCost.dodge*swift;if(p.sta<c){BT.small={t:'สตามินาไม่พอ',l:40};}else{p.sta-=c;p.state='dodge';p.st=24;p.invuln=16;p.vx=(holdB?-1:1)*p.dir*4.6;SFX.dodge();return;}}
+  if(tap(...K.X)){if((p.dashCD||0)>0)BT.small={t:'พุ่งหลบยังไม่พร้อม ('+(p.dashCD/60).toFixed(1)+' วิ)',l:30};   // พุ่งหลบ: อมตะตลอดท่า · คูลดาวน์ 1.5 วิ (ไม่ใช้สตามินา)
+    else{p.dashCD=CONFIG.dashCD;p.state=holdB?'backdash':'dash';p.st=CONFIG.dashFrames;p.invuln=CONFIG.dashFrames+4;p.dashV=(holdB?-1:1)*p.dir*CONFIG.dashSpeed;p.vx=p.dashV;SFX.dodge();return;}}
   if(tap(...fwdK)&&!Dn){if(G.t-p.lastFT<12&&p.sta>=CONFIG.staCost.dash*swift){p.sta-=CONFIG.staCost.dash*swift;p.state='dash';p.st=18;p.vx=p.dir*4.6*spd;SFX.dodge();return;}p.lastFT=G.t;}
   if(tap(...backK)&&!Dn){if(G.t-p.lastBT<12&&p.sta>=CONFIG.staCost.dash*swift){p.sta-=CONFIG.staCost.dash*swift;p.state='backdash';p.st=16;p.vx=-p.dir*4.2;p.invuln=8;SFX.dodge();return;}p.lastBT=G.t;}
   if(down(...K.U)){p.state='prejump';p.st=4;p.jumpVx=(Rt?1:Lt?-1:0)*2.4*spd;return;}
@@ -185,6 +196,17 @@ function inBox(f,o,m){
   if(o.onGround&&o.h<60&&f.onGround)return true;
   const top=f.y-m.hy-m.hh/2,bot=f.y-m.hy+m.hh/2,th=o.h*(isCrouch(o)?.66:1);return bot>=o.y-th&&top<=o.y;
 }
+/* มังกรขาวตาฟ้า: โผล่หลังผู้ใช้ ปากอยู่ตรงจุดยิงลำแสง (mx,my) · d = ทิศหัน · a = ความทึบ · open = อ้าปาก 0-1 */
+function drawDragon(g,mx,my,d,a,open,C){if(a<=0)return;g.save();g.globalAlpha=Math.min(1,a);
+  const Z=1.7,R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(d>0?mx+x*Z:mx-(x+w)*Z,my+y*Z,w*Z,h*Z);},jaw=Math.round(open*7),t=G.t;
+  for(let i=0;i<9;i++){const u=i/8,x=-96+u*60,y=46-u*u*44+Math.sin(t*.12+i)*1.5;R(x,y,16,16,C.shade);R(x+1,y-1,14,12,C.body);if(i%2===0)R(x+4,y-6,6,6,C.mane);}   // คอยาว + แผงคอ
+  R(-58,-26,4,12,C.shade);R(-62,-34,4,10,C.shade);R(-66,-40,4,7,'#e8eef6');R(-48,-24,4,10,C.shade);R(-52,-31,4,8,'#e8eef6');   // เขา
+  R(-50,-18,42,22,C.shade);R(-48,-20,38,20,C.body);R(-12,-12,20,14,C.body);R(-12,-2,20,4,C.shade);R(4,-12,4,4,C.shade);   // หัว + จมูก
+  R(-44,4+jaw,44,7,C.shade);R(-42,4+jaw,40,5,C.body);for(let k=0;k<5;k++){R(-6-k*7,2,2,3,'#ffffff');R(-4-k*7,4+jaw-2,2,3,'#ffffff');}   // กรามล่าง + ฟัน
+  if(open>.2){R(-30,4,32,jaw,'#1a2a4a');R(-10,4,10,Math.max(1,jaw-2),C.eye);}   // ในปากเรืองฟ้า
+  R(-30,-14,8,5,'#0a1a3a');R(-29,-14,6,4,C.eye);R(-27,-14,2,2,'#ffffff');   // ตาสีฟ้า
+  g.globalAlpha=Math.min(1,a)*.35;g.fillStyle=C.eye;g.beginPath();g.arc(d>0?mx-26*Z:mx+26*Z,my-12*Z,(10+Math.sin(t*.3)*2)*Z,0,7);g.fill();
+  g.restore();}
 const beamHits=(f,o)=>Math.sign(o.x-f.x)===f.dir&&o.state!=='down'&&o.state!=='ko'&&o.y>=f.y-96&&o.y-o.h<=f.y;
 function num(f,txt,col,size=20,dy=0){BT.nums.push({x:f.x+rnd(-8,8),y:f.y-f.h-6+dy,txt,col,size,t:55});}
 function sparks(x,y,col,n){for(let i=0;i<n;i++){const a=rnd(0,6.28),s=rnd(1,4);BT.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,l:rnd(14,26)|0,c:col,s:rnd(1,3)|0||1});}}
@@ -221,7 +243,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(gd==='parry'){t.guardLeft=CONFIG.guard.max;Ult.gain(t,'perfectBlock',a.name+':'+seq);a.state='parried';a.st=50;a.move=null;a.vx=Math.sign(a.x-t.x)*3;t.sta=Math.min(t.S.maxSTA,t.sta+30);b.hitstop=14;b.shake=4;if(!b.vs)G.stats.parries++;
     num(t,'ปัดป้อง!','#f3c969',24);sparks(hx,hy,'#ffe27a',24);b.bursts.push({x:hx,y:hy,t:0,col:'#ffe27a',big:1});SFX.parry();return;}
   const lastHit=!m.multi||t.__lastHitCheck;
-  const h={coef:(m.dmg/10)*mul,type:m.type||'phys',el:m.el||(a.rig?WEAPONS[a.wpn].el:(a.def&&a.def.el)||'phys'),ignoreDef:!!m.ignoreDef,
+  const h={coef:(m.dmg/10)*mul,type:(a.def&&a.def.allMagic)?'magic':m.type||'phys',el:m.el||(a.rig?WEAPONS[a.wpn].el:(a.def&&a.def.el)||'phys'),ignoreDef:!!m.ignoreDef,
     forceCrit:!!(m.lastCrit&&a.hitN===m.multi-1)||(a.jackpot>0),defPen:a.jackpot>0?(a.jackpotPen||0):0,fullCombo:a.fullMove===m,weakPoint:t.weakT>0&&t.def&&t.def.weakPoint?t.def.weakPoint.mul:0,
     counter:(t.state==='attack'&&t.phase==='startup')||t.state==='parried',mastery:a.isP&&!BT.vs?Prog.masteryBonus(a.wpn):0,execute:a.S.passives.has('executioner')&&t.hp<t.maxHp*.3,stunned:!!t.st8.stun,berserk:a.S.uniq&&a.S.uniq.id==='berserker'&&a.hp<a.maxHp*.5?a.S.uniq.v:0};
   if(gd==='block'&&--t.guardLeft<=0){t.guardLeft=0;t.guardBroken=CONFIG.guard.breakT;num(t,'การ์ดแตก!','#ff6a4a',22,-60);sparks(hx,hy,'#ff8a5a',22);SFX.crit();b.shake=6;}   // บล็อกครั้งที่ 4 ยังกันได้ แล้วการ์ดแตก 8 วิ
@@ -242,6 +264,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(t.hp>0){
     if(armored){t.flash=6;b.hitstop=4;}
     else if(t.st8.stun){t.flash=8;t.vx=a.dir*m.kb*.5;}
+    else if(t.def&&t.def.boss){t.move=null;t.flash=8;t.state='hurt';t.st=Math.round(m.hs*.6);t.vx=a.dir*m.kb*.15;}   // บอส: ไม่ล้ม ไม่ลอย ไม่กระเด็น
     else{t.move=null;t.flash=8;const air=!t.onGround;
       if(m.launch||air||m.kd){t.state='airhurt';t.onGround=false;t.vy=m.launch?-7.4:air?-3.8:-3.6;t.vx=a.dir*(m.kd?2.4:1.3);t.jug++;}
       else{t.state='hurt';t.st=m.hs;t.vx=a.dir*m.kb;}}
@@ -253,7 +276,8 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(h.fullCombo&&(!m.multi||a.hitN===0))num(t,'FULL COMBO +20%','#ffd23a',18,-70);
   if(a.move===m)a.didHit=true;
   // statuses: skill-defined, element procs, unique passives, set passives
-  if(m.status)for(const k in m.status)if(m.status[k]>0)tryStatus(t,k,m.status[k],a,m.statusDur);   // statusDur = ระยะเวลาสถานะของท่านี้ (วิ)   // 0 = ปิดสถานะนั้น
+  if(m.status)for(const k in m.status)if(m.status[k]>0)tryStatus(t,k,m.status[k],a,m.statusDur);
+  if(m.stunChance&&rand()<m.stunChance)tryStatus(t,'stun',1,a,m.stunDur||3);   // ค้อนศึก: โอกาสสตัน   // statusDur = ระยะเวลาสถานะของท่านี้ (วิ)   // 0 = ปิดสถานะนั้น
   if(m.armorBreak&&t.hp>0){StatSync.addMod(t,{id:'armorbreak',n:m.armorBreak.n||'เกราะแตก',kind:'debuff',stat:'def',op:'mul',v:m.armorBreak.def,ttl:m.armorBreak.t});num(t,(m.armorBreak.n||'เกราะแตก')+'!','#ff9a5a',16,-46);}
   const pr=ELEM_PROC[h.el];if(pr&&rand()<pr.c)tryStatus(t,pr.s,1,a);
   const ps=a.S.passives;
@@ -276,7 +300,10 @@ function updAtk(f,o){
   const m=f.move;f.pt++;
   if(f.phase==='startup'){
     if(m.inv)f.invuln=Math.max(f.invuln,2);if(m.lunge)f.x+=f.dir*m.lunge*.3;
-    if(f.pt>=m.s){f.phase='active';f.pt=0;SFX.swing();
+    if(f.pt>=(f.isP||f.isP2||m.skillId?m.s:Math.round(m.s*CONFIG.enemyStartupMul))){f.phase='active';f.pt=0;SFX.swing();
+      if(m.swap&&o){const nx=clamp(o.x+f.dir*34,24,W-24);for(let i=0;i<14;i++)BT.parts.push({x:f.x,y:f.y-50+rnd(-20,20),vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),l:20,c:'#c9a0ff',s:3});
+        f.x=nx;f.dir=o.x>f.x?1:-1;for(let i=0;i<14;i++)BT.parts.push({x:f.x,y:f.y-50+rnd(-20,20),vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),l:20,c:'#c9a0ff',s:3});}   // วาร์ปไปด้านหลังศัตรู
+      if(m.rider){f.onGround=false;f.vy=f.y<GY-20?3.2:-3.5;BT.shake=4;}   // บนพื้น: เด้งขึ้นแล้วพุ่ง · กลางอากาศ: พุ่งดิ่งเฉียงลง
       if(m.proj)spawnProj(f,m);
       if(m.rise){f.vy=-m.rise;f.onGround=false;f.vx=f.dir*1.2;}
       if(m.strike){const dx=o.x-f.x;if(Math.sign(dx)===f.dir&&Math.abs(dx)<=m.strike+o.hw){applyHit(f,o,m,1,o.x,o.y-o.h*.6,true);}BT.bolts.push({x:Math.abs(dx)<=m.strike+o.hw&&Math.sign(dx)===f.dir?o.x:f.x+f.dir*m.strike,t:14});SFX.crit();}
@@ -322,6 +349,7 @@ function stepF(f,o){
   if(f.look&&f.look.aura&&G.t%4===0)BT.parts.push({x:f.x+rnd(-14,14),y:f.y-rnd(10,90),vx:rnd(-.2,.2),vy:-.9,l:20,c:f.look.aura,s:2});
   if(f.elite&&G.t%3===0)BT.parts.push({x:f.x+rnd(-f.hw,f.hw),y:f.y-rnd(0,f.h),vx:0,vy:-.7,l:16,c:'#ffd23a',s:2});
   if(f.look&&f.look.trail&&['walk','dash','air'].includes(f.state)&&G.t%3===0)BT.parts.push({x:f.x-f.dir*6,y:f.y-rnd(0,8),vx:-f.dir*.6,vy:-.2,l:16,c:f.look.trail,s:2});
+  if(f.dashV){if(f.state==='dash'||f.state==='backdash')f.vx=f.dashV;else{f.dashV=0;f.vx*=.3;}}   // พุ่งหลบ: ความเร็วคงที่ พุ่งทะลุตัวศัตรู
   if(!f.onGround){f.vy+=GRAV;f.y+=f.vy;f.x+=f.vx;if(f.y>=GY)land(f);}else{f.x+=f.vx;f.vx*=.8;if(Math.abs(f.vx)<.05)f.vx=0;}
   const lying=f.state==='down'||f.state==='ko';f.x=clamp(f.x,lying?46:20,lying?W-46:W-20);
   if(['dash'].includes(f.state)||(f.state==='attack'&&f.move&&(f.move.super||f.move.lunge))||f.state==='dodge'){if(G.t%2===0){f.trail.push({x:f.x,y:f.y,P:f.rig?poseFor(f):null});if(f.trail.length>4)f.trail.shift();}}
@@ -337,9 +365,14 @@ function stepF(f,o){
   if(!['hurt','airhurt','stun'].includes(o.state))f.combo=0;
   // boss phases
   if(f.def&&f.def.phases)f.def.phases.forEach((ph,i)=>{if(f.ph<=i&&f.hp>0&&f.hp/f.maxHp<=ph.at){f.ph=i+1;f.cdMul=ph.cdMul;f.spdMul=ph.spdMul;
-    if(ph.addMove&&!f.moves.includes(EXTRA_MOVES[ph.addMove]))f.moves.push(EXTRA_MOVES[ph.addMove]);f.auraBurn=ph.aura==='burn';
+    if(ph.addMove&&f.moves&&!f.moves.includes(EXTRA_MOVES[ph.addMove]))f.moves.push(EXTRA_MOVES[ph.addMove]);f.auraBurn=ph.aura==='burn';f.auraPoison=ph.aura==='poison';
+    if(ph.heal){f.hp=Math.min(f.maxHp,f.hp+f.maxHp*ph.heal);num(f,'+'+Math.round(f.maxHp*ph.heal)+' HP','#7aff9a',18,-40);}
+    if(ph.elemCycle){f.elemCycle=1;f.elT=0;}
     BT.phaseMsg={t:ph.n,l:120};BT.shake=8;BT.white=6;SFX.flash();Status.cleanse(f);}});
   if(f.auraBurn&&G.t%120===0&&Math.abs(o.x-f.x)<110)tryStatus(o,'burn',1,f);
+  if(f.auraPoison&&G.t%120===0&&Math.abs(o.x-f.x)<110)tryStatus(o,'poison',1,f);
+  if(f.elemCycle&&f.hp>0&&(f.elT=(f.elT||0)-1)<=0){f.elT=600;const E=['fire','ice','lightning'],e=E[(E.indexOf(f.curEl)+1)%3];f.curEl=e;   // เฟส 3: สลับธาตุที่ต้านทุก 10 วิ
+    f.S.res=Object.assign({},f.S.res,{fire:0,ice:0,lightning:0,[e]:.7});if(f.S0)f.S0.res=Object.assign({},f.S.res);BT.phaseMsg={t:'ต้านธาตุ'+ELN[e]+' — เปลี่ยนวิธีโจมตี!',l:100};SFX.flash();}
 }
 /* ---------- AI ---------- */
 /* ศัตรูใช้สกิล: อ่านจาก FOES[kind].skills — เคารพค่า user ของสกิล (ใช้ได้เฉพาะ 'all' หรือ 'enemy')
@@ -512,7 +545,7 @@ function poseFor(f){
     case'airhurt':P.lean=-1.1;P.hip=-12;P.fh=[-6,2];P.bh=[-8,-1];P.ff=[7,-6];P.bf=[5,-2];P.head=-.3;P.wa=2.4;break;
     case'down':case'ko':P.lean=-1.5;P.hip=-3;P.ff=[11,0];P.bf=[9,0];P.fh=[-1,3];P.bh=[2,3];P.wa=1.6;break;
     case'attack':{
-      const m=f.move,ph=f.phase,Sx=ph==='startup',A=ph==='active',u=Sx?f.pt/Math.max(1,m.s):A?f.pt/Math.max(1,m.a):f.pt/Math.max(1,m.r);
+      const m=f.move,ph=f.phase,Sx=ph==='startup',A=ph==='active',u=Sx?Math.min(1,f.pt/Math.max(1,f.isP||f.isP2||m.skillId?m.s:Math.round(m.s*CONFIG.enemyStartupMul))):A?f.pt/Math.max(1,m.a):f.pt/Math.max(1,m.r);
       if(!f.onGround){P.hip=-14;P.ff=[4,-5];P.bf=[-3,-3];}
       switch(m.anim){
         case'jab':case'cjab':if(m.anim==='cjab'){P.hip=-9;P.lean=.3;P.ff=[6,0];P.bf=[-5,0];}P.lean+=.1;P.fh=Sx?[4,1]:A?[11,0]:lp([11,0],[6,1],u);break;
@@ -564,10 +597,12 @@ function drawFighterB(f){
     if(f.state==='attack'&&m&&f.phase==='active'&&!m.proj&&!m.beam&&WEAPONS[f.wpn].len&&['slash','slash2','heavyslash'].includes(m.anim)){
       g.strokeStyle=WEAPONS[f.wpn].fx;g.globalAlpha=.55;g.lineWidth=6;g.beginPath();const cx=f.x+f.dir*6,cy=f.y-66;
       if(f.dir>0)g.arc(cx,cy,48,-1.9,1.2);else g.arc(cx,cy,48,Math.PI-1.2,Math.PI+1.9);g.stroke();g.globalAlpha=1;}
-    if(f.state==='attack'&&m&&m.beam&&f.phase!=='recovery'){const el=ELC[m.el]||'#fff',ey=f.def&&f.def.eye,hx=f.x+f.dir*(ey?ey[0]+14:36),hy=f.y-(ey?ey[1]-(f.def.hover?14:0):62);
+    if(f.state==='attack'&&m&&m.beam&&m.dragon){const hx=f.x+f.dir*30,hy=f.y-70,
+      u=f.phase==='startup'?f.pt/Math.max(1,m.s):f.phase==='active'?1:1-f.pt/Math.max(1,m.r);drawDragon(g,hx,hy-(f.phase==='startup'?(1-u)*30:0),f.dir,u,f.phase==='active'?1:u*.4,m.dragon);}
+    if(f.state==='attack'&&m&&m.beam&&f.phase!=='recovery'){const el=ELC[m.el]||'#fff',ey=f.def&&f.def.eye,dg=!!m.dragon,hx=dg?f.x+f.dir*30:f.x+f.dir*(ey?ey[0]+14:36),hy=dg?f.y-70:f.y-(ey?ey[1]-(f.def.hover?14:0):62);
       if(f.phase==='startup'){const r=4+f.pt/m.s*12;g.fillStyle=el;g.globalAlpha=.8;g.beginPath();g.arc(hx,hy,r,0,7);g.fill();g.fillStyle='#fff';g.beginPath();g.arc(hx,hy,r*.5,0,7);g.fill();g.globalAlpha=1;}
       else{const w=22+Math.sin(G.t*.8)*3,ex=f.dir>0?W+20:-20;g.globalAlpha=.85;g.fillStyle=el;g.fillRect(Math.min(hx,ex),hy-w,Math.abs(ex-hx),w*2);
-        g.fillStyle='#fff';g.fillRect(Math.min(hx,ex),hy-w*.45,Math.abs(ex-hx),w*.9);g.globalAlpha=1;g.fillStyle=el;g.beginPath();g.arc(hx,hy,w*1.3,0,7);g.fill();}}
+        g.fillStyle='#fff';g.fillRect(Math.min(hx,ex),hy-w*.45,Math.abs(ex-hx),w*.9);g.globalAlpha=1;g.fillStyle=el;g.beginPath();g.arc(hx,hy,w*(dg?.6:1.3),0,7);g.fill();}}
     if(f.buffT>0){g.strokeStyle='rgba(160,210,255,.6)';g.lineWidth=2;g.beginPath();g.ellipse(f.x,f.y-50,26,56,0,0,7);g.stroke();}
   }else{g.globalAlpha=ghost?.5:1;drawMon(f,tint);g.globalAlpha=1;}
   if(['block','cblock','gstun'].includes(f.state)){const fresh=f.isP&&G.t-f.backPressT<=8;g.strokeStyle=fresh?'rgba(255,226,122,.95)':'rgba(140,200,255,.6)';g.lineWidth=fresh?4:2;

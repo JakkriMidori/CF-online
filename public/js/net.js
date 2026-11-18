@@ -13,7 +13,7 @@ const MOVEMAPS={};
 // หาท่าจากชื่อ ตามอาวุธและสกิลของนักสู้คนนั้น (ใช้ฝั่งเพื่อนตอนวาดภาพจาก snapshot)
 function moveByName(n,f){if(!n)return null;const wt=(f&&f.wpn)||CONFIG.arena.weapon,sk=(f&&f.skillSet)||CONFIG.arena.skills,key=wt+'|'+sk.join(',');
   let M=MOVEMAPS[key];if(!M){M=MOVEMAPS[key]={};const W=WEAPONS[wt]||WEAPONS.sword;for(const m of[...W.light,W.heavy,...Object.values(UNI)])if(m&&m.n)M[m.n]=m;
-    sk.forEach((id,i)=>{if(!id||!SKILLS[id])return;const m=Skills.move(id,wt,i);if(m&&m.n)M[m.n]=m;});}
+    sk.forEach((id,i)=>{if(!id||!SKILLS[id])return;const m=Skills.move(id,wt,i);if(m&&m.n)M[m.n]=m;});for(const C of CMD_COMBOS)M[C.move.n]=C.move;}
   return M[n]||null;}
 // เริ่มขอความสามารถ room ตั้งแต่โหลดหน้า (อาจใช้เวลาถึง ~10 วิ)
 // ขอความสามารถ room แบบหน่วง: window.claude อาจถูกใส่เข้ามาหลังสคริปต์โหลดแล้ว จึงไม่ล็อกผลไว้ตอนโหลดหน้า

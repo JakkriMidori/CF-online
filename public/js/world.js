@@ -54,11 +54,11 @@ function makeTown(){
   const grid=makeTownGrid(),water=[];
   for(let y=0;y<grid.length;y++)for(let x=0;x<grid[0].length;x++)if(grid[y][x]==='W')water.push({x,y});
   const roofs=['#a8382a','#2a5aa8','#3a8a4a','#8a5a2a','#7a3a8a','#2a8a8a'];let ri=0;const H=(tx,ty)=>({k:'house',...T(tx,ty,8,14),hw:26,roof:roofs[ri++%roofs.length]});
-  return{id:'town',grid,cols:TOWN_COLS,rows:TOWN_ROWS,water,spawn:T(23,21,16,8),gate:T(45,17,8,12),icegate:T(4,19,8,12),stonegate:T(23,28,16,14),safe:1,levelAt:()=>1,regionAt:()=>'town',biomeAt:()=>'town',
-    props:[H(5,7),H(17,7),Object.assign(H(30,7),{sign:'store',inter:'store'}),H(5,15),Object.assign(H(17,15),{sign:'smith',inter:'smithy'}),H(17,22),H(42,22),H(5,28),H(17,28),H(30,28),H(42,28),
+  return{id:'town',grid,cols:TOWN_COLS,rows:TOWN_ROWS,water,spawn:T(23,21,16,8),gate:T(45,17,8,12),icegate:T(4,19,8,12),stonegate:T(23,28,16,14),towergate:T(10,6,8,12),safe:1,levelAt:()=>1,regionAt:()=>'town',biomeAt:()=>'town',
+    props:[H(5,7),Object.assign(H(17,7),{sign:'alchemy',inter:'alchemy'}),Object.assign(H(30,7),{sign:'store',inter:'store'}),H(5,15),Object.assign(H(17,15),{sign:'smith',inter:'smithy'}),H(17,22),H(42,22),H(5,28),H(17,28),H(30,28),H(42,28),
       {k:'anvil',...T(26,15,8,14),hw:10,inter:'craft'},{k:'fountain',...T(31,13,8,14),hw:14,inter:'fountain'},
       {k:'stall',...T(32,20,8,14),hw:18,inter:'shop'},{k:'board',...T(34,15,8,14),hw:8,inter:'board'},
-      {k:'cavegate',...T(46,17,8,12),hw:10,inter:'dungeon'},{k:'duelpost',...T(38,10,8,14),hw:8,inter:'duel'},{k:'icegate',...T(2,17,8,12),hw:10,inter:'icedungeon'},{k:'stonegate',...T(23,29,16,12),hw:12,inter:'stonedungeon'},{k:'arena',...T(23,17,16,16),hw:10,inter:'arena'},
+      {k:'cavegate',...T(46,17,8,12),hw:10,inter:'dungeon'},{k:'duelpost',...T(38,10,8,14),hw:8,inter:'duel'},{k:'icegate',...T(2,17,8,12),hw:10,inter:'icedungeon'},{k:'towergate',...T(10,4,8,12),hw:10,inter:'towerdungeon'},{k:'stonegate',...T(23,29,16,12),hw:12,inter:'stonedungeon'},{k:'arena',...T(23,17,16,16),hw:10,inter:'arena'},
       ...[[3,3],[14,3],[20,3],[27,3],[33,3],[46,4],[2,12],[46,12],[2,26],[46,26],[13,26],[27,26],[34,26],[20,12],[14,20],[39,20]].map(([x,y])=>({k:'tree',...T(x,y,10,14),hw:6})),
       ...[[21,6],[26,6],[21,13],[26,13],[21,20],[26,20],[8,13],[13,13],[35,6],[38,6]].map(([x,y])=>({k:'lamp',...T(x,y,8,4),hw:3}))],
     items:[],npcs:[{id:'smith',name:'โบโร',...T(25,15),pal:'smith',face:1,hw:5},{id:'reitem',name:'Re-Item Master',...T(20,21),pal:'kage',face:1,hw:5},{id:'girl',name:'มิลิน',...T(28,12),pal:'girl',face:-1,hw:5},
@@ -73,7 +73,7 @@ const CHUNKS=[
  ["..........","..M..LL...",".....LL.E.","..........","LL........","..........","..........","........LL","..E.......","...##.....",".C.##..M..",".........."]];
 const BOSS_CHUNK=["....................","..LL............LL..","..LL............LL..","....................","....................","....................","....................","....................","..LL............LL..","..LL............LL..","....................","...................."];
 function makeDungeon(floor,theme){
-  const th=theme||'lava',ice=th==='ice',stone=th==='stone',lava=th==='lava',id=th+floor,info=ZONE_INFO[id],grid=[];
+  const th=theme||'lava',ice=th==='ice',stone=th==='stone',lava=th==='lava',tower=th==='tower',puddles={},id=th+floor,info=ZONE_INFO[id],grid=[];
   for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
   for(let x=1;x<29;x++)grid[2][x]=x%6===3?'T':'^';
   const parts=floor===3&&lava?[pick(CHUNKS),BOSS_CHUNK]:[pick(CHUNKS),pick(CHUNKS),pick(CHUNKS)];
@@ -82,11 +82,12 @@ function makeDungeon(floor,theme){
   for(const ch of parts){const w=ch[0].length;
     for(let r=0;r<12;r++)for(let c=0;c<w;c++){const tx=cx+c,ty=3+r;if(tx<1||tx>28)continue;let s=ch[r][c];
       if(r===5||r===6)s=s==='L'||s==='#'?'.':s;   // guaranteed corridor
-      grid[ty][tx]=s==='#'||(s==='L'&&stone)?'#':s==='L'&&lava?'L':'.';
+      grid[ty][tx]=s==='#'||(s==='L'&&stone)?'#':s==='L'&&lava?'L':s==='L'&&tower?'P':'.';
+      if(s==='L'&&tower)puddles[tx+','+ty]=pick(['poison','poison','burn','mana','power']);   // แอ่งน้ำยาสี
       if(s==='L'&&lava)lavaTiles.push({x:tx*16+8,y:ty*16+8});
-      if(s==='E')foes.push(mkFoe(stone?(floor===2&&rand()<.2?'rockling':pick(['rat','rat','mudslime','mudslime','rockling'])):ice?(floor===2&&rand()<.15?'icegolem':pick(['frostslime','frostslime','frostwolf','frostwolf','iceknight'])):rand()<.65?'lavarat':'shade',T(tx,ty,8,8)));
-      if(s==='M')items.push({it:pick(stone?['ore','ore','wood','hide','thunder']:['lavaore','lavaore','fire','ore','hide']),...T(tx,ty)});
-      if(s==='C')props.push({k:'chest',...T(tx,ty,8,12),hw:7,inter:'chest',content:{loot:stone?'stonecave':ice?'icecave':'lavarat',skill:.25}});}
+      if(s==='E')foes.push(tower?(floor===2&&rand()<.2?mkFoe('gargoyle',T(tx,ty,8,8),{elite:1}):mkFoe(pick(['mslime','mslime','homunc','homunc']),T(tx,ty,8,8))):mkFoe(stone?(floor===2&&rand()<.2?'rockling':pick(['rat','rat','mudslime','mudslime','rockling'])):ice?(floor===2&&rand()<.15?'icegolem':pick(['frostslime','frostslime','frostwolf','frostwolf','iceknight'])):rand()<.65?'lavarat':'shade',T(tx,ty,8,8)));
+      if(s==='M')items.push({it:pick(tower?['mercury','mercury','ore','thunder','fire']:stone?['ore','ore','wood','hide','thunder']:['lavaore','lavaore','fire','ore','hide']),...T(tx,ty)});
+      if(s==='C')props.push({k:'chest',...T(tx,ty,8,12),hw:7,inter:'chest',content:{loot:tower?'tower':stone?'stonecave':ice?'icecave':'lavarat',skill:.25}});}
     cx+=w;}
   for(let x=1;x<29;x++)grid[15][x]='.';
   if(floor===2&&lava)props.push({k:'chest',...T(2,15,8,12),hw:7,inter:'chest',content:{mat:'sc_god',mat2:'divine'},hidden:1});
@@ -95,10 +96,10 @@ function makeDungeon(floor,theme){
   if(floor<3)props.push({k:'stairs',...T(28,9,8,10),hw:6,inter:'stairs'});
   if(floor===3&&lava){foes.length=0;foes.push(mkFoe('lavaking',T(22,9,8,6)),mkFoe('shade',T(14,6,8,8)),mkFoe('shade',T(14,12,8,8)));
     props.push({k:'portal',...T(27,9,8,10),hw:6,inter:'portal',locked:1});}
-  return{id,grid,spawn:T(1,9),levelAt:()=>info.lv,regionAt:()=>id,biomeAt:()=>stone?'cave':ice?'ice':'lava',props,items,npcs:[],foes,lavaTiles,floor,theme:th};
+  return{id,grid,spawn:T(1,9),levelAt:()=>info.lv,regionAt:()=>id,biomeAt:()=>tower?'tower':stone?'cave':ice?'ice':'lava',props,items,npcs:[],foes,lavaTiles,puddles,floor,theme:th};
 }
 /* ห้องบอสแยก — เข้าแล้วออกไม่ได้ (ประตูออก/พอร์ทัลล็อก) จนกว่าจะชนะ หรือตาย */
-const BOSS_ROOMS={golem:{id:'golemroom',biome:'crystal',theme:'stone'},lavaking:{id:'lava3',biome:'lava',theme:'lava'},seraph:{id:'sanctum',biome:'sanctum',theme:'ice'}};
+const BOSS_ROOMS={golem:{id:'golemroom',biome:'crystal',theme:'stone'},lavaking:{id:'lava3',biome:'lava',theme:'lava'},seraph:{id:'sanctum',biome:'sanctum',theme:'ice'},homunculus:{id:'towerroom',biome:'tower',theme:'tower'}};
 function makeBossRoom(kind){
   const R=BOSS_ROOMS[kind],grid=[];for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
   for(let x=1;x<29;x++)grid[2][x]=x%6===3?'T':'^';
@@ -135,12 +136,13 @@ const BIOME={town:{floor:[92,132,72],line:'rgba(30,60,20,.25)',top:'#1e3a1a',fac
   crystal:{floor:[70,72,94],line:'rgba(20,20,40,.55)',top:'#16141e',face:['#3e3a4c','#2a2836']},
   lava:{floor:[74,52,46],line:'rgba(30,10,8,.6)',top:'#140c0a',face:['#4a2a20','#2a1612']},
   ice:{floor:[150,184,204],line:'rgba(30,60,90,.45)',top:'#34506a',face:['#8ab0c8','#5a7e98']},
+  tower:{floor:[64,56,80],line:'rgba(20,10,30,.55)',top:'#140f1c',face:['#4a3a5a','#2a2036']},
   sanctum:{floor:[84,104,98],line:'rgba(10,24,24,.5)',top:'#141c24',face:['#4a6a64','#2a403c']}};
 function buildBg(){
   const grid=Z.grid,C=Z.cols,Rw=Z.rows;bgC.width=Math.max(W,C*16);bgC.height=Math.max(H,Rw*16);B.fillStyle='#0d0808';B.fillRect(0,0,bgC.width,bgC.height);
   for(let ty=0;ty<Rw;ty++)for(let tx=0;tx<C;tx++){
     const ch=grid[ty][tx],px=tx*16,py=ty*16,bi=BIOME[Z.biomeAt(tx,ty)],h=hash(tx+(Z.floor||0)*7,ty);
-    if(ch==='.'||ch==='R'||ch==='L'||ch===':'){
+    if(ch==='.'||ch==='R'||ch==='L'||ch===':'||ch==='P'){
       const v=(h-.5)*18,b=ch===':'&&bi.road?bi.road:bi.floor;B.fillStyle=`rgb(${b[0]+v|0},${b[1]+v|0},${b[2]+v|0})`;B.fillRect(px,py,16,16);
       B.fillStyle=bi.line;B.fillRect(px,py,16,1);B.fillRect(px+(ty%2?0:8),py,1,16);
       B.fillStyle='rgba(255,240,210,.07)';B.fillRect(px+1,py+1,14,1);
@@ -148,6 +150,8 @@ function buildBg(){
       if(h>.88){B.fillStyle='rgba(0,0,0,.28)';B.fillRect(px+4,py+7,5,1);B.fillRect(px+8,py+8,3,1);}
       if(ty>0&&'^T#'.includes(grid[ty-1][tx])){const gr=B.createLinearGradient(0,py,0,py+8);gr.addColorStop(0,'rgba(0,0,0,.6)');gr.addColorStop(1,'rgba(0,0,0,0)');B.fillStyle=gr;B.fillRect(px,py,16,8);}
       if(tx>0&&grid[ty][tx-1]==='#'){B.fillStyle='rgba(0,0,0,.3)';B.fillRect(px,py,4,16);}
+      if(ch==='P'){const ty2=(Z.puddles||{})[tx+','+ty]||'poison',PC={poison:['#2a8a3a','#4ad86a'],burn:['#a8380e','#ff7a2a'],mana:['#1a4a9a','#4a9aff'],power:['#9a7a0a','#ffd23a']}[ty2];
+        B.fillStyle=PC[0];B.beginPath();B.ellipse(px+8,py+9,7,5,0,0,7);B.fill();B.fillStyle=PC[1];B.beginPath();B.ellipse(px+7,py+8,5,3,0,0,7);B.fill();B.fillStyle='rgba(255,255,255,.5)';B.fillRect(px+5,py+6,2,1);}
       if(ch==='L'){B.fillStyle='#c4380e';B.fillRect(px,py,16,16);B.fillStyle='#ff7a1a';B.fillRect(px+2,py+3,12,10);B.fillStyle='#ffd04a';
         B.fillRect(px+3+(h*6|0),py+5,4,2);B.fillRect(px+8,py+9+(h*2|0),5,2);B.fillStyle='rgba(0,0,0,.35)';B.fillRect(px,py,16,2);}
       if(ch==='R'){for(let i=0;i<7;i++){const rx=px+2+hash(px+i,py)*12,ry=py+2+hash(py+i,px)*12,r=3+hash(i,px+py)*3;
@@ -170,7 +174,7 @@ function buildBg(){
 
 /* ----- exploration ----- */
 const hitBox=(o,x,y)=>Math.abs(o.x-x)<o.hw+4&&y>o.y-6&&y-3<o.y;
-const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','fountain','stall','board','tree','cavegate','icegate','bossdoor','stonegate','duelpost']);
+const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','fountain','stall','board','tree','cavegate','icegate','bossdoor','stonegate','duelpost','towergate']);
 function blocked(x,y,self,tilesOnly){
   for(const[px,py] of [[x-4,y-3],[x+4,y-3],[x-4,y],[x+4,y]]){const tx=Math.floor(px/16),ty=Math.floor(py/16);
     if(ty<0||ty>=Z.rows||tx<0||tx>=Z.cols)return true;if('#^TRLW'.includes(Z.grid[ty][tx]))return true;}
@@ -179,7 +183,7 @@ function blocked(x,y,self,tilesOnly){
   for(const o of Z.npcs)if(o!==self&&hitBox(o,x,y))return true;
   return false;
 }
-const LABEL={store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'เข้าร้านตีเหล็ก',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'ดื่มน้ำพุ (ฟื้นเต็ม)',shop:'ร้านค้า',board:'กระดานเควสต์',dungeon:'ลงดันเจี้ยน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
+const LABEL={towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'เข้าร้านตีเหล็ก',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'ดื่มน้ำพุ (ฟื้นเต็ม)',shop:'ร้านค้า',board:'กระดานเควสต์',dungeon:'ลงดันเจี้ยน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
 let NEAR=null;
 function findNear(){
   let best=null,bd=22;const c=(o,type)=>{const d=Math.hypot(o.x-P.x,(o.y-P.y)*1.2);if(d<bd){bd=d;best={o,type};}};
@@ -231,14 +235,16 @@ function interact(n){
   else if(n.type==='bloodstain'){const r=Diff.recover();if(r){SFX.level();toast(`🩸 เก็บคราบเลือดคืน — ทอง +${r.gold} · EXP +${r.xp}`,3000);if(r.ups)UI.levelUp(r.ups);UI.hud();Save.save();}}
   else if(n.type==='shop'||n.type==='store')UI.open('shop');
   else if(n.type==='smithy')UI.open('smithy');
+  else if(n.type==='alchemy'){UI.alSel=[];UI.alRes=null;UI.open('alchemy');}
   else if(n.type==='board')UI.open('quests');
   else if(n.type==='stonedungeon'){enterDungeon(1,'stone');Save.save();}
   else if(n.type==='icedungeon'){enterDungeon(1,'ice');Save.save();}
+  else if(n.type==='towerdungeon'){enterDungeon(1,'tower');Save.save();}
   else if(n.type==='dungeon'){loadZone(CAVE,T(3,11));G.shake=3;toast('⬇️ ลงสู่ถ้ำชีส (ดันเจี้ยน Lv.1-5)');Save.save();}
-  else if(n.type==='town'){loadZone(TOWN,TOWN[{ice:'icegate',stone:'stonegate'}[Z.theme]]||TOWN.gate);toast('⬆️ กลับเมือง Collawarrie (เขตปลอดภัย)');Save.save();}
-  else if(n.type==='portal'){if(o.locked){toast(o.need||'ต้องปราบราชันย์ลาวาก่อน');return;}loadZone(TOWN,TOWN[{ice:'icegate',stone:'stonegate'}[Z.theme]]||TOWN.gate);toast('กลับสู่เมือง Collawarrie');Save.save();}
+  else if(n.type==='town'){loadZone(TOWN,TOWN[{ice:'icegate',stone:'stonegate',tower:'towergate'}[Z.theme]]||TOWN.gate);toast('⬆️ กลับเมือง Collawarrie (เขตปลอดภัย)');Save.save();}
+  else if(n.type==='portal'){if(o.locked){toast(o.need||'ต้องปราบราชันย์ลาวาก่อน');return;}loadZone(TOWN,TOWN[{ice:'icegate',stone:'stonegate',tower:'towergate'}[Z.theme]]||TOWN.gate);toast('กลับสู่เมือง Collawarrie');Save.save();}
 }
-const THEME_BOSS={lava:'lavaking',ice:'seraph',stone:'golem'};
+const THEME_BOSS={lava:'lavaking',ice:'seraph',stone:'golem',tower:'homunculus'};
 function enterDungeon(floor,theme){
   const th=theme||'lava';
   if(th==='lava'){Quest.activate('lava');if(floor===1)Quest.advance('lava',1);if(floor===3)Quest.advance('lava',2);}
@@ -268,6 +274,12 @@ function updFolk(){
 }
 function updExplore(){
   StatSync.frame('P');   // นับเวลาบัฟ/ดีบัฟนอกการต่อสู้
+  if(Z.puddles&&G.t%30===0){const k=Math.floor(P.x/16)+','+Math.floor((P.y-2)/16),t=Z.puddles[k];   // แอ่งน้ำยาในหอคอย
+    if(t){const S=StatSync.get();if(t==='poison'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.03));toast('🧪 แอ่งพิษ — HP ลดลง',900);}
+      else if(t==='burn'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.05));toast('🔥 แอ่งเพลิง — HP ลดลง',900);}
+      else if(t==='mana'){G.mp=Math.min(S.maxMP,G.mp+Math.round(S.maxMP*.08));toast('💧 แอ่งมานา — ฟื้น MP',900);}
+      else if(t==='power'&&!StatSync.hasMod('P','elixir')){StatSync.addMod('P',{id:'elixir',n:'ยาพลัง',kind:'buff',stat:'ap',op:'mul',v:1.15,ttl:1800});StatSync.addMod('P',{id:'elixir2',n:'ยาพลังเวท',kind:'buff',stat:'mpow',op:'mul',v:1.15,ttl:1800});toast('✨ แอ่งยาพลัง — พลังโจมตี +15% (30 วิ)',2000);}
+      UI.hud&&UI.hud();}}
   updFolk();
   if(tap('KeyI'))return UI.open('equip');if(tap('KeyC'))return UI.open('char');if(tap('KeyK'))return UI.open('skills');
   if(tap('KeyQ'))return UI.open('quests');if(tap('KeyM'))return UI.open('map');if(tap('KeyB'))return UI.open('ency');
@@ -304,7 +316,7 @@ function updExplore(){
   if(tap('KeyE','Enter','PadA')&&NEAR)interact(NEAR);
 }
 function drawProp(o){
-  if(['house','fountain','stall','board','tree','lamp','cavegate','icegate','stonegate','duelpost','exitup','exitdoor','arena'].includes(o.k))return drawTownProp(o);
+  if(['house','fountain','stall','board','tree','lamp','cavegate','icegate','stonegate','towergate','duelpost','exitup','exitdoor','arena'].includes(o.k))return drawTownProp(o);
   const x=o.x|0,y=o.y|0;if(o.k!=='stairs'&&o.k!=='portal')shadow(g,x,y,o.hw+2);
   if(o.k==='anvil'){g.fillStyle='#3a3036';g.fillRect(x-13,y-11,10,11);g.fillStyle='#ff7a1a';g.fillRect(x-12,y-13,8,3);
     g.fillStyle=G.t%12<6?'#ffd27a':'#ff9a3a';g.fillRect(x-11+((G.t>>3)%5),y-14,2,2);
@@ -350,7 +362,8 @@ function drawTownProp(o){
     if(o.sign){// ป้ายร้าน: กระดานไม้แขวน + สัญลักษณ์วาดเอง
       g.fillStyle='#3a2414';g.fillRect(x-1,y-30,2,4);g.fillStyle='#6a4426';g.fillRect(x-13,y-38,26,10);g.fillStyle='#c8a464';g.fillRect(x-13,y-38,26,1);g.fillRect(x-13,y-29,26,1);
       g.fillStyle='#ffd87a';
-      if(o.sign==='store'){g.beginPath();g.arc(x,y-33,3.5,0,7);g.fill();g.fillStyle='#6a4426';g.fillRect(x-.5,y-35,1,4);}
+      if(o.sign==='alchemy'){g.fillStyle='#c9a0ff';g.fillRect(x-3,y-37,2,3);g.beginPath();g.arc(x-2,y-32,3.5,0,7);g.fill();g.fillStyle='#7af0c0';g.beginPath();g.arc(x-2,y-31.5,2,0,7);g.fill();g.fillStyle='#ffd87a';g.fillRect(x+4,y-36,1,1);g.fillRect(x+6,y-33,1,1);}
+      else if(o.sign==='store'){g.beginPath();g.arc(x,y-33,3.5,0,7);g.fill();g.fillStyle='#6a4426';g.fillRect(x-.5,y-35,1,4);}
       else{g.fillStyle='#c8ccd4';g.fillRect(x-6,y-34,9,3);g.fillRect(x-3,y-31,3,2);g.fillRect(x-5,y-29,7,1);g.fillStyle='#8a5a2a';g.fillRect(x+2,y-37,2,6);}}
     return;}
   if(o.k==='fountain'){shadow(g,x,y,16);g.fillStyle='#8a8478';g.beginPath();g.ellipse(x,y-5,16,7,0,0,7);g.fill();g.fillStyle='#4a9ad8';g.beginPath();g.ellipse(x,y-6,13,5,0,0,7);g.fill();
@@ -361,6 +374,8 @@ function drawTownProp(o){
   if(o.k==='board'){shadow(g,x,y,8);g.fillStyle='#5a3a22';g.fillRect(x-1,y-6,2,6);g.fillStyle='#8a5a32';g.fillRect(x-9,y-20,18,14);g.fillStyle='#e8dcc0';g.fillRect(x-7,y-18,6,5);g.fillRect(x+1,y-17,6,6);g.fillRect(x-6,y-12,5,4);return;}
   if(o.k==='tree'){shadow(g,x,y,10);g.fillStyle='#5a3a22';g.fillRect(x-2,y-10,4,10);g.fillStyle='#2a6a2a';g.beginPath();g.arc(x,y-18,10,0,7);g.fill();g.fillStyle='#3a8a3a';g.beginPath();g.arc(x-3,y-21,6,0,7);g.fill();return;}
   if(o.k==='lamp'){g.fillStyle='#2a2a30';g.fillRect(x-1,y-20,2,20);g.fillStyle='#ffd27a';g.fillRect(x-3,y-24,6,5);return;}
+  if(o.k==='towergate'){shadow(g,x,y,16);g.fillStyle='#4a3a5c';g.fillRect(x-15,y-36,30,36);g.fillStyle='#7a6a8e';g.fillRect(x-13,y-34,26,3);g.fillRect(x-17,y-40,34,5);g.fillStyle='#2a1e36';g.fillRect(x-15,y-36,2,36);g.fillRect(x+13,y-36,2,36);g.fillStyle='#7af0c0';g.fillRect(x-9,y-44,2,4);g.fillRect(x+8,y-44,2,4);
+    g.fillStyle='#120a1a';g.beginPath();g.ellipse(x,y-12,8,10,0,Math.PI,0);g.fill();g.fillRect(x-8,y-12,16,12);g.fillStyle=G.t%40<20?'#7af0c0':'#4ad8a0';g.fillRect(x-1,y-30,3,3);g.fillRect(x-10,y-26,2,2);g.fillRect(x+9,y-26,2,2);return;}
   if(o.k==='icegate'){shadow(g,x,y,14);g.fillStyle='#6a8aa4';g.beginPath();g.ellipse(x,y-12,16,16,0,Math.PI,0);g.fill();g.fillRect(x-16,y-12,32,12);g.fillStyle='#bfe4f6';g.beginPath();g.ellipse(x,y-12,12,12,0,Math.PI,0);g.fill();g.fillRect(x-12,y-12,24,12);
     g.fillStyle='#0c1a2a';g.beginPath();g.ellipse(x,y-9,8,10,0,Math.PI,0);g.fill();g.fillRect(x-8,y-9,16,9);g.fillStyle='#eaf8ff';for(const [ix,iy,ih] of [[-14,-14,8],[-8,-24,6],[9,-23,7],[14,-13,9]]){g.beginPath();g.moveTo(x+ix-2,y+iy);g.lineTo(x+ix+2,y+iy);g.lineTo(x+ix,y+iy+ih);g.fill();}return;}
   if(o.k==='stonegate'){shadow(g,x,y,16);g.fillStyle='#5a5046';g.beginPath();g.ellipse(x,y-12,18,18,0,Math.PI,0);g.fill();g.fillRect(x-18,y-12,36,12);g.fillStyle='#7a6e60';g.beginPath();g.ellipse(x,y-12,14,14,0,Math.PI,0);g.fill();g.fillRect(x-14,y-12,28,12);
@@ -417,7 +432,12 @@ function drawExplore(){
     else if(d.kind==='rig'){shadow(g,e.x,e.y,5);spr(g,HERO,d.look?heroPal(LOOK_BY_NAME[d.look]):PAL[d.pal||(e.kind==='kage'?'kage':'shade')],e.x,e.y,1,e.face<0);g.fillStyle='#4a4a5e';g.fillRect(e.face<0?e.x+5:e.x-7,e.y-15,2,11);}
     else{shadow(g,e.x,e.y,16);spr(g,SPR[d.map]||GOLEM,PAL[d.pal],e.x,e.y+Math.round(Math.sin(G.t*.04))-(d.hover?4:0),d.map==='ANGEL'?1.6:d.boss?2:1.4,false);}}});
   list.push({y:P.y,f:()=>{shadow(g,P.x,P.y,5);spr(g,HERO,heroPal(K),P.x,P.y-(P.moving?Math.abs(Math.sin(P.anim))*1.5:0)|0,1,P.face<0);
-    const w=WEAPONS[K.weapon];if(w&&w.len){g.fillStyle=w.pan||w.hammer?'#8a5a32':w.col;g.fillRect(P.face>0?P.x-7:P.x+5,P.y-14,2,Math.min(11,w.len*.7+3));}}});
+    const w=WEAPONS[K.weapon];if(w&&w.len){const sh=w.shape,X=P.face>0?P.x-7:P.x+5,pole=sh==='staff'||sh==='scythe'||sh==='spear',H=pole?15:Math.min(11,w.len*.7+3),Y=P.y-(pole?18:14);
+      g.fillStyle=sh==='pan'||sh==='hammer'||sh==='club'||pole||sh==='wand'?(sh==='scythe'?'#3a2a3a':sh==='staff'?'#4a3060':'#8a5a32'):w.col;g.fillRect(X,Y,pole?1:2,H);
+      if(sh==='scythe'){g.fillStyle=w.col;g.fillRect(X+(P.face>0?-4:1),Y,4,1);g.fillRect(X+(P.face>0?-5:4),Y+1,1,2);}
+      else if(sh==='staff'||sh==='wand'){g.fillStyle=w.col;g.fillRect(X-1,Y-2,3,3);}
+      else if(sh==='hammer'){g.fillStyle='#f2c94c';g.fillRect(X-2,Y,6,3);}else if(sh==='warhammer'){g.fillStyle=K.wcol||w.col;g.fillRect(X-3,Y,7,4);}else if(sh==='greatsword'){g.fillStyle=K.wcol||w.col;g.fillRect(X-1,Y,3,H-2);}else if(sh==='pan'){g.fillStyle='#2a2a30';g.fillRect(X-2,Y-2,6,4);}
+      else if(sh==='spear'){g.fillStyle=w.col;g.fillRect(X-1,Y-2,3,2);}}}});
   list.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   for(const p of EP){g.globalAlpha=Math.min(1,p.l/20);g.fillStyle=p.c;g.fillRect(p.x|0,p.y|0,p.grav?2:1,p.grav?2:1);}g.globalAlpha=1;
   for(const m of MOTES){g.fillStyle=`rgba(255,230,180,${m.a*.5})`;g.fillRect((m.x+cx)|0,(m.y+cy)|0,1,1);}
@@ -450,7 +470,7 @@ function drawExploreUI(){
 }
 function drawMinimap(){
   const sc=Math.min(4,170/Z.cols),mx=960-Z.cols*sc-14,my=540-Z.rows*sc-14;D.save();D.globalAlpha=.88;D.fillStyle='rgba(0,0,0,.6)';D.fillRect(mx-4,my-18,Z.cols*sc+8,Z.rows*sc+22);
-  for(let y=0;y<Z.rows;y++)for(let x=0;x<Z.cols;x++){const c=Z.grid[y][x];D.fillStyle=c==='W'?'#3a78b8':c==='B'?'#8a6238':c===':'?'#8a826e':c==='.'?(Z.id==='town'?'#3a6a32':'#5a5048'):c==='L'?'#ff6a1a':c==='R'?'#8a7a6a':'#1a1414';D.fillRect(mx+x*sc,my+y*sc,Math.ceil(sc),Math.ceil(sc));}
+  for(let y=0;y<Z.rows;y++)for(let x=0;x<Z.cols;x++){const c=Z.grid[y][x];D.fillStyle=c==='W'?'#3a78b8':c==='B'?'#8a6238':c===':'?'#8a826e':c==='.'?(Z.id==='town'?'#3a6a32':'#5a5048'):c==='L'?'#ff6a1a':c==='P'?'#4ad86a':c==='R'?'#8a7a6a':'#1a1414';D.fillRect(mx+x*sc,my+y*sc,Math.ceil(sc),Math.ceil(sc));}
   const dot=(x,y,c,r=2.5)=>{D.fillStyle=c;D.beginPath();D.arc(mx+x/16*sc,my+y/16*sc,r,0,7);D.fill();};
   for(const o of Z.props){if(o.k==='chest'&&!o.opened)dot(o.x,o.y,'#ffd23a',1.8);if(['gate','stairs','portal'].includes(o.k))dot(o.x,o.y,'#5ae0ff',2.5);if(o.k==='bossdoor')dot(o.x,o.y,'#ff4a4a',2.8);if(o.k==='exitdoor'||o.k==='exitup')dot(o.x,o.y,'#5aff7a',2.5);if(o.k==='anvil')dot(o.x,o.y,'#ff9a3a',2);}if(G.bloodstain&&G.bloodstain.zone===Z.id&&G.t%30<20)dot(G.bloodstain.x,G.bloodstain.y,'#ff2a2a',3);
   for(const n of Z.npcs)dot(n.x,n.y,'#6aff8a');
