@@ -20,6 +20,8 @@ const SCENE_PAL={
   arena:{sky:['#0b0a0c','#1c1714'],wall:[88,72,58],wallD:[52,42,34],fog:'rgba(200,170,120,.12)',glow:'#f3c969',floor:[96,74,52]}
 };
 function buildBattleBg(scene){
+  if(typeof BT!=='undefined')buildBattleBg.last=scene;if(AS.bg(BB,scene))return;   // มีฉากหลังจาก AI → ใช้ภาพ
+  if(typeof HDB!=='undefined'){HDB.build(BB,scene);return;}   // ฉากไดออรามา HD-2D
   const c=BB,P=SCENE_PAL[scene]||SCENE_PAL.cave,W2=W,H2=H;
   const gr=c.createLinearGradient(0,0,0,H2);gr.addColorStop(0,P.sky[0]);gr.addColorStop(1,P.sky[1]);c.fillStyle=gr;c.fillRect(0,0,W2,H2);
   // distant back wall with irregular blocks
@@ -134,7 +136,7 @@ function useSkill(p,slot,fromBuf){
   const m=Skills.move(id,p.wpn,slot);
   if(!attemptMove(p,m)){   // กดตอนโดนตี/หลบ/กระโดด/ท่ายังไม่จบ → จำไว้สั้นๆ แล้วปล่อยทันทีที่ขยับได้
     if(!fromBuf&&!actionable(p))p.skBuf={slot,ttl:CONFIG.skillBuffer};return false;}
-  p.skBuf=null;
+  p.skBuf=null;if(SKILLS[id].type==='magic'&&SFX.magic)SFX.magic(SKILLS[id].el);   // เสียงร่ายตามธาตุ
   if(SKILLS[id].tier==='ultimate')Ult.spend();else p.mp-=Mana.cost(id,p.S);
   if(p.cd)p.cd[id]=Skills.cdFrames(id,p.S);else G.skills.cd[id]=Skills.cdFrames(id,p.S);return true;
 }
@@ -579,8 +581,10 @@ function drawMon(f,tint){
   if(f.state==='attack'){if(f.phase==='startup')x-=f.dir*3;else if(f.phase==='active')x+=f.dir*6;}
   if(f.state==='hurt')x+=rnd(-1.5,1.5);if(f.state==='walk')y-=Math.round(Math.abs(Math.sin(G.t*.25))*2);if(f.state==='stun')x+=Math.sin(G.t*.3)*1.5;
   const lying=f.state==='down'||f.state==='ko'||f.state==='airhurt';
-  if(lying){g.save();g.translate(x,y);g.rotate(-f.dir*(f.state==='airhurt'?.6:1.3));spr(g,map,pal,0,0,sc,f.dir<0&&!nf,tint);g.restore();}
-  else spr(g,map,pal,x,y,sc,f.dir<0&&!nf,tint);
+  const ai=AS.has('mon_'+f.kind),mh=ai?Math.max(map.length*sc,d.boss?110:48):map.length*sc,sq=f.state==='attack'&&f.phase==='startup'?1.06:1;
+  const dm=(X,Y)=>ai?AS.mon(g,f.kind,X,Y,mh*sq,f.dir<0&&!nf,tint):spr(g,map,pal,X,Y,sc,f.dir<0&&!nf,tint);
+  if(lying){g.save();g.translate(x,y);g.rotate(-f.dir*(f.state==='airhurt'?.6:1.3));dm(0,0);g.restore();}
+  else dm(x,y);
   if(f.weakT>0&&d.weakPoint&&!lying){const p=(Math.sin(G.t*.3)+1)/2;g.fillStyle=`rgba(90,255,176,${.5+p*.5})`;g.beginPath();g.arc(x,y-sc*(d.weakY||6.5),sc*2.2+p*3,0,7);g.fill();}
   if(f.state==='attack'&&f.phase==='active'&&!f.move.proj&&!f.move.quake&&!f.move.rain&&!f.move.beam){const m=f.move;g.strokeStyle='rgba(255,110,80,.85)';g.lineWidth=4;g.beginPath();
     g.arc(f.x+f.dir*f.hw*.5,f.y-m.hy,Math.max(16,m.reach*.6),f.dir>0?-1:Math.PI-.7,f.dir>0?.7:Math.PI+1);g.stroke();}
@@ -616,7 +620,7 @@ function drawBurst(u){const k=u.t/14,r=(u.big?30:18)*(.4+k);g.globalAlpha=1-k;g.
   g.fillStyle='#fff';g.beginPath();g.arc(u.x,u.y,(u.big?9:6)*(1-k),0,7);g.fill();g.globalAlpha=1;}
 function drawBattle(){
   const b=BT;g.save();if(b.shake)g.translate(rnd(-b.shake,b.shake)|0,rnd(-b.shake,b.shake)|0);
-  g.drawImage(bbC,0,0);drawTorch(g,62,86,2);drawTorch(g,418,86,2);
+  g.drawImage(bbC,0,0,W,H);drawTorch(g,62,86,2);drawTorch(g,418,86,2);if(FX.on)HD.atmos(g,buildBattleBg.last||'cave',G.t*.5,0);
   if(b.flash){g.fillStyle='rgba(0,0,10,.72)';g.fillRect(0,0,W,H);for(let i=0;i<14;i++){g.fillStyle='rgba(255,255,255,.12)';g.fillRect(0,(hash(i,G.t>>1)*H)|0,W,1);}}
   (b.p.state==='attack'?[b.e,b.p]:[b.p,b.e]).forEach(drawFighterB);
   for(const pr of b.proj){if(pr.rock){g.fillStyle=pr.col;g.beginPath();g.arc(pr.x,pr.y,pr.r,0,7);g.fill();g.fillStyle='rgba(255,255,255,.3)';g.beginPath();g.arc(pr.x-3,pr.y-3,pr.r*.5,0,7);g.fill();continue;}

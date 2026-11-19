@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Cave Forge — ต้นแบบเกม HD-2D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Sarabun:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root{--gold:#f3c969;--ink:#f4ead8;--panel:rgba(16,11,18,.96);--line:rgba(243,201,105,.45)}
 *{box-sizing:border-box}
@@ -209,6 +208,125 @@ button[data-open="debug"]{opacity:.35}
 /* เมื่อเปิดหน้าต่าง ให้ toast ไปอยู่ด้านล่าง ไม่ทับหัวหน้า */
 body:has(#ov:not(.hidden)) #toast{top:1%}
 @media (max-width:700px){.emenu{grid-template-columns:1fr}}
+
+/* ===== ธีม JRPG คริสตัล (แรงบันดาลใจ HD-2D): หน้าต่างน้ำเงินโปร่ง ขอบเส้นแสง เคอร์เซอร์นิ้วชี้ ไม่ใช่หน้าเว็บ ===== */
+:root{--gold:#ffd98a;--ink:#eef4ff;--hi:#9fd4ff;--line:rgba(170,212,255,.55);
+  --win:linear-gradient(172deg,rgba(30,56,110,.93) 0%,rgba(14,30,68,.95) 55%,rgba(7,15,38,.97) 100%);
+  --winflat:rgba(10,22,52,.9);--sel:linear-gradient(90deg,rgba(130,190,255,.42),rgba(130,190,255,.12) 70%,transparent)}
+html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
+body{padding:0;justify-content:center;gap:0}
+#help{display:none!important}
+#wrap{width:min(100vw,calc(100vh*16/9));height:auto;border-radius:0;box-shadow:none;cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 2l19 10.5-8.2 2.1 5.4 9.6-3.6 2-5.4-9.7L4 22.6z' fill='%23eef5ff' stroke='%23102a5a' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M6 6.5l11 6.1-5.5 1.4' fill='none' stroke='%239fd4ff' stroke-width='1'/%3E%3C/svg%3E") 3 2,default;-webkit-tap-highlight-color:transparent}
+#wrap *{cursor:inherit}#wrap button,#wrap select,#wrap input,#wrap .it,#wrap .eslot,#wrap .mrow,#wrap .rcp{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M3 2l19 10.5-8.2 2.1 5.4 9.6-3.6 2-5.4-9.7L4 22.6z' fill='%23eef5ff' stroke='%23102a5a' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M6 6.5l11 6.1-5.5 1.4' fill='none' stroke='%239fd4ff' stroke-width='1'/%3E%3C/svg%3E") 3 2,pointer}
+.tilt{display:none}
+body,#dialog,.btn,.talc,.diffc,.it,.eslot,.skr,.panel,#toast,#quest,#hud,.mrow,select,input{font-family:'Sarabun','Kanit',system-ui,sans-serif}
+.panel h2,.panel h3,.mrow,#dialog .who,#quest,#toast,.btn,.emn-head,.sb span,#hud .row span,#saveCard .sc-t,kbd{font-family:'Kanit','Sarabun',sans-serif}
+/* หน้าต่าง */
+.panel{position:relative;background:var(--win);border:1px solid var(--line);border-radius:6px;padding:14px 18px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.45),inset 0 0 0 2px rgba(255,255,255,.07),inset 0 26px 40px -30px rgba(190,225,255,.35),0 18px 60px rgba(0,0,0,.65);backdrop-filter:blur(3px)}
+.panel::before,.panel::after{content:'';position:absolute;width:9px;height:9px;border:1px solid rgba(200,230,255,.9);background:#1a3a78;transform:rotate(45deg);top:-5px;left:-5px;box-shadow:0 0 6px rgba(160,210,255,.7)}
+.panel::after{left:auto;right:-5px}
+.panel h2{font-weight:500;letter-spacing:.06em;color:#fff;text-shadow:0 0 12px rgba(140,200,255,.45),0 2px 2px #000;padding-bottom:6px;margin-bottom:10px;
+  background:linear-gradient(90deg,rgba(170,215,255,.85),rgba(170,215,255,.25) 60%,transparent) bottom/100% 1px no-repeat}
+.panel h3{font-weight:500;letter-spacing:.03em;color:var(--hi)}
+.dim{opacity:.62}
+.it,.eslot,.rune,.cslot,.skr,.en,.qb,.mnode,.rcp,.detail,.cres,.sumcard,.skpanel,.talc,.diffc,.lc{border-radius:4px}
+.it,.eslot,.rcp,.en,.qb,.detail,.cres,.skpanel{background:rgba(4,12,32,.45);border-color:rgba(150,195,255,.22)}
+.it:hover,.eslot:hover,.rcp:hover{filter:none;background:var(--sel);border-color:rgba(180,220,255,.6)}
+.it.eq,.rcp.eq{background:linear-gradient(90deg,rgba(255,217,138,.22),rgba(255,217,138,.05));border-color:rgba(255,217,138,.55)}
+.talc,.diffc{background:linear-gradient(180deg,rgba(36,66,126,.75),rgba(10,20,48,.85));border:1px solid rgba(150,195,255,.35)}
+.talc:hover,.diffc:hover{border-color:#cfe6ff;background:linear-gradient(180deg,rgba(60,100,170,.85),rgba(14,28,64,.9));box-shadow:0 0 16px rgba(130,190,255,.35)}
+.diffc.on{border-color:var(--gold);background:linear-gradient(180deg,rgba(120,100,40,.5),rgba(20,24,48,.9));box-shadow:0 0 0 1px var(--gold)}
+.sumcard{border:1px solid rgba(150,195,255,.3);background:linear-gradient(180deg,rgba(20,40,84,.75),rgba(6,14,36,.85));box-shadow:inset 0 0 40px rgba(0,0,0,.4)}
+.emn-head{font-family:'Kanit',sans-serif;letter-spacing:.06em;color:#fff}.sl{color:#a9c4ea}.sb span{color:var(--hi);font-family:'Kanit',sans-serif}
+.mbar,.bar,.bar2{background:rgba(0,0,0,.55);border:1px solid rgba(160,205,255,.35);border-radius:3px}
+#hpb{background:linear-gradient(180deg,#9cff9a,#3fbf55 55%,#2a8f40)}#mpb{background:linear-gradient(180deg,#a8e4ff,#3f9ce8 55%,#2a6cc0)}#xpb{background:linear-gradient(180deg,#fff0b0,#e8b84a 55%,#b88420)}
+/* ปุ่ม: แผ่นกระจกน้ำเงิน ไม่ใช่ปุ่มเว็บ */
+.btn{background:linear-gradient(180deg,rgba(70,110,190,.9),rgba(22,44,98,.95));color:#fff;border:1px solid rgba(190,225,255,.75);border-radius:3px;font-weight:500;letter-spacing:.03em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 0 rgba(0,0,0,.25),0 2px 6px rgba(0,0,0,.4);text-shadow:0 1px 2px #000}
+.btn:hover:not(:disabled),.btn:focus-visible{border-color:#fff;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 14px rgba(140,200,255,.6);outline:none}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn.ghost{background:linear-gradient(180deg,rgba(20,40,84,.6),rgba(8,16,40,.7));border-color:rgba(150,195,255,.45);color:#d8e8ff}
+.btn:disabled{opacity:.4;filter:grayscale(.6)}
+/* แถวเมนู + เคอร์เซอร์นิ้วชี้ */
+.mrow{position:relative;border-bottom:1px solid rgba(150,195,255,.12);color:#e6efff;font-size:1.02em;letter-spacing:.02em;padding:7px 10px 7px 34px}
+.mrow::before,.tbtns .btn::before{content:'';position:absolute;left:4px;top:50%;width:24px;height:15px;margin-top:-7.5px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='16' viewBox='0 0 26 16'%3E%3Cpath d='M1.5 5.2h10.3L9.6 2.6c-.8-1 .6-2.3 1.6-1.4l5.6 4h6.2a1.6 1.6 0 0 1 0 3.2h-4.6v.4a1.6 1.6 0 0 1-1.6 1.6h-.4v.5a1.6 1.6 0 0 1-1.6 1.6h-.3a1.6 1.6 0 0 1-1.6 1.6H5.4c-2.3 0-3.9-1.6-3.9-3.7z' fill='%23ffffff' stroke='%231a2c56' stroke-width='1.3' stroke-linejoin='round'/%3E%3Cpath d='M11.5 8.6h4.4M11.5 11.4h3.3' stroke='%2390a8d0' stroke-width='.9'/%3E%3C/svg%3E") no-repeat center/contain;opacity:0;transform:translateX(-6px);transition:opacity .12s,transform .12s;filter:drop-shadow(0 1px 1px #000)}
+.mrow:hover,.mrow:focus-visible,.mrow.sel{background:var(--sel);color:#fff;outline:none;padding-left:34px}
+.mrow:hover::before,.mrow:focus-visible::before,.mrow.sel::before,.tbtns .btn:hover::before,.tbtns .btn:focus-visible::before{opacity:1;transform:none;animation:poke .6s ease-in-out infinite alternate}
+@keyframes poke{to{transform:translateX(-3px)}}
+.mrow kbd{opacity:.7}.mi{color:var(--hi)}
+kbd{background:linear-gradient(180deg,#2a4a86,#13285a);border:1px solid rgba(180,220,255,.55);border-bottom-width:2px;border-radius:3px;color:#fff;font-size:.82em;padding:0 5px}
+select,.filt select,.filt input{background:#0c1c42;color:#fff;border:1px solid rgba(150,195,255,.5);border-radius:3px}
+button:focus-visible,select:focus-visible{outline:1px solid #cfe6ff;outline-offset:1px}
+.cbox{background:var(--win);border:1px solid var(--line);border-radius:6px;box-shadow:0 18px 60px rgba(0,0,0,.7)}
+.cmodal{background:rgba(0,6,20,.6)}
+/* แถบเลื่อนบาง */
+#wrap ::-webkit-scrollbar{width:6px;height:6px}#wrap ::-webkit-scrollbar-track{background:rgba(0,0,0,.25)}
+#wrap ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#9fd4ff,#3f7ad0);border-radius:3px}
+#wrap *{scrollbar-width:thin;scrollbar-color:#6aa8f0 rgba(0,0,0,.25)}
+/* เควสต์: แถบซ้ายบน (แบบ JRPG) */
+#quest{left:0;right:auto;top:3%;max-width:46%;text-align:left;padding:5px 46px 6px 14px;font-size:clamp(10px,1.45vw,15px);line-height:1.45;
+  background:linear-gradient(90deg,rgba(4,10,28,.82),rgba(4,10,28,.55) 65%,transparent);text-shadow:0 1px 3px #000}
+#quest .t{color:#fff;font-weight:500;letter-spacing:.02em}
+/* สถานะ: มุมซ้ายล่างแบบปาร์ตี้ */
+#hud{left:1.6%;top:auto;bottom:3%;width:clamp(150px,27vw,270px);padding:7px 12px 8px;background:linear-gradient(90deg,rgba(6,14,38,.8),rgba(6,14,38,.55) 75%,transparent);
+  border-left:2px solid rgba(170,212,255,.75);font-size:clamp(9px,1.25vw,13px)}
+#hud .row span{color:var(--hi);font-weight:500}#hud .row small{font-variant-numeric:tabular-nums;color:#fff;opacity:.9}
+#hudname{font-family:'Kanit',sans-serif;font-weight:500;color:#fff}.gl{opacity:.85}
+.bar{height:6px}
+/* กล่องสนทนา: แถบน้ำเงินจางขวา + เส้นแสงใต้ชื่อ + ลูกศรถัดไป */
+#dialog{left:9%;right:9%;bottom:4.5%;min-height:21%;padding:12px 28px 18px;border:0;border-radius:0;box-shadow:none;
+  background:linear-gradient(90deg,rgba(8,20,48,.93),rgba(12,28,62,.86) 72%,rgba(12,28,62,0));font-size:clamp(12px,1.9vw,18px);color:#fff;text-shadow:0 1px 2px #000}
+#dialog .who{color:#fff;font-weight:500;letter-spacing:.03em;padding-bottom:5px;margin-bottom:8px;background:linear-gradient(90deg,rgba(170,215,255,.85),rgba(170,215,255,.3) 70%,transparent) bottom/100% 1px no-repeat}
+#dialog .nx{font-size:0;width:26px;height:18px;right:9%;bottom:12px;opacity:.9;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='18' viewBox='0 0 26 18'%3E%3Cpath d='M3 2l7 7-7 7M12 2l7 7-7 7' fill='none' stroke='%23e8f2ff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center/contain;animation:nx .7s ease-in-out infinite alternate}
+@keyframes nx{to{transform:translateX(5px)}}
+/* แจ้งเตือน: แถบกลางจอ */
+#toast{border:0;border-radius:0;padding:8px 46px;font-weight:500;letter-spacing:.02em;
+  background:linear-gradient(90deg,transparent,rgba(8,20,48,.9) 18%,rgba(8,20,48,.9) 82%,transparent);box-shadow:none;text-shadow:0 1px 2px #000}
+#toast::before,#toast::after{content:'';position:absolute;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,rgba(170,215,255,.8),transparent)}
+#toast::before{top:0}#toast::after{bottom:0}
+/* หน้าแรก */
+#title{background:radial-gradient(ellipse at 50% 42%,rgba(10,22,52,.15),rgba(2,6,18,.85))}
+#title h1{font-family:'Cinzel','Kanit',serif;font-weight:700;letter-spacing:.22em;font-size:clamp(34px,7.6vw,78px);
+  background:linear-gradient(180deg,#ffffff 20%,#bfe0ff 55%,#7fb0e8 80%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:none;filter:drop-shadow(0 0 18px rgba(120,190,255,.55)) drop-shadow(0 3px 2px rgba(0,0,0,.8))}
+#title p{font-family:'Kanit',sans-serif;letter-spacing:.12em;color:#cfe4ff;text-shadow:0 1px 3px #000}
+.tbtns{width:300px;gap:2px;margin-top:14px}
+.tbtns .btn{position:relative;background:transparent;border:0;box-shadow:none;font-size:1.15em;padding:8px 10px;text-align:center;color:#e6efff;letter-spacing:.08em}
+.tbtns .btn:hover,.tbtns .btn:focus-visible{background:linear-gradient(90deg,transparent,rgba(130,190,255,.32),transparent);color:#fff;box-shadow:none}
+.tbtns .btn::before{left:40px}
+#saveCard{border:1px solid var(--line);border-radius:4px;background:var(--win)}#saveCard .sc-t{color:var(--hi)}#saveCard b{color:#fff}
+.tkeys{color:#a9c4ea}
+.mnode{background:rgba(6,16,40,.9);border-color:rgba(150,195,255,.4)}.mnode.here{border-color:var(--gold)}
+.wmap{background:radial-gradient(ellipse at 30% 50%,#16305e,#060c20)}
+table.fd th{color:var(--hi)}
+.iic .ico{filter:drop-shadow(0 1px 1px rgba(0,0,0,.8))}
+body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:none}
+.emodot{display:inline-block;width:.7em;height:.7em;border-radius:50%;vertical-align:-.05em;box-shadow:inset 0 -2px 2px rgba(0,0,0,.35),0 0 3px rgba(0,0,0,.6)}
+.iic.emo{vertical-align:-.15em}
+.ico.gi{filter:drop-shadow(0 1px 0 rgba(0,0,0,.9)) drop-shadow(0 0 2px rgba(0,0,0,.5))}
+
+/* ===== ตัวเลือกแบบเกม ◀ ค่า ▶ (แทน dropdown ของเว็บ) ===== */
+.cyc{display:inline-flex;align-items:center;gap:0;margin-right:10px;background:linear-gradient(90deg,rgba(6,16,40,.0),rgba(10,26,62,.85) 18%,rgba(10,26,62,.85) 82%,rgba(6,16,40,0));padding:2px 4px}
+.cyc em{font-style:normal;color:#a9c4ea;font-size:.9em;margin-right:6px}
+.cyc b{min-width:6.5em;text-align:center;color:#fff;font-weight:500;letter-spacing:.02em}
+.cyb{background:none;border:0;color:#cfe6ff;font-size:.8em;padding:2px 6px;line-height:1;text-shadow:0 0 6px rgba(140,200,255,.8)}
+.cyb:hover,.cyb:focus-visible{color:#fff;transform:scale(1.25);outline:none}
+/* แถบเลื่อนค่า + ช่องพิมพ์ ให้เป็นสไตล์เกม */
+#wrap input[type=range]{-webkit-appearance:none;appearance:none;height:6px;background:linear-gradient(90deg,#3f7ad0,#9fd4ff);border:1px solid rgba(180,220,255,.55);border-radius:0;vertical-align:middle}
+#wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:16px;background:linear-gradient(180deg,#fff,#bfe0ff);border:1px solid #0c1c42;transform:rotate(45deg) scale(.8)}
+#wrap input[type=range]::-moz-range-thumb{width:12px;height:12px;background:#fff;border:1px solid #0c1c42;border-radius:0;transform:rotate(45deg)}
+#wrap input[type=text],#wrap input:not([type]){background:rgba(4,12,32,.85);color:#fff;border:0;border-bottom:1px solid rgba(170,215,255,.7);border-radius:0;padding:3px 6px;outline:none}
+#wrap input:not([type]):focus{border-bottom-color:#fff;box-shadow:0 6px 10px -8px rgba(140,200,255,.9)}
+/* ซ่อนแถบสถานะตอนคุยกัน (แบบ JRPG) */
+#wrap:has(#dialog:not(.hidden)) #hud{opacity:0;transition:opacity .2s}
+/* ปุ่มกลับเมนู: ลูกศรเกม ไม่ใช่ปุ่มเว็บ */
+.backbar .btn{background:none;border:0;box-shadow:none;color:#cfe6ff;letter-spacing:.06em;padding-left:0}
+.backbar .btn:hover{color:#fff;text-shadow:0 0 8px rgba(140,200,255,.9);box-shadow:none}
+/* รูปผู้พูดในกล่องสนทนา (วาดจากโมเดลตัวละครจริง) */
+#dialog .pt{position:absolute;left:-1%;bottom:0;width:19%;aspect-ratio:3/4;image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7))}
+#dialog.hasPt{padding-left:21%}
+#title .credits{position:absolute;left:0;right:0;bottom:2%;font-size:clamp(8px,1vw,11px);letter-spacing:.02em;color:rgba(200,220,255,.55);font-family:'Sarabun',sans-serif}
 </style>
 </head>
 <body>
@@ -222,7 +340,7 @@ body:has(#ov:not(.hidden)) #toast{top:1%}
   <div id="quest"></div>
   <button id="fleeBtn">🏃 หนี (F) 50%</button>
   <div id="toast"></div>
-  <div id="dialog" class="hidden"><div class="who"></div><div class="tx"></div><div class="nx">▼ E</div></div>
+  <div id="dialog" class="hidden"><canvas class="pt" width="120" height="160"></canvas><div class="who"></div><div class="tx"></div><div class="nx">▼ E</div></div>
   <div id="ov" class="ov hidden"><div class="panel" id="pn"></div></div>
   <div id="title" class="ov"><div class="box">
     <h1>CAVE FORGE</h1><p>ต้นแบบ 2.5D Action RPG</p>
@@ -233,6 +351,7 @@ body:has(#ov:not(.hidden)) #toast{top:1%}
       <button class="btn ghost hidden" id="delBtn">ลบเซฟ</button>
     </div>
     <p class="dim tkeys">Enter เล่นต่อ · ↑↓ เลือก · Tab ในเกมเปิดเมนู</p>
+    <p class="credits">ไอคอน: game-icons.net (Lorc, Delapouite · CC BY 3.0) · เสียง UI: Kenney (CC0) · ฟอนต์: Kanit, Sarabun, Cinzel (OFL)</p>
   </div></div>
 </div>
 <div id="help" style="display:none">
@@ -243,11 +362,15 @@ body:has(#ov:not(.hidden)) #toast{top:1%}
   <div><b>เคลื่อนที่</b><br><kbd>A</kbd><kbd>D</kbd> เดิน (แตะ 2 ครั้ง = แดช) · <kbd>W</kbd> กระโดด · <kbd>S</kbd> ย่อ · <kbd>Space</kbd> พุ่งหลบ · ใช้ <kbd>J</kbd>/<kbd>K</kbd> แทนคลิกซ้าย/ขวาได้<br><b>ระดับความยาก</b> เลือกตอนเริ่มเกม · ดาร์กโซล = ตายแล้วทอง/EXP ตกที่จุดตาย ต้องไปเก็บคืน</div>
 </div>
 <script src="js/core.js"></script>
+<script src="js/gameicons.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/data.js"></script>
 <script src="js/systems.js"></script>
 <script src="js/statsync.js"></script>
 <script src="js/balance-live.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/hd2d.js"></script>
+<script src="js/sfx.js"></script>
 <script src="js/world.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/ui.js"></script>

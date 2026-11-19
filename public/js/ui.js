@@ -25,8 +25,8 @@ function itemTip(it,cmp){
 }
 const UI={
   cur:null,sel:null,filt:{type:'all',rar:'all',sort:'rarity'},
-  open(name,arg){this.cur=name;G.mode='menu';ov.classList.remove('hidden');this.render(arg);SFX.talk();},
-  close(){ov.classList.add('hidden');this.cur=null;pvCtx=null;if(G.mode==='menu')G.mode='explore';this.hud();if(typeof Net!=='undefined')Net.onUIClose();},
+  open(name,arg){this.cur=name;G.mode='menu';ov.classList.remove('hidden');this.render(arg);SFX.ui('open');},
+  close(){if(this.cur)SFX.ui('cancel');ov.classList.add('hidden');this.cur=null;pvCtx=null;if(G.mode==='menu')G.mode='explore';this.hud();if(typeof Net!=='undefined')Net.onUIClose();},
   render(arg){const ae=document.activeElement,key=ae&&pn.contains(ae)?Nav.key(ae):null;const f=this['scr_'+this.cur];let html=f?f.call(this,arg):'';if(MENU_SUB.includes(this.cur))html=`<div class="backbar"><button class="btn ghost sm" data-open="menu">‹ กลับเมนู</button></div>`+html;pn.innerHTML=html;pvCtx=null;const pv=$('#pv');if(pv)pvCtx=pv.getContext('2d');
     const af=pn.querySelector('[autofocus]');if(af)af.focus();else if(key){const el=Nav.items().find(e=>Nav.key(e)===key);if(el)el.focus();}},
   rerender(){if(this.cur)this.render();},
@@ -61,7 +61,7 @@ const UI={
     const S=StatSync.get(),bar=(v,m,c)=>`<div class="mbar"><i style="width:${Math.max(0,Math.min(100,v/Math.max(1,m)*100))}%;background:${c}"></i></div>`;
     return`<div class="emenu"><div class="emn-l">
         <div class="mlist">${R('char','status','สถานะตัวละคร','C')}${R('equip','equip','อุปกรณ์และกระเป๋า','I')}${R('skills','skill','สกิล','K')}${R('quests','scroll','เควสต์','Q')}${R('map','map','แผนที่โลก','M')}${R('ency','ency','สารานุกรมศัตรู','B')}</div>
-        <div class="mlist sub">${A('save','save','บันทึกเกม','')}${A('load','load','โหลดเกม','')}${R('controls','controls','ปุ่มควบคุม','?')}${A('title','home','กลับหน้าหลัก (บันทึกก่อน)','')}${R('debug','gear','เครื่องมือดีบัก','`')}${window.CF_WS?'':`<a class="mrow" href="balance.html" style="text-decoration:none"><span class="mi">${ico('controls')}</span><span class="ml">Balance Lab (ปรับค่าเกม)</span></a>`}</div>
+        <div class="mlist sub">${A('save','save','บันทึกเกม','')}${A('load','load','โหลดเกม','')}${A('vol','sound','เสียง: '+Math.round(SND.vol*100)+'%','')}${R('controls','controls','ปุ่มควบคุม','?')}${A('title','home','กลับหน้าหลัก (บันทึกก่อน)','')}${R('debug','gear','เครื่องมือดีบัก','`')}${window.CF_WS?'':`<a class="mrow" href="balance.html" style="text-decoration:none"><span class="mi">${ico('controls')}</span><span class="ml">Balance Lab (ปรับค่าเกม)</span></a>`}</div>
       </div>
       <div class="emn-r"><div class="sumcard">
         <div class="emn-head">${pname()}</div>
@@ -119,7 +119,7 @@ const UI={
     const sel=this.sel&&itemByUid(this.sel);const F=this.filt;
     const slots=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return`<button class="eslot" data-slot="${s}" ${it?rc(it.rar):''}><small>${SLOTN[s]}</small><span>${it?bIco(it.base,16)+' '+itemName(it):'—'}</span></button>`;}).join('');
     let list=G.bag.filter(it=>(F.type==='all'||BASES[it.base].type===F.type)&&(F.rar==='all'||it.rar===F.rar));list=Inv.sorted(list,F.sort);
-    const opts=(arr,cur,lab)=>arr.map(([v,n])=>`<option value="${v}" ${cur===v?'selected':''}>${n}</option>`).join('');
+    const cyc=(f,lab,arr,cur)=>{const i=Math.max(0,arr.findIndex(a=>a[0]===cur));return`<span class="cyc"><em>${lab}</em><button class="cyb" data-cyf="${f}" data-cyv="${arr[(i+arr.length-1)%arr.length][0]}" aria-label="ก่อนหน้า">◀</button><b>${arr[i][1]}</b><button class="cyb" data-cyf="${f}" data-cyv="${arr[(i+1)%arr.length][0]}" aria-label="ถัดไป">▶</button></span>`;};   // ตัวเลือกแบบเกม ◀ ค่า ▶ แทน dropdown ของเว็บ
     const items=list.map(it=>`<button class="it${this.sel===it.uid?' eq':''}" data-sel="${it.uid}" style="border-color:${RARC[it.rar]}88"><span class="ic">${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}</span><br><small>${SLOTN[BASES[it.base].type]} · Lv.${it.req}${Equip.isEquipped(it)?' · <b class="good">สวมอยู่</b>':''}</small></button>`).join('')||'<div class="dim">ไม่มีไอเท็มตามตัวกรอง</div>';
     let det='<div class="dim">เลือกไอเท็มเพื่อดูรายละเอียด เปรียบเทียบ ตีบวก และใส่รูน</div>';
     if(sel){const sl=Equip.slotFor(sel),cur=G.eq[sl]&&itemByUid(G.eq[sl]),eqd=Equip.isEquipped(sel),ec=Equip.enhanceCost(sel);
@@ -131,9 +131,7 @@ const UI={
           (runes.length?runes.map(k=>`<button class="btn ghost sm" data-sock="${i}" data-rune="${k}">ใส่ ${mIco(k,14)}${MATS[k].n} ช่อง ${i+1}</button>`).join(''):`<span class="dim">ช่อง ${i+1} ว่าง (ไม่มีรูน)</span>`)).join('')+'</div>':'');}
     const mats=Object.keys(G.mats).map(k=>{const m=MATS[k];return`<span class="mat">${mIco(k,14)} ${m.n} ×${G.mats[k]}${m.scroll||m.use||m.manaPotion?` <button class="btn sm" data-use="${k}">ใช้</button>`:''}</span>`;}).join('')||'<span class="dim">—</span>';
     return`<h2>${ico('bag',22)} อุปกรณ์ & กระเป๋า <small class="dim">ทอง ${G.gold} · ช่องอุปกรณ์ <span class="${G.bag.length>=LOOT_CONFIG.inventory.equipSlots?'bad':''}">${G.bag.length}/${LOOT_CONFIG.inventory.equipSlots}</span> · วัตถุดิบซ้อนได้ ${LOOT_CONFIG.inventory.stackMax}</small></h2><div class="eqg"><div><canvas id="pv" width="220" height="270"></canvas><div class="slots9">${slots}</div></div>
-      <div><div class="filt">ประเภท <select data-f="type">${opts([['all','ทั้งหมด'],...ALLTYPES.map(t=>[t,SLOTN[t]])],F.type)}</select>
-        ความหายาก <select data-f="rar">${opts([['all','ทั้งหมด'],...RARS.map(r=>[r,RARN[r]])],F.rar)}</select>
-        เรียง <select data-f="sort">${opts([['rarity','ความหายาก'],['level','เลเวล'],['type','ประเภท'],['name','ชื่อ']],F.sort)}</select> <small class="dim">${list.length}/${G.bag.length} ชิ้น</small></div>
+      <div><div class="filt">${cyc('type','ประเภท',[['all','ทั้งหมด'],...ALLTYPES.map(t=>[t,SLOTN[t]])],F.type)}${cyc('rar','ความหายาก',[['all','ทั้งหมด'],...RARS.map(r=>[r,RARN[r]])],F.rar)}${cyc('sort','เรียง',[['rarity','ความหายาก'],['level','เลเวล'],['type','ประเภท'],['name','ชื่อ']],F.sort)} <small class="dim">${list.length}/${G.bag.length} ชิ้น</small></div>
         <div class="inv">${items}</div><div class="detail">${det}</div><h3>วัตถุดิบ / ของใช้</h3><div class="mats">${mats}</div></div></div>`;
   },
 
@@ -158,29 +156,29 @@ const UI={
       const all=Object.keys(SKILLS).filter(k=>SKILLS[k].tier===tier&&K.learned.has(k)&&skillUsable(k,'player'));   // only skills the player owns
       if(i===2&&K.bound){const id=K.bound,u=Skills.upgradeInfo(id),nb=G.mats[SEAL_BREAKER.item]||0,others=[...K.learned].filter(k=>SKILLS[k].tier==='unique'&&k!==id);
         const L=u.req?SKILL_UPGRADE.levels[u.next]:null,C=Skills.scale(id);
-        panel=`<h3 class="t-unique">🔒 ${SKILLS[id].ic} ${SKILLS[id].n} — ผนึกถาวรกับตัวละครนี้</h3><div class="dim">${SKILLS[id].desc}</div>${this.skStats(id)}
+        panel=`<h3 class="t-unique">🔒 ${sIco(id)} ${SKILLS[id].n} — ผนึกถาวรกับตัวละครนี้</h3><div class="dim">${SKILLS[id].desc}</div>${this.skStats(id)}
           <div class="upbox"><h3>⬆ อัปเกรดสกิลเฉพาะตัว <small class="dim">Lv.${Skills.level(id)} / ${SKILL_UPGRADE.maxLevel}</small></h3>
           ${u.max?'<div class="good">เลเวลสูงสุดแล้ว</div>':u.req?`<div>Lv.${u.next}: ดาเมจ ×${C.coef.toFixed(2)} → <b class="good">×${L.coef.toFixed(2)}</b> · คูลดาวน์ ×${C.cd.toFixed(2)} → <b class="good">×${L.cd.toFixed(2)}</b></div>
             <div>ใช้: ${Object.entries(u.req.mats).map(([k,q])=>`<span class="${(G.mats[k]||0)>=q?'good':'bad'}">${mIco(k,14)} ${MATS[k].n} ${G.mats[k]||0}/${q}</span>`).join(' · ')} · <span class="${u.goldShort?'bad':'good'}">🪙 ${G.gold}/${u.req.gold}</span></div>
             <button class="btn" data-skup="${id}" ${u.can?'':'disabled'}>⬆ อัปเกรดเป็น Lv.${u.next}</button>`:`<div class="dim">${u.reason}</div>`}
           <div class="dim">ค่าวัสดุและตัวคูณตั้งค่าได้ในตาราง SKILL_UPGRADE (ค่าปัจจุบันเป็นค่าตั้งต้นสำหรับทดสอบ)</div></div>
           <div class="sealbox"><h3>🗝️ ปลดผนึก <small class="dim">ตราทำลายผนึกเฉพาะตัว ×${nb}</small></h3>
-          ${others.length?others.map(k=>`<div class="skr"><div><b>${SKILLS[k].ic} ${SKILLS[k].n}</b> <small>Lv.${Skills.level(k)} (เก็บไว้ในคลัง)</small><div class="dim">${SKILLS[k].desc}</div></div>
+          ${others.length?others.map(k=>`<div class="skr"><div><b>${sIco(k)} ${SKILLS[k].n}</b> <small>Lv.${Skills.level(k)} (เก็บไว้ในคลัง)</small><div class="dim">${SKILLS[k].desc}</div></div>
             <button class="btn ghost sm" data-skrep="${k}" ${nb?'':'disabled'}>เปลี่ยนเป็นสกิลนี้</button></div>`).join(''):'<div class="dim">ยังไม่มีสกิลเฉพาะตัวอื่นในคลัง — สกิลที่ถูกเปลี่ยนออกจะถูกเก็บไว้ที่นี่พร้อมเลเวลอัปเกรด</div>'}
           ${nb?'':'<div class="dim">ไม่มีตราทำลายผนึก — เปลี่ยนสกิลเฉพาะตัวไม่ได้</div>'}</div>`;}
       else panel=`<h3 class="t-${tier}">ช่อง ${i+1} · ${TIERN[tier]} — สกิลที่มี</h3>`+(all.length?'':'<p class="dim">ยังไม่มีสกิลประเภทนี้</p>')+all.map(k=>{const s=SKILLS[k],L=K.learned.has(k),on=cur===k;
         let act;if(i===2)act=`<button class="btn sm" data-skbind="${k}">🔒 ผนึกถาวร</button>`;
         else if(on)act=`<button class="btn ghost sm" data-skun="${i}">ถอดออก</button>`;
         else act=`<button class="btn sm" data-skeq="${k}" data-slot="${i}">${cur?'แทนที่':'ติดตั้ง'}</button>`;
-        return`<div class="skr ${L?'':'locked'}${on?' on':''}"><div><b>${s.ic} ${s.n}</b> <small>[${TIERN[s.tier]}]</small>${on?' <b class="good">● ติดตั้งอยู่</b>':''}<div class="dim">${s.desc}</div>${this.skStats(k)}</div>${act}</div>`;}).join('')
+        return`<div class="skr ${L?'':'locked'}${on?' on':''}"><div><b>${sIco(s)} ${s.n}</b> <small>[${TIERN[s.tier]}]</small>${on?' <b class="good">● ติดตั้งอยู่</b>':''}<div class="dim">${s.desc}</div>${this.skStats(k)}</div>${act}</div>`;}).join('')
         +(i===2?'<div class="warn">⚠ สกิลเฉพาะตัวจะถูกผนึกกับตัวละครอย่างถาวร ถอดหรือเปลี่ยนไม่ได้ ยกเว้นใช้ไอเท็มหายากที่สุด 🗝️ ตราทำลายผนึกเฉพาะตัว</div>':'')
         +(i===3?'<div class="dim">สกิลสุดยอดใช้เกจสุดยอด 100 (ไม่ใช้ MP)</div>':'');}
     let modal='';
-    if(T.modal==='bind'){const s=SKILLS[T.pick];modal=`<div class="cmodal"><div class="cbox"><h3>🔒 ยืนยันการผนึกถาวร</h3><p>ผนึก <b>${s.ic} ${s.n}</b> เข้ากับตัวละครนี้ <b class="bad">อย่างถาวร</b></p>
+    if(T.modal==='bind'){const s=SKILLS[T.pick];modal=`<div class="cmodal"><div class="cbox"><h3>🔒 ยืนยันการผนึกถาวร</h3><p>ผนึก <b>${sIco(s)} ${s.n}</b> เข้ากับตัวละครนี้ <b class="bad">อย่างถาวร</b></p>
       <p>หลังผนึก จะถอด เปลี่ยน หรือโอนสกิลนี้ไม่ได้ ยกเว้นใช้ 🗝️ ตราทำลายผนึกเฉพาะตัว — แต่ยังอัปเกรดได้ตลอด</p>
       <div class="acts"><button class="btn" data-skbindyes="1" autofocus>ยืนยัน ผนึกถาวร</button><button class="btn ghost" data-skno="1">ยกเลิก</button></div></div></div>`;}
     if(T.modal==='replace'){const s=SKILLS[T.pick],o=SKILLS[K.bound];modal=`<div class="cmodal"><div class="cbox"><h3>🗝️ ยืนยันการปลดผนึก</h3>
-      <p>ใช้ 🗝️ ตราทำลายผนึกเฉพาะตัว ×1 เพื่อเปลี่ยน <b>${o.ic} ${o.n}</b> (Lv.${Skills.level(K.bound)}) → <b>${s.ic} ${s.n}</b> (Lv.${Skills.level(T.pick)})</p>
+      <p>ใช้ 🗝️ ตราทำลายผนึกเฉพาะตัว ×1 เพื่อเปลี่ยน <b>${sIco(o)} ${o.n}</b> (Lv.${Skills.level(K.bound)}) → <b>${sIco(s)} ${s.n}</b> (Lv.${Skills.level(T.pick)})</p>
       <p>สกิลเดิมและเลเวลอัปเกรดจะถูกเก็บไว้ในคลัง · สกิลใหม่จะถูกผนึกถาวรทันที · ตราจะถูกใช้เมื่อกดยืนยันเท่านั้น</p>
       <div class="acts"><button class="btn" data-skrepyes="1" autofocus>ยืนยัน ใช้ตราและเปลี่ยน</button><button class="btn ghost" data-skno="1">ยกเลิก</button></div></div></div>`;}
     return`<h2>✨ ซ็อกเก็ตรูนสกิล</h2><div class="runes">${sockets}</div>
@@ -388,7 +386,9 @@ pn.addEventListener('input',e=>{if(e.target.id==='pname'){G.look=Object.assign({
 pn.addEventListener('click',e=>{
   if(!e.target.closest('button')){const row=e.target.closest('.srow.sel');const c=row&&row.querySelector('[data-ssel]');if(c){c.click();return;}}   // คลิกทั้งแถวเพื่อเลือก
   const t=e.target.closest('button');if(!t)return;const d=t.dataset;
+  if(d.cyf){UI.filt[d.cyf]=d.cyv;UI.rerender();return;}
   if(d.close){UI.close();return;}
+  if(d.vol){SND.cycle();UI.rerender();return;}
   if(d.save){saveNow();return;}
   if(d.title){if(Z&&Z.bossRoom&&!Z.cleared){toast('🔒 ออกจากห้องบอสไม่ได้ — ชนะหรือตายก่อน');return;}UI.close();if(!(Z&&Z.bossRoom&&!Z.cleared))Save.save();G.mode='title';StatSync.reset();$('#title').classList.remove('hidden');renderTitle();return;}
   if(d.load){UI.close();loadNow();return;}
@@ -563,7 +563,7 @@ function drawBattleUI(){
   for(let i=0;i<4;i++){const id=(p.skillSet||G.skills.slots)[i],x=14+i*62,y=452,s=id&&SKILLS[id];
     D.fillStyle='rgba(0,0,0,.65)';rrect(x,y,56,56,8);D.fill();D.strokeStyle={common:'#bbb',rare:'#4aa8ff',unique:'#ff6aff',ultimate:'#ffd23a'}[TIERS[i]];D.lineWidth=2;D.stroke();
     outlineText(String(i+1),x+8,y+9,12,'#fff');
-    if(s){D.font='18px sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(s.ic,x+28,y+24);outlineText(s.n.length>6?s.n.slice(0,6)+'…':s.n,x+28,y+40,10,'#fff');if(i===2&&G.skills.bound&&!p.skillSet)outlineText('🔒',x+48,y+9,10,'#fff');const cd=cdLeftF(p,id),full=Skills.cdFrames(id,p.S);
+    if(s){{const im=skImg(id);if(im&&im.complete&&im.naturalWidth)D.drawImage(im,x+16,y+8,24,24);else{D.font='18px sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(s.ic,x+28,y+24);}}outlineText(s.n.length>6?s.n.slice(0,6)+'…':s.n,x+28,y+40,10,'#fff');if(i===2&&G.skills.bound&&!p.skillSet)outlineText('🔒',x+48,y+9,10,'#fff');const cd=cdLeftF(p,id),full=Skills.cdFrames(id,p.S);
       const ce=skillCastCheck(p,id),lack=ce&&!Skills.cdLeft(id)&&s.type!=='passive';if(lack){D.fillStyle='rgba(40,40,120,.5)';rrect(x,y,56,56,8);D.fill();}
       if(cd>0){D.fillStyle='rgba(0,0,0,.6)';D.beginPath();D.moveTo(x+28,y+28);D.arc(x+28,y+28,30,-Math.PI/2,-Math.PI/2+6.283*cd/full);D.closePath();D.fill();outlineText((cd/60).toFixed(1),x+28,y+30,16,'#fff');}
       outlineText(s.tier==='ultimate'?Math.floor(G.ult||0)+'/100':s.type==='passive'?'พาสซีฟ':Mana.cost(id,p.S)+'MP',x+28,y+51,8,s.tier==='ultimate'?'#ffd23a':'#9fd8ff');}
@@ -601,7 +601,7 @@ function drawBattleUI(){
 const Nav={
   items(){return[...pn.querySelectorAll('button:not([disabled]),select,input')].filter(e=>e.offsetParent!==null);},
   key(e){return e.tagName+JSON.stringify(e.dataset)+e.textContent.slice(0,12);},
-  move(dx,dy){const it=this.items();if(!it.length)return;const cur=document.activeElement;if(!it.includes(cur)){it[0].focus();return;}
+  move(dx,dy){const it=this.items();if(!it.length)return;SFX.ui('cursor');const cur=document.activeElement;if(!it.includes(cur)){it[0].focus();return;}
     const r0=cur.getBoundingClientRect(),cx=r0.x+r0.width/2,cy=r0.y+r0.height/2;let best=null,bd=1e9;
     for(const e of it){if(e===cur)continue;const r=e.getBoundingClientRect(),vx=r.x+r.width/2-cx,vy=r.y+r.height/2-cy,along=vx*dx+vy*dy;if(along<=4)continue;
       const d=along+Math.abs(vx*dy-vy*dx)*2.2;if(d<bd){bd=d;best=e;}}

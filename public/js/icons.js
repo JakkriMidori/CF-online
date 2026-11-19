@@ -81,6 +81,8 @@ const ICO_PATHS={
 const TYPE_ICO={weapon:'sword',helmet:'helm',armor:'chest',gloves:'glove',pants:'pants',boots:'boot',ring:'ring',ring1:'ring',ring2:'ring',necklace:'amulet'};
 const TALENT_ICO={piercer:'sword',lucky:'clover',endurer:'equip',undying:'skull',hexweaver:'web',archmage:'orb'};
 function ico(name,size=20){
+  const gn=typeof GI_MAP!=='undefined'&&GI_MAP[name];   // ไอคอนเงาทึบแบบเกม (game-icons.net) ถ้ามี
+  if(gn&&GI[gn])return `<svg class="ico gi" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">${GI[gn]}</svg>`;
   const p=ICO_PATHS[name]||ICO_PATHS.gem;
   return `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 }
@@ -114,3 +116,29 @@ const MAT_ICO={
 const _icoc=(name,col,size)=>`<span class="iic" style="color:${col}">${ico(name,size)}</span>`;
 function bIco(id,size=18){const e=BASE_ICO[id]||[TYPE_ICO[(typeof BASES!=='undefined'&&BASES[id]&&BASES[id].type)]||'gem','#d8dde6'];return _icoc(e[0],e[1],size);}
 function mIco(id,size=16){const e=MAT_ICO[id]||(/^sc_/.test(id)?['recipe','#f3c969']:/^sk_/.test(id)?['book','#c9a0ff']:/^rune_/.test(id)?['rune','#d8dde6']:['gem','#d8dde6']);return _icoc(e[0],e[1],size);}
+
+// ---- ไอคอนสกิล (สีตามธาตุ) ----
+const EL_COL={weapon:'#ffe08a',phys:'#e6ecf6',fire:'#ff8a3a',lightning:'#8fe4ff',poison:'#8ae06a',shadow:'#c08aff',ice:'#bff0ff'};
+const _skId=new Map();
+function skId(s){if(typeof s==='string')return s;if(_skId.has(s))return _skId.get(s);const k=Object.keys(SKILLS).find(k=>SKILLS[k]===s)||'';_skId.set(s,k);return k;}
+function sIco(s,size=18){const id=skId(s),sk=SKILLS[id]||{},gn=typeof SKILL_GI!=='undefined'&&SKILL_GI[id];
+  return gn&&GI[gn]?`<span class="iic" style="color:${EL_COL[sk.el]||'#e6ecf6'}"><svg class="ico gi" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">${GI[gn]}</svg></span>`:(sk.ic||'');}
+// ภาพไอคอนสำหรับวาดบน canvas (แคช)
+const _giImg={};
+function giImg(name,col){const k=name+col;if(_giImg[k])return _giImg[k];const im=new Image();
+  im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="96" height="96"><g filter="none">${(GI[name]||'').replace(/currentColor/g,col)}</g></svg>`);return _giImg[k]=im;}
+function skImg(id){const gn=typeof SKILL_GI!=='undefined'&&SKILL_GI[id];return gn?giImg(gn,EL_COL[(SKILLS[id]||{}).el]||'#e6ecf6'):null;}
+
+// ---- เปลี่ยน emoji ในหน้าต่าง/ข้อความ เป็นไอคอนเกม อัตโนมัติ (ไม่ต้องแก้ข้อความทุกจุด) ----
+(()=>{if(typeof EMO_GI==='undefined')return;
+  const keys=Object.keys(EMO_GI).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  const RE=new RegExp('('+keys.join('|')+')\\uFE0F?|[\\u{1F300}-\\u{1FAFF}]\\uFE0F?','gu'),DOT={'🔴':'#ff5a5a','🟡':'#ffd23a','🟢':'#6ae07a','🟠':'#ff9a3a','🟧':'#ff9a3a','🟫':'#a0704a'};
+  const svg=(name,col)=>`<span class="iic emo" style="color:${col}"><svg class="ico gi" width="1.05em" height="1.05em" viewBox="0 0 512 512" aria-hidden="true">${GI[name]}</svg></span>`;
+  function swapText(t){const v=t.nodeValue;RE.lastIndex=0;if(!RE.test(v))return;const p=t.parentNode;if(!p||/^(SCRIPT|STYLE|OPTION|SELECT|TEXTAREA|TITLE)$/.test(p.nodeName))return;
+    const span=document.createElement('span');span.innerHTML=v.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]).replace(RE,(m,k)=>{const e=(k||m).replace(/️/g,'');
+      if(DOT[e])return `<i class="emodot" style="background:${DOT[e]}"></i>`;const d=EMO_GI[e];return d?svg(d[0],d[1]):svg('gems','#cfe6ff');});
+    const f=document.createDocumentFragment();while(span.firstChild)f.appendChild(span.firstChild);p.replaceChild(f,t);}
+  function walk(n){if(n.nodeType===3)return swapText(n);if(n.nodeType!==1||/^(SCRIPT|STYLE|SELECT|OPTION|TEXTAREA)$/.test(n.nodeName))return;const tw=document.createTreeWalker(n,NodeFilter.SHOW_TEXT),list=[];while(tw.nextNode())list.push(tw.currentNode);list.forEach(swapText);}
+  const root=document.getElementById('wrap')||document.body;walk(root);
+  new MutationObserver(ms=>{for(const m of ms){if(m.type==='characterData')swapText(m.target);else m.addedNodes.forEach(walk);}}).observe(root,{childList:true,subtree:true,characterData:true});
+})();
