@@ -4,11 +4,11 @@
    ช่องทางส่งข้อความ: 1) ความสามารถ `room` ของ artifact (คนละเครื่อง)  2) BroadcastChannel (แท็บอื่นในเบราว์เซอร์เดียวกัน — ใช้ทดสอบ)
    ============================================================ */
 const NET_LETTERS='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const VSKN1={R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote']};   // โฮสต์ใช้ได้ทั้ง WASD และลูกศร
-const VSKN2={R:['NetR'],L:['NetL'],U:['NetU'],D:['NetD'],J:['NetJ'],K:['NetK'],X:['NetX'],B:['NetB']};                                                               // ปุ่มเสมือนของเพื่อน (มาจากเครือข่าย)
-const NETBITS=[['R','NetR',1],['L','NetL',2],['U','NetU',4],['D','NetD',8],['J','NetJ',16],['K','NetK',32],['X','NetX',64],['S1','NetS1',128],['S2','NetS2',256],['S3','NetS3',512],['S4','NetS4',1024],['B','NetB',2048]];
+const VSKN1={get F(){return[KB.flask]},get M(){return[KB.mana]},R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote']};   // โฮสต์ใช้ได้ทั้ง WASD และลูกศร
+const VSKN2={F:['NetF'],M:['NetM'],R:['NetR'],L:['NetL'],U:['NetU'],D:['NetD'],J:['NetJ'],K:['NetK'],X:['NetX'],B:['NetB']};                                                               // ปุ่มเสมือนของเพื่อน (มาจากเครือข่าย)
+const NETBITS=[['R','NetR',1],['L','NetL',2],['U','NetU',4],['D','NetD',8],['J','NetJ',16],['K','NetK',32],['X','NetX',64],['S1','NetS1',128],['S2','NetS2',256],['S3','NetS3',512],['S4','NetS4',1024],['B','NetB',2048],['F','NetF',4096],['M','NetM',8192]];
 const VSKN2_SK=[['NetS1'],['NetS2'],['NetS3'],['NetS4']];   // สกิลช่อง 1-4 ของเพื่อน (ส่งมาทางเครือข่าย)
-const NETIN={R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote'],S1:['Digit1','Numpad1'],S2:['Digit2','Numpad2'],S3:['Digit3','Numpad3'],S4:['Digit4','Numpad4','KeyL']};
+const NETIN={R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote'],S1:['Digit1','Numpad1'],S2:['Digit2','Numpad2'],S3:['Digit3','Numpad3'],S4:['Digit4','Numpad4','KeyL'],get F(){return[KB.flask]},get M(){return[KB.mana]}};
 const MOVEMAPS={};
 // หาท่าจากชื่อ ตามอาวุธและสกิลของนักสู้คนนั้น (ใช้ฝั่งเพื่อนตอนวาดภาพจาก snapshot)
 function moveByName(n,f){if(!n)return null;const wt=(f&&f.wpn)||CONFIG.arena.weapon,sk=(f&&f.skillSet)||CONFIG.arena.skills,key=wt+'|'+sk.join(',');
@@ -109,7 +109,7 @@ class NetCore{
   /* ---- โฮสต์: เก็บเสียง/เอฟเฟกต์ส่งให้เพื่อน ---- */
   hookSfx(){if(this.sfxOrig)return;this.sfxOrig={};for(const n of SFX_HOOKS){const o=SFX[n];if(typeof o!=='function')continue;this.sfxOrig[n]=o;SFX[n]=(...a)=>{o(...a);this.evq.push({e:'s',n,a});};}}
   unhookSfx(){if(!this.sfxOrig)return;for(const n in this.sfxOrig)SFX[n]=this.sfxOrig[n];this.sfxOrig=null;}
-  snap(){const b=BT,F=f=>({x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq});
+  snap(){const b=BT,F=f=>({x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),mp:Math.round(f.mp||0),fk:f.flask|0,mn:f.mana|0,iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq});
     for(const n of b.nums)if(!n._s){n._s=1;this.evq.push({e:'n',x:Math.round(n.x),y:Math.round(n.y),t:n.txt,c:n.col,z:n.size});}
     for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0});}
     for(const u of b.bolts)if(!u._s){u._s=1;this.evq.push({e:'z',x:Math.round(u.x),t:u.t});}
@@ -131,7 +131,7 @@ class NetCore{
     if(this.now()-this.lastRx>6000&&this.lastRx){this.dropped('เจ้าของห้องหลุดการเชื่อมต่อ');return;}
     this.guestInput();
     if(s){this.pend=null;
-      for(const[f,d]of[[b.p,s.p],[b.e,s.e]]){const far=Math.abs(d.x-f.x)>60;f.tx=d.x;if(far)f.x=d.x;f.y=d.y;f.vy=d.vy;f.dir=d.d;f.state=d.s;f.phase=d.ph;f.pt=d.pt;f.hp=d.h;f.sta=d.sta;f.invuln=d.iv;f.flash=d.fl;f.onGround=!!d.og;f.walkT=d.w;f.gc=!!d.gc;f.didHit=!!d.dh;f.move=moveByName(d.mv,f);f.moveSeq=d.ms;}
+      for(const[f,d]of[[b.p,s.p],[b.e,s.e]]){const far=Math.abs(d.x-f.x)>60;f.tx=d.x;if(far)f.x=d.x;f.y=d.y;f.vy=d.vy;f.dir=d.d;f.state=d.s;f.phase=d.ph;f.pt=d.pt;f.hp=d.h;f.sta=d.sta;if(d.mp!==undefined){f.mp=d.mp;f.flask=d.fk;f.mana=d.mn;}f.invuln=d.iv;f.flash=d.fl;f.onGround=!!d.og;f.walkT=d.w;f.gc=!!d.gc;f.didHit=!!d.dh;f.move=moveByName(d.mv,f);f.moveSeq=d.ms;}
       b.time=s.tm;b.intro=s.it;b.end=s.en;b.msg=s.ms;b.result=s.rs;b.comboT=s.cb.t;b.comboShow=s.cb.n;b.comboWho=s.cb.w?b.e:b.p;if(s.sh>b.shake)b.shake=s.sh;b.hitstop=s.hs;if(s.wh>b.white)b.white=s.wh;
       b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],life:2,o:null}));
       for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55});

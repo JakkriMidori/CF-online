@@ -68,7 +68,7 @@ document.addEventListener('pointerdown',()=>initAudio(),{capture:true});
   SFX.magic=el=>P({fire:'fire',lightning:'thunder',ice:'ice',poison:'cast',shadow:'cast',weapon:'cast'}[el]||'cast',{vol:.8});
   SFX.heal=()=>P('heal',{vol:.8});SFX.coin=()=>P('coin',{vol:.7});SFX.door=()=>P('door',{vol:.8});SFX.land=()=>P('land',{vol:.6});}
 // เสียง UI: ชี้ = ติ๊ก · คลิก = กริ๊ง
-(()=>{const SEL='.mrow,.btn,.talc,.diffc,.it,.eslot,.rcp,.rune,.cslot,.sw,.cb,.mnode,#fleeBtn,.tbtns button';let lastEl=null;
+(()=>{const SEL='.mrow,.btn,.talc,.diffc,.it,.eslot,.rcp,.rune,.cslot,.sw,.cb,.mnode,.wm-node,.wm-quest,.wm-fbtn,.wm-dclose,#fleeBtn,.tbtns button';let lastEl=null;
   document.addEventListener('pointerover',e=>{const el=e.target.closest&&e.target.closest(SEL);if(el&&el!==lastEl&&!el.disabled){lastEl=el;SFX.ui('cursor');}if(!el)lastEl=null;});
   document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest(SEL);if(el&&!el.disabled)SFX.ui('confirm');},true);})();
 // เสียงบรรยากาศตามโซน

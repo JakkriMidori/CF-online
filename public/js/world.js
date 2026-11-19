@@ -25,7 +25,7 @@ function makeCave(){
       {k:'chest',...T(11,7,8,12),hw:7,inter:'chest',content:{mat:'sc_hammer',mat2:'sk_poisondart'},hidden:1},
       {k:'chest',...T(16,12,8,12),hw:7,inter:'chest',content:{base:'b_wind',rar:'rare',mat2:'sk_rising'}},
       {k:'chest',...T(21,14,8,12),hw:7,inter:'chest',content:{base:'h_iron',rar:'rare',mat:'sc_reset'}},
-      {k:'chest',...T(28,7,8,12),hw:7,inter:'chest',content:{base:'r_luck',rar:'rare',mat:'rune_crit'}},
+      {k:'chest',...T(28,7,8,12),hw:7,inter:'chest',content:{base:'r_luck',rar:'rare',mat:'potion'}},
       {k:'gate',...T(23,3,8,14),hw:9,inter:'gate'}],
     items:[{it:'wood',...T(11,13)},{it:'wood',...T(4,9)},{it:'wood',...T(12,4)},{it:'wood',...T(7,14)},
       {it:'ore',...T(15,8)},{it:'ore',...T(8,12)},{it:'ore',...T(18,6)},{it:'ore',...T(6,10)},
@@ -80,9 +80,9 @@ const BOSS_CHUNK=["....................","..LL............LL..","..LL...........
    - หนาม: มองไม่เห็นจนกว่าจะเหยียบ ลด HP 10% (ไม่ตาย) · สัญญาณเตือน: เรียกศัตรูที่ซ่อนอยู่มาสู้ทันที
    - ไม่วางใกล้ประตู/บันได/จุดเกิด (ห่างอย่างน้อย 4 ช่อง) */
 const TRAP={near:64,pitDmg:.08,spikeDmg:.10,spikeCD:90};
-function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/6);
+function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/2.4);
   const far=(x,y)=>props.every(o=>Math.hypot(o.x-(x*16+8),o.y-(y*16+8))>(o.inter?TRAP.near:24))&&items.every(i=>Math.hypot(i.x-(x*16+8),i.y-(y*16+8))>20)&&Math.hypot(x*16-16,y*16-9*16)>TRAP.near*1.5;
-  for(let k=0,tries=0;k<n&&tries<400;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<4))continue;
+  for(let k=0,tries=0;k<n&&tries<1500;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<3))continue;
     const r=rand(),type=r<.45&&y!==8&&y!==9?'pit':r<.82?'spike':'alarm';out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
   return out;}
 function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge;}
@@ -325,7 +325,7 @@ function updExplore(){
       else if(t==='power'&&!StatSync.hasMod('P','elixir')){StatSync.addMod('P',{id:'elixir',n:'ยาพลัง',kind:'buff',stat:'ap',op:'mul',v:1.15,ttl:1800});StatSync.addMod('P',{id:'elixir2',n:'ยาพลังเวท',kind:'buff',stat:'mpow',op:'mul',v:1.15,ttl:1800});toast('✨ แอ่งยาพลัง — พลังโจมตี +15% (30 วิ)',2000);}
       UI.hud&&UI.hud();}}
   updFolk();
-  if(tap(KB.equip))return UI.open('equip');if(tap(KB.char))return UI.open('char');if(tap(KB.skills))return UI.open('skills');
+  if(tap(KB.bag))return UI.open('bag');if(tap(KB.equip))return UI.open('equip');if(tap(KB.char))return UI.open('char');if(tap(KB.skills))return UI.open('skills');
   if(tap(KB.quests))return UI.open('quests');if(tap(KB.map))return UI.open('map');if(tap(KB.ency))return UI.open('ency');
   if(tap(KB.mini)){G.miniOff=!G.miniOff;toast(G.miniOff?'ซ่อนแผนที่เล็กแล้ว ('+kbName('mini')+' เพื่อแสดง)':'แสดงแผนที่เล็กแล้ว');}
   let dx=(down(...kb('right'))?1:0)-(down(...kb('left'))?1:0),dy=(down(...kb('down'))?1:0)-(down(...kb('up'))?1:0);
@@ -461,9 +461,25 @@ function heroPal(K){return{h:K.head==='helm'||K.head==='crown'?K.hc:K.hair,s:K.s
 const OW_SC=.8;
 function palLook(pal,id){const h=hash((id||'').length*7+((pal.h||'').charCodeAt(2)||0),(pal.c||'').charCodeAt(3)||0),HS=Object.keys(HAIR_STYLES).filter(k=>k!=='bald'),st=HS[(h*HS.length)|0];
   return{hair:pal.h,skin:pal.s,eyec:pal.e,body:pal.c,trim:pal.b,pants:pal.p,boots:pal.f,hstyle:st||'short',sex:h>.5?'f':'m',gloves:null,sleeve:null};}
-function owPose(t,moving,ph){const Pz=poseIdle(t);if(moving){Pz.ff=[3+4*Math.sin(ph),-Math.max(0,Math.cos(ph))*2.5];Pz.bf=[-2-4*Math.sin(ph),-Math.max(0,-Math.cos(ph))*2.5];Pz.hip=-14-Math.abs(Math.sin(ph))*.6;Pz.fh=[3-3*Math.sin(ph),3];Pz.bh=[1+3*Math.sin(ph),4];}return Pz;}
+function owPose(t,moving,ph){
+  if(!moving){
+    const br=Math.sin(t*.08)*.3;
+    return{lean:0,hip:-14.5+br*.2,ff:[.8,0],bf:[-1.0,-.3],fh:[0,11],bh:[0,11],wa:-.9,head:0,run:0};
+  }
+  const s=Math.sin(ph),c=Math.cos(ph),aS=-s;
+  return{
+    lean:.10+Math.sin(ph*2)*.015,
+    hip:-14.1-Math.abs(s)*.55,
+    head:-.05,
+    ff:[.2+3.4*s,-Math.max(0,c)*1.7],
+    bf:[-.2-3.4*s,-.3-Math.max(0,-c)*1.7],
+    fh:[.3+2.4*aS,10.2-.4*Math.abs(aS)],
+    bh:[-.3-2.4*aS,10.2-.4*Math.abs(aS)],
+    wa:-.9,run:1,ph:Math.round(ph*4)/4
+  };
+}
 const SHEATH=new WeakMap();function sheathed(K){let k=SHEATH.get(K);if(!k){k=Object.assign({},K,{sheathe:1});SHEATH.set(K,k);}return k;}
-function drawWalker(x,y,face,K,moving,ph,seed,tint,sheet,dir){if(sheet&&AS.walker(g,sheet,x,y,dir||(face<0?'left':'right'),moving,ph,tint))return;shadow(g,x,y,6);if(Z&&Z.safe&&K&&K.weapon)K=sheathed(K);   // อยู่ในเมือง: เก็บอาวุธไว้ที่หลังเสมอ
+function drawWalker(x,y,face,K,moving,ph,seed,tint,sheet,dir){if(sheet&&AS.walker(g,sheet,x,y,dir||(face<0?'left':'right'),moving,ph,tint))return;shadow(g,x,y,6);if(K&&((Z&&Z.safe&&K.weapon)||K.outfit))K=sheathed(K);   // สำรวจ/ในเมือง: เก็บอาวุธสะพายหลังเสมอ
   if(RIG_HD.on&&(dir==='up'||dir==='down')){drawRigFB(g,Math.round(x),Math.round(y),OW_SC,dir,ph,moving,K,tint,G.t+(seed||0));return;}   // มุมหน้า/หลัง
   drawRig(g,Math.round(x),Math.round(y),OW_SC,face<0?-1:1,owPose(G.t+(seed||0),moving,ph),K,tint);}
 function drawExplore(){
@@ -472,10 +488,25 @@ function drawExplore(){
   const cx=CAM.rx,cy=CAM.ry;
   g.save();if(G.shake>0)g.translate(rnd(-G.shake,G.shake)|0,rnd(-G.shake,G.shake)|0);
   PJ.set(cx,cy);HD.ground(g,cx,cy,HD.voidCol());for(const t of Z.torches)if(t.x>cx-90&&t.x<cx+W+90)HD.bb(g,t.x,t.y,()=>drawTorch(g,t.x,t.y));   // HD-2D: พื้นมุมเอียง + วัตถุตั้งตรง
-  if(Z.water){const x0=cx-90>>4,x1=(cx+W+90>>4)+1,y0=cy-30>>4,y1=(cy+H>>4)+1;for(const w of Z.water){if(w.x<x0||w.x>x1||w.y<y0||w.y>y1)continue;const q=hash(w.x*3+(G.t>>4),w.y*5);if(q>.82){g.fillStyle='rgba(255,255,255,.35)';const pp=PJ.pt(w.x*16+3+(q*9|0),w.y*16+4+((q*97|0)%8));g.fillRect(pp.x,pp.y,4*pp.s,pp.s);}}}
-  if(Z.lavaTiles&&G.t%6===0){const l=pick(Z.lavaTiles);if(l)EP.push({x:l.x+rnd(-6,6),y:l.y,vx:0,vy:-.4,l:30,c:'#ffb03a'});}
+  if(Z.water){const x0=cx-90>>4,x1=(cx+W+90>>4)+1,y0=cy-30>>4,y1=(cy+H>>4)+1;for(const w of Z.water){if(w.x<x0||w.x>x1||w.y<y0||w.y>y1)continue;
+    const q=hash(w.x*3+(G.t>>4),w.y*5),wv=Math.sin(G.t*.06+w.x+w.y)*1.5;
+    if(q>.72){const pp=PJ.pt(w.x*16+4+(q*8|0)+wv,w.y*16+5+((q*97|0)%7));
+      g.strokeStyle='rgba(205,238,255,.26)';g.lineWidth=Math.max(.6,pp.s*.8);g.beginPath();g.ellipse(pp.x,pp.y,3.2*pp.s,.9*pp.s,0,0,Math.PI);g.stroke();}}}
+  if(Z.lavaTiles&&G.t%6===0){const l=pick(Z.lavaTiles);if(l)EP.push({x:l.x+rnd(-6,6),y:l.y,vx:rnd(-.15,.15),vy:-.35,l:32,c:'rgba(245,152,68,.65)'});}
+  if(P.moving&&G.t%7===0){
+    const bio=Z.biomeAt?Z.biomeAt(Math.floor(P.x/16)):'town';
+    const fc=bio==='town'?'rgba(195,180,140,.42)':bio==='ice'?'rgba(215,238,255,.45)':bio==='lava'?'rgba(235,140,70,.42)':bio==='tower'?'rgba(135,225,190,.38)':'rgba(165,158,142,.38)';
+    EP.push({x:P.x-P.face*3+rnd(-2,2),y:P.y+rnd(-1,1),vx:-P.face*rnd(.1,.28),vy:-rnd(.12,.26),l:16,c:fc});
+  }
   const list=[],K=Equip.look();
-  for(const o of Z.props)list.push({x:o.x,y:o.y,f:()=>drawProp(o)});
+  for(const o of Z.props)list.push({x:o.x,y:o.y,f:()=>{
+    if(['portal','stairs','bossdoor','exitdoor','arena'].includes(o.k)){
+      const t=G.t,p=.5+Math.sin(t*.06+o.x)*.2,col=o.k==='bossdoor'?'235,90,85':o.k==='exitdoor'?'120,230,150':o.k==='arena'?'235,195,105':'115,210,245';
+      g.strokeStyle=`rgba(${col},${.22+p*.15})`;g.lineWidth=.9;g.beginPath();g.ellipse(o.x,o.y-1,11+p*2,4+p*.7,0,0,7);g.stroke();
+      for(let i=0;i<2;i++){const a=t*.045+i*3.14+o.x;g.fillStyle=`rgba(${col},.52)`;g.fillRect(o.x+Math.cos(a)*9,o.y-4+Math.sin(a)*3,1.2,1.2);}
+    }
+    drawProp(o);
+  }});
   for(const o of Z.items)if(!o.taken)list.push({x:o.x,y:o.y,f:()=>drawItem(o)});
   for(const gi of Z.ground||[])if(!gi.picked)list.push({x:gi.x,y:gi.y,f:()=>drawGround(gi)});
   const bs=G.bloodstain;if(bs&&bs.zone===Z.id)list.push({x:bs.x,y:bs.y-6,f:()=>{const x=bs.x|0,y=bs.y|0,p=Math.sin(G.t*.08);

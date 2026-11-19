@@ -42,13 +42,13 @@ $('#delBtn').onclick=()=>{
 renderTitle();
 ov.addEventListener('click',e=>{if(e.target===ov&&UI.cur!=='talent')UI.close();});
 
-const menuKeys=()=>({[KB.equip]:'equip',[KB.char]:'char',[KB.skills]:'skills',[KB.quests]:'quests',[KB.map]:'map',[KB.ency]:'ency',Backquote:'debug'});   // ทางลัดเมนู (ปรับได้จากปุ่มควบคุม)
+const menuKeys=()=>({[KB.bag]:'bag',[KB.equip]:'equip',[KB.char]:'char',[KB.skills]:'skills',[KB.quests]:'quests',[KB.map]:'map',[KB.ency]:'ency',PageUp:'debug'});   // ทางลัดเมนู (ปรับได้จากปุ่มควบคุม)
 function update(){
   if((G.mode==='explore'||G.mode==='battle')&&tap('KeyV')){FX.on=!FX.on;try{localStorage.setItem('cf_fx',FX.on?'1':'0');}catch(e){}toast(FX.on?'✨ ภาพ HD-2D: เปิด (กด V ปิด)':'ภาพ HD-2D: ปิด (กด V เปิด)',1600);}
   G.t++;pollPad();if(G.potCD>0&&G.mode!=='menu')G.potCD--;
   switch(G.mode){
     case'title':if(tap('Enter'))startFromTitle(Save.exists());break;
-    case'explore':if(tap('Backquote')){UI.open('debug');break;}if(tap('Tab')){UI.open('menu');break;}Skills.tick();updExplore();if(P.moving&&G.t%15===0)SFX.step(Z.biomeAt(Math.floor(P.x/16)));break;
+    case'explore':if(tap('PageUp')){UI.open('debug');break;}if(tap('Tab')){UI.open('menu');break;}Skills.tick();updExplore();if(P.moving&&G.t%15===0)SFX.step(Z.biomeAt(Math.floor(P.x/16)));break;
     case'dialog':if(tap(KB.interact,'Enter','Space','PadA'))nextLine();break;
     case'menu':{
       if(tap('ArrowUp'))Nav.move(0,-1);if(tap('ArrowDown'))Nav.move(0,1);if(tap('ArrowLeft'))Nav.move(-1,0);if(tap('ArrowRight'))Nav.move(1,0);
@@ -56,8 +56,10 @@ function update(){
       if(UI.cur==='talent')break;
       if(UI.cur==='craft'&&UI.cs.confirm&&tap('Escape')){UI.cs.confirm=false;UI.rerender();break;}
       if(UI.cur==='skills'&&UI.sk.modal&&tap('Escape')){UI.sk.modal=null;UI.rerender();break;}
+      if(UI.cur==='map'&&UI.mapSel&&tap('Escape')){UI.mapSel=null;SFX.ui('cancel');UI.rerender();break;}
+      if(UI.cur==='map'&&tap('KeyG')){const b=pn.querySelector('[data-mapcur]');if(b)b.click();break;}
       if(UI.cur==='craft'&&Craft.busy)break;if(UI.cur==='loot'&&tap('Enter','Escape',KB.interact)){UI.close();break;}
-      if(tap('Escape')||tap('Tab')){UI.close();break;}const MK=menuKeys();for(const k in MK)if(tap(k)){if(MK[k]===UI.cur)UI.close();else UI.open(MK[k]);break;}break;}
+      if(tap('Escape')||tap('Tab')){UI.close();break;}if(UI.cur==='bag'&&(tap('KeyQ')||tap('KeyE'))){UI.bagStep(tap('KeyE')?1:-1);break;}const MK=menuKeys();for(const k in MK)if(tap(k)){if(MK[k]===UI.cur)UI.close();else UI.open(MK[k]);break;}break;}
     case'trans':updTrans();break;
     case'battle':updBattle();break;
   }
@@ -88,18 +90,19 @@ function present(){
   const dof=(X,C,blur,mask)=>{X.globalCompositeOperation='source-over';X.clearRect(0,0,W/2,H/2);X.filter=`blur(${blur/2}px)`;X.drawImage(low,0,0,W/2,H/2);X.filter='none';
     X.globalCompositeOperation='destination-in';X.save();X.scale(.5,.5);X.fillStyle=mask;X.fillRect(0,0,W,H);X.restore();X.globalCompositeOperation='source-over';D.drawImage(C,0,0,960,540);};
   D.imageSmoothingEnabled=true;dof(TX,tiltC,inB?1.6:2.4,inB?tiltMask.bfar:tiltMask.far);dof(TX2,tilt2C,inB?.9:1.3,tiltMask.near);
-  // 2) bloom: เฉพาะส่วนสว่างฟุ้งออก
-  BX.clearRect(0,0,W/4,H/4);BX.filter='brightness(.78) contrast(2.8) saturate(1.3)';BX.drawImage(low,0,0,W/4,H/4);BX.filter='none';
+  // 2) bloom: เฉพาะส่วนสว่างฟุ้งออกอย่างนุ่มนวล ไม่แสบตา
+  BX.clearRect(0,0,W/4,H/4);BX.filter='brightness(.64) contrast(2.4) saturate(1.15)';BX.drawImage(low,0,0,W/4,H/4);BX.filter='none';
   BL.clearRect(0,0,W/4,H/4);BL.filter='blur(2px)';BL.drawImage(bloomC,0,0);BL.filter='none';
-  D.save();D.globalCompositeOperation='screen';D.globalAlpha=.26;D.drawImage(blurC,0,0,960,540);D.globalAlpha=.07;D.drawImage(bloomC,0,0,960,540);D.restore();
+  D.save();D.globalCompositeOperation='screen';D.globalAlpha=.11;D.drawImage(blurC,0,0,960,540);D.globalAlpha=.025;D.drawImage(bloomC,0,0,960,540);D.restore();
   // 3) color grade ตามโซน
   D.save();D.globalCompositeOperation='soft-light';D.fillStyle=GRADE[bio]||GRADE.town;D.fillRect(0,0,960,540);D.restore();
   // 4) แสงส่องเฉียงจากด้านบน ตามโซน (ถ้ำก็มีแสงจากช่องเพดาน)
   HD.rays(D,bio);
-  // 5) ฝุ่นลอยในแสง
-  if(FX.motes.length<26)FX.motes.push({x:Math.random()*960,y:Math.random()*540,vx:(Math.random()-.5)*.25,vy:-.12-Math.random()*.2,p:Math.random()*7});
-  D.save();D.globalCompositeOperation='lighter';const mc=bio==='lava'||bio==='lavaboss'?'255,150,70':bio==='ice'||bio==='frost'||bio==='sanctum'?'200,235,255':bio==='tower'?'150,255,200':'255,230,180';
-  for(const m of FX.motes){m.x+=m.vx;m.y+=m.vy;m.p+=.03;if(m.y<-6){m.y=546;m.x=Math.random()*960;}const a=.11+Math.sin(m.p)*.09;D.fillStyle=`rgba(${mc},${Math.max(0,a)})`;D.fillRect(m.x,m.y,2,2);}D.restore();
+  // 5) ฝุ่นละอองเอเธอร์ลอยในแสง (โทนละมุน)
+  if(FX.motes.length<30)FX.motes.push({x:Math.random()*960,y:Math.random()*540,vx:(Math.random()-.5)*.22,vy:-.10-Math.random()*.18,p:Math.random()*7});
+  D.save();D.globalCompositeOperation='screen';const mc=bio==='lava'||bio==='lavaboss'?'245,148,72':bio==='ice'||bio==='frost'||bio==='sanctum'?'195,232,255':bio==='tower'?'145,240,195':'248,225,175';
+  for(const m of FX.motes){m.x+=m.vx;m.y+=m.vy;m.p+=.026;if(m.y<-6){m.y=546;m.x=Math.random()*960;}const a=Math.max(0,.06+Math.sin(m.p)*.045);
+    D.fillStyle=`rgba(${mc},${a*.45})`;D.fillRect(m.x-1,m.y-1,4,4);D.fillStyle=`rgba(${mc},${a})`;D.fillRect(m.x,m.y,2,2);}D.restore();
   // 6) ขอบจอมืด
   D.fillStyle=vig;D.fillRect(0,0,960,540);D.imageSmoothingEnabled=false;
 }

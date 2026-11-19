@@ -43,7 +43,7 @@ canvas{display:block}#c{width:100%;height:100%;image-rendering:pixelated}   /* �
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.eqg{display:grid;grid-template-columns:230px 1fr;gap:14px}
 #pv{width:220px;height:270px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:radial-gradient(ellipse at 50% 85%,#3a2a20,#120c10 70%)}
 .stat{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin-top:8px}.stat b{color:#ffe3a0}
-.stat2{display:grid;grid-template-columns:auto auto 1fr;gap:1px 12px}.stat2 b{color:#ffe3a0}.stat2 small{opacity:.5}
+.stat2{display:grid;grid-template-columns:repeat(3,auto auto);gap:1px 18px}.stat2 b{color:#ffe3a0}.stat2 small{opacity:.5}
 .arow{display:grid;grid-template-columns:40px 40px 1fr auto;gap:6px;align-items:center;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.06)}.arow b{color:#ffe3a0}
 .slots9{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px}
 .eslot{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 6px;color:inherit;font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;font-size:.85em}
@@ -454,6 +454,32 @@ body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:
 .wm-fbtn{background:none;border:0;color:#f4ead6;font:600 clamp(10px,1.15vw,13px) 'Kanit','Sarabun',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:2px 6px;border-radius:3px}
 .wm-fbtn:hover,.wm-fbtn:focus-visible{background:rgba(215,180,108,.22);color:#fff;outline:none}
 .wm-fbtn kbd{background:#262018;border:1px solid #b89658;border-radius:3px;color:#ffd98a;padding:0 5px;font-family:'Cinzel',serif;font-size:.9em}
+/* v0.2.5 ช่องเก็บของ */
+.bgbar{display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0 12px}
+.bgbar kbd{background:#0a0a14;border:2px solid #eef2ff;border-radius:6px;padding:1px 7px;font-weight:700}
+.bgar{font-size:1.4em;opacity:.8}
+.bgtabs{display:flex;gap:8px}
+.bgt{position:relative;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;border:1px solid rgba(160,195,255,.25);background:rgba(20,34,66,.7);color:#cfe0ff;cursor:pointer}
+.bgt.on{background:linear-gradient(180deg,#2a4a82,#1b3260);border-color:#cfe0ff;color:#fff;box-shadow:0 0 10px rgba(120,170,255,.4)}
+.bgt i{position:absolute;right:-4px;top:-6px;font-style:normal;font-size:.7em;background:#0a0a14;border:1px solid #9fc0ff;border-radius:9px;padding:0 5px;color:#ffe28a}
+.bgt i:empty{display:none}
+.bgbody{border:1px solid rgba(180,215,255,.35);padding:6px;background:rgba(8,18,44,.55);min-height:340px}
+.bgbody.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.blist{display:flex;flex-direction:column;gap:5px;max-height:420px;overflow:auto}
+.brow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:linear-gradient(90deg,rgba(40,80,130,.75),rgba(24,46,86,.6));border:0;border-left:4px solid #9fc0ff;color:#fff;font:inherit;text-align:left}
+.brow.sel{outline:2px solid #ffe28a}
+.brow .bn{display:flex;align-items:center;gap:8px}
+.brow .bq{font-weight:700;margin-left:auto}
+/* ===== เมนูเต็มจอ: หน้าต่างเต็มเฟรม องค์ประกอบขยายตามสัดส่วน (ไม่ยืดช่องว่าง) ===== */
+#ov{background:rgba(4,8,22,.9)}
+#pn.panel{width:100%;height:100%;max-height:100%;border-radius:0;border-width:0;box-sizing:border-box;padding:2.5% 4%;font-size:clamp(12px,1.6vw,19px);overflow:auto;backdrop-filter:none}
+#pn.panel::before,#pn.panel::after{display:none}
+#pn.panel:has(.emenu){padding:2.5% 4%!important}
+#pn .emenu{grid-template-columns:minmax(320px,36%) 1fr;gap:2.5%!important}
+#pn .emn-l .mrow{font-size:1.05em;padding-top:.32em;padding-bottom:.32em}
+#pn .emenu .sumcard{padding:3% 3% 3% 30%!important;min-height:0}
+#pn .emenu canvas#pv.mport{left:3%!important;top:50%!important;transform:translateY(-50%);width:22%!important;height:auto!important}
+#pn .emenu .sgold{top:6%;bottom:auto;right:4%;font-size:1.1em}
 </style>
 </head>
 <body>
@@ -470,14 +496,14 @@ body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:
   <div id="dialog" class="hidden"><canvas class="pt" width="120" height="160"></canvas><div class="who"></div><div class="tx"></div><div class="nx">▼ E</div></div>
   <div id="ov" class="ov hidden"><div class="panel" id="pn"></div></div>
   <div id="title" class="ov"><div class="box">
-    <h1>RAY OF AETHER</h1><p>ต้นแบบ 2.5D Action RPG</p>
+    <h1>RAY OF AETHER</h1>
     <div id="saveCard" class="hidden"><div class="sc-t">เซฟล่าสุด</div><div id="saveInfo"></div></div>
     <div class="tbtns">
       <button class="btn" id="contBtn">เล่นต่อ</button>
       <button class="btn ghost" id="newBtn">เริ่มเกมใหม่</button>
       <button class="btn ghost hidden" id="delBtn">ลบเซฟ</button>
     </div>
-    <p class="ver">v0.2.2</p>
+    <p class="ver">v0.2.5</p>
     <p class="credits">ไอคอน: game-icons.net (Lorc, Delapouite · CC BY 3.0) · เสียง UI: Kenney (CC0) · ฟอนต์: Kanit, Sarabun, Cinzel (OFL)</p>
   </div></div>
 </div>
