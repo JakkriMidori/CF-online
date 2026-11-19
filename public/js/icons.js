@@ -109,13 +109,12 @@ const BASE_ICO={
 const MAT_ICO={
   wood:['log','#c8925a'],ore:['ore','#b8bfcc'],fire:['crystal','#ff7a2a'],thunder:['bolt','#9fe6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
-  rune_str:['rune','#ff5a5a'],rune_crit:['rune','#ffd23a'],rune_vit:['rune','#6ae07a'],rune_fire:['rune','#ff8a3a'],
   potion:['potion','#ff5a6a'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
   sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],reset:['scroll','#e8d8b0']
 };
 const _icoc=(name,col,size)=>`<span class="iic" style="color:${col}">${ico(name,size)}</span>`;
 function bIco(id,size=18){const e=BASE_ICO[id]||[TYPE_ICO[(typeof BASES!=='undefined'&&BASES[id]&&BASES[id].type)]||'gem','#d8dde6'];return _icoc(e[0],e[1],size);}
-function mIco(id,size=16){const e=MAT_ICO[id]||(/^sc_/.test(id)?['recipe','#f3c969']:/^sk_/.test(id)?['book','#c9a0ff']:/^rune_/.test(id)?['rune','#d8dde6']:['gem','#d8dde6']);return _icoc(e[0],e[1],size);}
+function mIco(id,size=16){const e=MAT_ICO[id]||(/^sc_/.test(id)?['recipe','#f3c969']:/^sk_/.test(id)?['book','#c9a0ff']:['gem','#d8dde6']);return _icoc(e[0],e[1],size);}
 
 // ---- ไอคอนสกิล (สีตามธาตุ) ----
 const EL_COL={weapon:'#ffe08a',phys:'#e6ecf6',fire:'#ff8a3a',lightning:'#8fe4ff',poison:'#8ae06a',shadow:'#c08aff',ice:'#bff0ff'};

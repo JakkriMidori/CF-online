@@ -1,20 +1,23 @@
 'use strict';
 /* ==================================================================
-   CHARACTER & EQUIPMENT LOOK (v0.2.1, UI ของสเปกถูกลบใน v0.2.2) — ปรับจาก charspec.js ที่ผู้ใช้ส่งมา
+   CHARACTER & EQUIPMENT LOOK — พาเลตต์และสเปกชุดนักรบตามภาพอ้างอิง (Standing Left/Right & Running)
    ------------------------------------------------------------------
-   • EQUIP_SPEC: พาเลตต์ชิ้นส่วนชุดของผู้เล่นตามเกราะที่สวมจริง (เกราะไหล่ซ้าย/ขวา สายคาดอก
-     สนับแขน ผ้าคลุมเอวผ่าหน้า-หลัง ขอบ/หมุด สายรัดบูท หัวเหล็ก) — ตัววาดอยู่ใน core.js
-     (drawChibi / drawChibiFB เมื่อ K.outfit) จึงใช้ทรงผม 13 แบบ หน้าตา และอาวุธเดิมของเกมได้ครบ
-   • v0.2.2: ลบหน้าแสดงสเปกโมเดล 4 ทิศ/Spec Sheet และปุ่มเข้าหน้าดังกล่าวทั้งหมดแล้ว
-     เหลือเฉพาะการแต่งชุดเกราะให้ผู้เล่น (Equip.look) ซึ่งเป็นค่าที่แสดงในเกม
-   • ไม่บังคับหน้าตาผู้เล่น: ผม ผิว ตา ทรงผม ยังเป็นค่าที่ผู้เล่นเลือกเองในหน้าสร้างตัวละคร
+   • EQUIP_SPEC: พาเลตต์ชิ้นส่วนชุดของผู้เล่นตามเกราะที่สวมจริง (เกราะไหล่ซ้ายน้ำเงินเข้มปักลายฟ้า/ส้ม ·
+     เกราะไหล่ขวาแดงหมุดทอง · เสื้อกั๊กเทาเข้มคาดสายหนังคู่ · สนับแขนสายรัด 2 เส้น · ผ้าคลุมเอวแดงผ่าหน้า-หลัง
+     ขลิบขอบเงินตอกหมุด · กางเกงเทาอมเขียวไฮไลต์หน้าขา · บูทหนังรัดสาย 3 เส้นหัวเหล็ก · ดาบใหญ่สีเงินสะพายหลัง
+     พร้อมกลไกล็อกมณีมรกต)
    ================================================================== */
 const EQUIP_SPEC={
-  // ชิ้นส่วนพื้นฐานที่ทุกชุดใช้ร่วมกัน (สนับแขน สายรัดบูท หัวเหล็ก กระเป๋าเข็มขัด)
-  base:{bracer:'#4a3628',bracerBands:['#8a6a48','#b0a898'],bootStraps:'#8a5a34',toeCap:'#8a929a',beltPouch:'#a07850'},
+  // ชิ้นส่วนพื้นฐานที่ทุกชุดใช้ร่วมกัน (สนับแขน สายรัดบูท หัวเหล็ก กระเป๋าเข็มขัด กลไกล็อกดาบมณีมรกต)
+  base:{
+    bracer:'#382e28',bracerBands:['#9c6238','#b4aca4'],
+    bootStraps:'#a45c30',toeCap:'#828c96',beltPouch:'#b87844',
+    backGem:'#48ff98',backNodes:'#ff3838',backClamp:'#5a626e',
+    bladeCol:'#eef2f8',bladeEdge:'#ffffff',bladeBevel:'#8c96a8'
+  },
   armors:{
-    a_cloth:{specId:'ARC-01 · Wayfarer Field Coat',body:'#5a4632',lapel:'#e8dcc0',chestStraps:'#3a2a1c',strapBuckle:'#c8a050',
-      pauldronR:'#7a6a58',pauldronRTrim:'#d8b070',pauldronL:'#4a5a50',pauldronLStitch:['#a8d0a0','#e0b060'],coat:'#3e6a5a',hemTrim:'#e0d0a8',hemStuds:'#2a2018',belt:'#5a3a20'},
+    a_cloth:{specId:'ARC-01 · Crimson Blade Coat',body:'#283038',lapel:'#c82428',chestStraps:'#8c522c',strapBuckle:'#d49450',
+      pauldronR:'#c82428',pauldronRTrim:'#ffd060',pauldronL:'#243848',pauldronLStitch:['#38a8d8','#e06830'],coat:'#c82428',hemTrim:'#dce0e8',hemStuds:'#242028',belt:'#784826'},
     a_leather:{specId:'ARC-02 · Ranger Hunter Cuirass',body:'#4a3220',lapel:'#8a5632',chestStraps:'#a87442',strapBuckle:'#e0b868',
       pauldronR:'#7a4a2a',pauldronRTrim:'#e0b868',pauldronL:'#2e4832',pauldronLStitch:['#7ad08a','#e0a848'],coat:'#2e4e34',hemTrim:'#d8b870',hemStuds:'#3a2414',belt:'#5a381e'},
     a_shadow:{specId:'ARC-03 · Twilight Shinobi Vest',body:'#1c1e2e',lapel:'#c93848',chestStraps:'#483a58',strapBuckle:'#c8ccd8',
@@ -38,7 +41,17 @@ const EQUIP_SPEC={
 const SPEC_PARTS=['body','lapel','chestStraps','strapBuckle','pauldronR','pauldronRTrim','pauldronL','pauldronLStitch','coat','hemTrim','hemStuds','belt'];
 
 (function initCharSpec(){
-  /* 1) Equip.look(): เติมพาเลตต์ชุดละเอียดให้ "ผู้เล่น" เท่านั้น (NPC/ศัตรูใช้ palLook แยก ไม่โดนผลกระทบ) */
+  // ตั้งค่าเริ่มต้นของฮีโร่ให้เป็นผมทองทรงตั้งแหลม ตาสีน้ำเงินอมม่วง ชุดเกราะแดง-เทาเข้ม ตามภาพอ้างอิง
+  Object.assign(DEFLOOK,{hair:'#eab044',skin:'#f4c4a0',eye:'#384888',hstyle:'spiky'});
+  if(typeof G!=='undefined'&&G.look){
+    if(G.look.hair==='#9a4a22')G.look.hair='#eab044';
+    if(G.look.eye==='#1a1020')G.look.eye='#384888';
+    if(G.look.hstyle==='short')G.look.hstyle='spiky';
+  }
+  if(BASES.a_cloth&&BASES.a_cloth.look)Object.assign(BASES.a_cloth.look,{body:'#283038',trim:'#c82428'});
+  if(BASES.p_cloth&&BASES.p_cloth.look)Object.assign(BASES.p_cloth.look,{pants:'#38423c'});
+
+  /* Equip.look(): เติมพาเลตต์ชุดละเอียดให้ "ผู้เล่น" เท่านั้น (NPC/ศัตรูใช้ palLook แยก ไม่โดนผลกระทบ) */
   const lookOrig=Equip.look;
   Equip.look=function(){
     const K=lookOrig.call(this),B=EQUIP_SPEC.base;
@@ -47,9 +60,13 @@ const SPEC_PARTS=['body','lapel','chestStraps','strapBuckle','pauldronR','pauldr
     const A=EQUIP_SPEC.armors[key];
     K.outfit=1;K.specArmor=key;K.specArmorId=A.specId;
     for(const p of SPEC_PARTS)if(A[p]!==undefined)K[p]=A[p];
+    if(!G.eq||!G.eq.pants||key==='a_cloth')K.pants='#38423c';
+    if(!G.eq||!G.eq.boots)K.boots='#342016';
     K.bracer=K.gloves||B.bracer;K.bracerBands=B.bracerBands;K.bootStraps=B.bootStraps;K.toeCap=B.toeCap;K.beltPouch=B.beltPouch;
-    K.knee=shade(K.pants||'#3a3a44',1.6);
+    K.backGem=B.backGem;K.backNodes=B.backNodes;K.backClamp=B.backClamp;
+    K.bladeCol=K.wcol||B.bladeCol;K.bladeEdge=B.bladeEdge;K.bladeBevel=B.bladeBevel;
+    K.knee=shade(K.pants||'#38423c',1.65);
     return K;
   };
-
+  if(typeof RCACHE!=='undefined')RCACHE.clear();
 })();

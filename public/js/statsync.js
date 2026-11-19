@@ -43,7 +43,7 @@ const StatSync={
     S.def=Math.max(0,Math.round(S.def));S.mdef=Math.max(0,Math.round(S.mdef));
     S.ap=Math.max(0,Math.round(S.ap));S.mpow=Math.max(0,Math.round(S.mpow));
     S.critRate=clamp(S.critRate,0,CONFIG.critCap);S.critDmg=Math.min(CONFIG.critDmgCap,S.critDmg);
-    S.dr=clamp(S.dr||0,0,CONFIG.drCap);S.apenPct=clamp(S.apenPct||0,0,1);
+    S.dr=clamp(S.dr||0,0,CONFIG.drCap);S.apenPct=clamp(S.apenPct||0,0,1);S.mpenPct=clamp(S.mpenPct||0,0,1);
     S.pcritRes=clamp(S.pcritRes||0,0,.75);S.evasion=clamp(S.evasion||0,0,CONFIG.derived.evaCap);S.mcritRes=clamp(S.mcritRes||0,0,.75);
     S.mods=(mods||[]).map(m=>({id:m.id,n:m.n,kind:m.kind,stat:m.stat,op:m.op,v:m.v,left:m.ttl}));
     return S;},
@@ -84,7 +84,7 @@ const StatSync={
   const wrap=(obj,name,reason)=>{const fn=obj[name];if(typeof fn!=='function'||fn.__ss)return;
     const w=function(){const r=fn.apply(this,arguments);StatSync.invalidate(reason);return r;};w.__ss=1;obj[name]=w;};
   wrap(Equip,'equip','equip');wrap(Equip,'unequip','unequip');wrap(Equip,'enhance','enhance');
-  wrap(Equip,'socket','socket');wrap(Equip,'unsocket','unsocket');
+  
   wrap(Prog,'gainXP','level');wrap(Prog,'allocate','attribute');
   wrap(Inv,'use','item');
   wrap(Skills,'bind','skill');wrap(Skills,'replaceUnique','skill');wrap(Skills,'upgrade','skill');
