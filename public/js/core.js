@@ -139,7 +139,9 @@ const PAL={
 const SLIME=["....oooooo....", "..oohhllllo...", ".ohhllllllloo.", ".ohlllllllllo.", "olllllllleello", "olllllllleelmo", "ollllllllllmmo", "ommmmmmmmmmmmo", ".oooooooooooo."];
 const WOLF=["..............o.o.", ".............owow.", "............owwwwo", "o..........owwwewo", "wo.oooooooowwwwwnn", ".owwwwwwwwwwwwwwo.", ".owwwwwwwwwwwwdo..", ".odwwwwwwwwwwwdo..", "..odddddddddddo...", "..ow.ow....ow.ow..", "..ow.ow....ow.ow..", "..oo.oo....oo.oo.."];
 const SPR={RAT,GOLEM,ANGEL,SLIME,WOLF};
-function spr(ctx,map,pal,x,y,sc,flip,tint){
+function spr(ctx,map,pal,x,y,sc,flip,tint,f){
+  if(map===GOLEM&&typeof RIG_HD!=='undefined'&&RIG_HD.on)return drawGolemHD(ctx,pal,x,y,sc,flip,tint,f);
+  if(map===ANGEL&&typeof RIG_HD!=='undefined'&&RIG_HD.on)return drawSeraphHD(ctx,pal,x,y,sc,flip,tint,f);
   const h=map.length,w=map[0].length,ox=Math.round(x-w*sc/2),oy=Math.round(y-h*sc);
   for(let r=0;r<h;r++){const row=map[r];for(let c=0;c<w;c++){const ch=row[c];if(ch==='.')continue;
     ctx.fillStyle=tint||pal[ch]||'#f0f';ctx.fillRect(ox+(flip?w-1-c:c)*sc,oy+r*sc,sc,sc);}}
@@ -613,6 +615,321 @@ function drawRig(ctx,x,y,sc,dir,P,K,tint){
   const cx0=bx+bb[0],cy0=by+bb[1],cw=bb[2]-bb[0]+1,ch=bb[3]-bb[1]+1;
   ctx.save();ctx.imageSmoothingEnabled=k<1;ctx.drawImage(RIGC,cx0,cy0,cw,ch,x+(cx0-ox)*k,y+(cy0-oy)*k,cw*k,ch*k);ctx.restore();
   if(key){if(RCACHE.size>700)RCACHE.clear();const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(RIGC,cx0,cy0,cw,ch,0,0,cw,ch);RCACHE.set(key,{c,dx:cx0-ox,dy:cy0-oy});}}
+
+/* ===== โมเดลโกเลม HD-2D ใหม่ (โกเลมหิน · ราชันย์ลาวา · ยักษ์น้ำแข็ง · หินเดินได้) =====
+   วาดแบบแยกชิ้นส่วนมีมิติ (เกราะศิลาหลายชั้น · รอยแยกพลังงาน · แกนเอเธอร์กลางอก · สนับหมัดยักษ์ · มงกุฎลาวา/ผลึกน้ำแข็ง/มอสโบราณ)
+   ผ่าน rigShade ให้ได้เส้นขอบและแรเงาพิกเซลอาร์ต HD-2D เข้าชุดกับตัวละคร */
+function drawGolemChibi(ctx,ox,oy,px,dir,pal,P,tint){
+  ctx.setTransform(px*dir,0,0,px,ox,oy);ctx.lineJoin='round';
+  const T=!!tint,C=c=>tint||c,Dk=(c,m)=>tint||shade(c,m),lw=1/px;
+  const r0=pal.r||'#6e6458',r1=pal.R||'#8f8474',ey=pal.y||'#ffd34a',em=pal.m||'#5fe0a0';
+  const rDk=Dk(r0,.56),rMd=C(r0),rLt=C(r1),rHi=Dk(r1,1.22),cEm=C(em),cEy=C(ey),cCore=T?tint:'#fff8e0';
+  const isLava=em==='#ff7a1a',isIce=em==='#4ab8ff',isMini=r0==='#5e564c';
+  const fill=(col,edge)=>{ctx.fillStyle=col;ctx.fill();if(edge&&!T){ctx.strokeStyle=edge;ctx.lineWidth=lw;ctx.stroke();}};
+  const poly=(pts,col,edge)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);ctx.closePath();fill(col,edge);};
+  const ell=(cx,cy,rx,ry,col,edge,rot=0)=>{ctx.beginPath();ctx.ellipse(cx,cy,Math.max(.1,rx),Math.max(.1,ry),rot,0,7);fill(col,edge);};
+  const cap=(a,b,ra,rb,col,edge)=>{const dx=b[0]-a[0],dy=b[1]-a[1],an=Math.atan2(dy,dx),H=Math.PI/2;ctx.beginPath();ctx.arc(a[0],a[1],ra,an+H,an+3*H);ctx.arc(b[0],b[1],rb,an-H,an+H);ctx.closePath();fill(col,edge);};
+
+  const br=P.br||0,wk=P.wk||0,atk=P.atk||0,qk=P.qk||0,wkOpen=P.weak?1.0:0;
+  const ty=br*.3+(atk===1?(qk?-.7:-.3):atk===2?(qk?1.3:.5):0);
+  const tx=atk===1?-.4:atk===2?(qk?.3:1.1):0;
+  const lLift=Math.max(0,wk)*.9,rLift=Math.max(0,-wk)*.9;
+
+  // 1) หนามหิน/ผลึกน้ำแข็ง/ปล่องแมกมาด้านหลังไหล่
+  if(!isMini){
+    const spCol=isIce?rHi:isLava?rDk:rMd,tipCol=isIce?'#e8fbff':isLava?cEm:'#5a8a48';
+    for(const[sx,sy,ang,h]of[[-5.4,-12.5+ty,-.38,3.6],[4.8,-12.7+ty,.34,3.8],[-3.0,-14.0+ty,-.18,3.0],[2.8,-14.1+ty,.18,3.1]]){
+      const tx0=sx+Math.sin(ang)*h,ty0=sy-Math.cos(ang)*h;
+      poly([[sx-1.3,sy+.5],[tx0,ty0],[sx+1.3,sy+.5]],spCol,rDk);
+      poly([[sx-.6,sy-.6],[tx0,ty0],[sx+.6,sy-.5]],tipCol);
+    }
+  }
+
+  // 2) แขนหลัง (ฝั่งไกลตัว) พร้อมข้อต่อพลังงานและสนับหมัดหินยักษ์
+  const bSh=[tx-5.4,ty-11.2],bEl=atk===1&&qk?[tx-6.8,ty-14.2]:atk===2&&qk?[tx-3.8,-3.5]:[tx-6.6-wk*.7,ty-7.4+wk*.4];
+  const bHd=atk===1&&qk?[tx-5.8,ty-16.4]:atk===2&&qk?[tx-2.6,-.8]:[tx-6.4-wk*1.1,ty-3.4+wk*.5];
+  cap(bSh,bEl,1.9,1.5,rDk,Dk(r0,.38));
+  ell(bEl[0],bEl[1],1.15,1.15,cEm,rDk);
+  cap(bEl,bHd,2.1,2.3,Dk(r0,.72),rDk);
+  poly([[bHd[0]-2.2,bHd[1]-1.5],[bHd[0]+1.8,bHd[1]-1.5],[bHd[0]+2.1,bHd[1]+1.5],[bHd[0]-2.0,bHd[1]+1.6]],Dk(r1,.78),rDk);
+  if(!T){ctx.fillStyle=cEm;ctx.fillRect(bHd[0]-1.4,bHd[1]-.4,2.4,.55);}
+
+  // 3) ขาเสาศิลาคู่ + สนับเข่ารูน + เท้าหินสามเล็บ
+  const drawLeg=(lx,lift,dark)=>{
+    const cM=dark?Dk(r0,.78):rMd,cL=dark?Dk(r1,.78):rLt,fy=-lift;
+    // ต้นขาและสนับเข่า
+    poly([[lx-1.9,ty-5.8],[lx+1.9,ty-5.8],[lx+2.2,fy-2.8],[lx-2.1,fy-2.8]],cM,rDk);
+    poly([[lx-2.3,fy-2.5],[lx+2.4,fy-2.5],[lx+2.7,fy-.4],[lx-2.5,fy-.4]],cL,rDk);
+    poly([[lx-1.4,fy-3.5],[lx,fy-4.2],[lx+1.4,fy-3.5],[lx,fy-2.3]],rHi,rDk);
+    if(!T){ctx.fillStyle=cEm;ctx.fillRect(lx-.45,fy-3.5,.9,.9);}
+    // ฐานเท้าศิลา
+    poly([[lx-2.7,fy-.8],[lx+2.9,fy-.8],[lx+3.3,fy],[lx-3.0,fy]],rDk,Dk(r0,.35));
+    for(const cx0 of[-1.8,0,1.8])poly([[lx+cx0-.6,fy-.7],[lx+cx0,fy-1.4],[lx+cx0+.6,fy-.7]],cL);
+  };
+  drawLeg(-3.2,lLift,true);
+  drawLeg(2.8,rLift,false);
+
+  // 4) เชิงกรานศิลาและป้ายผ้าเตี่ยวหินสลักรูน
+  poly([[tx-4.6,ty-6.6],[tx+4.8,ty-6.6],[tx+3.8,ty-4.6],[tx-3.8,ty-4.6]],rDk,Dk(r0,.35));
+  poly([[tx-1.8,ty-6.2],[tx+2.0,ty-6.2],[tx+1.4,ty-2.5],[tx+.1,ty-1.8],[tx-1.3,ty-2.5]],rMd,rDk);
+  if(!T){
+    ctx.strokeStyle=cEm;ctx.lineWidth=lw*1.2;
+    ctx.beginPath();ctx.moveTo(tx+.1,ty-5.6);ctx.lineTo(tx+.1,ty-2.7);ctx.moveTo(tx-.8,ty-4.3);ctx.lineTo(tx+1.0,ty-4.3);ctx.stroke();
+  }
+
+  // 5) ลำตัวเกราะศิลาขนาดมหึมา + รอยแยกพลังงาน + แกนเอเธอร์ (Aether Reactor Core)
+  poly([[tx-5.0,ty-6.0],[tx-6.6,ty-11.8],[tx-3.6,ty-13.6],[tx+4.0,ty-13.6],[tx+6.8,ty-11.8],[tx+5.0,ty-6.0]],rMd,rDk);
+  // แผ่นเกราะอกซ้าย-ขวา (แยกออกเมื่อจุดอ่อนแกนกลางเปิด!)
+  const sp=wkOpen*.85;
+  poly([[tx-5.8-sp,ty-11.4],[tx-.5-sp,ty-12.8],[tx-.4-sp,ty-6.4],[tx-4.6-sp,ty-6.3]],rLt,rDk);
+  poly([[tx+.7+sp,ty-12.8],[tx+6.0+sp,ty-11.4],[tx+4.8+sp,ty-6.3],[tx+.6+sp,ty-6.4]],rLt,rDk);
+  // ไฮไลต์สันหินด้านบนอก
+  poly([[tx-5.4-sp,ty-11.3],[tx-.8-sp,ty-12.5],[tx-1.2-sp,ty-11.4],[tx-4.8-sp,ty-10.3]],rHi);
+  poly([[tx+1.0+sp,ty-12.5],[tx+5.6+sp,ty-11.3],[tx+5.0+sp,ty-10.3],[tx+1.4+sp,ty-11.4]],rHi);
+  // รอยร้าวพลังงานวิ่งจากแกนกลางอกไปยังไหล่ทั้งสองข้าง
+  if(!T){
+    ctx.strokeStyle=cEm;ctx.lineWidth=lw*1.25;
+    ctx.beginPath();
+    ctx.moveTo(tx-1.6,ty-8.5);ctx.lineTo(tx-3.8,ty-10.2);ctx.lineTo(tx-4.8,ty-9.6);
+    ctx.moveTo(tx+1.8,ty-8.5);ctx.lineTo(tx+4.0,ty-10.2);ctx.lineTo(tx+5.0,ty-9.6);
+    ctx.moveTo(tx-1.2,ty-7.2);ctx.lineTo(tx-3.4,ty-6.8);
+    ctx.moveTo(tx+1.4,ty-7.2);ctx.lineTo(tx+3.6,ty-6.8);
+    ctx.stroke();
+  }
+  // เบ้าแกนพลังงานเอเธอร์กลางอก (y ≈ -8.2)
+  const cxC=tx+.2,cyC=ty-8.4,cr=1.85+wkOpen*.45+Math.sin(G.t*.12)*.12;
+  poly([[cxC-2.3,cyC],[cxC,cyC-2.2],[cxC+2.3,cyC],[cxC,cyC+2.2]],'#18121a',rDk);
+  poly([[cxC-cr,cyC],[cxC,cyC-cr],[cxC+cr,cyC],[cxC,cyC+cr]],cEm,rDk);
+  poly([[cxC-cr*.52,cyC],[cxC,cyC-cr*.52],[cxC+cr*.52,cyC],[cxC,cyC+cr*.52]],cCore);
+  // ซี่เกราะหินล็อกแกนกลาง (กางออกเมื่อแกนเปิด)
+  if(!P.weak){
+    poly([[cxC-2.3,cyC-.9],[cxC-.7,cyC-.5],[cxC-.7,cyC+.5],[cxC-2.3,cyC+.9]],rDk);
+    poly([[cxC+2.3,cyC-.9],[cxC+.7,cyC-.5],[cxC+.7,cyC+.5],[cxC+2.3,cyC+.9]],rDk);
+  }
+
+  // 6) เกราะไหล่หินผาขนาดใหญ่ (ซ้าย-ขวา) + มอส/น้ำแข็ง/แมกมาปกคลุม
+  for(const sd of[-1,1]){
+    const px0=tx+sd*6.0,py0=ty-11.2+(sd>0?-.2:0);
+    poly([[px0-2.4,py0+1.6],[px0-2.7,py0-1.6],[px0,py0-2.8],[px0+2.7,py0-1.4],[px0+2.3,py0+1.6]],rLt,rDk);
+    poly([[px0-2.1,py0-1.3],[px0,py0-2.6],[px0+2.1,py0-1.2],[px0,py0-.6]],isLava?cEm:isIce?'#e8fbff':'#5a8a48');
+    if(!T){
+      ctx.strokeStyle=cEm;ctx.lineWidth=lw*1.1;
+      ctx.beginPath();ctx.moveTo(px0-1.1,py0-.4);ctx.lineTo(px0,py0+.9);ctx.lineTo(px0+1.1,py0-.4);ctx.stroke();
+    }
+  }
+
+  // 7) ศีรษะศิลาฝังในเกราะอก + กระบังหน้าเงามืด + ดวงตาเรืองแสง + มงกุฎตามธาตุ
+  const hx=tx+.3,hy=ty-12.7;
+  poly([[hx-3.1,hy+1.6],[hx-3.4,hy-1.4],[hx-1.8,hy-2.8],[hx+2.0,hy-2.8],[hx+3.5,hy-1.4],[hx+3.1,hy+1.6]],rLt,rDk);
+  // ช่องกระบังหน้าลึกสีเข้มและดวงตาเรืองแสงคู่
+  poly([[hx-2.6,hy-.7],[hx+2.8,hy-.7],[hx+2.3,hy+.7],[hx-2.2,hy+.7]],'#140e16');
+  poly([[hx-2.1,hy-.35],[hx-.6,hy-.15],[hx-.8,hy+.45],[hx-2.0,hy+.35]],cEy);
+  poly([[hx+.8,hy-.15],[hx+2.3,hy-.35],[hx+2.2,hy+.35],[hx+1.0,hy+.45]],cEy);
+  if(!T){ctx.fillStyle='#ffffff';ctx.fillRect(hx-1.5,hy-.2,.5,.4);ctx.fillRect(hx+1.3,hy-.2,.5,.4);}
+  // คิ้วศิลาทรงดุดันและกรามล่างพร้อมช่องระบายพลังงาน
+  poly([[hx-3.2,hy-1.2],[hx+.1,hy-.4],[hx+3.3,hy-1.2],[hx+2.6,hy-1.9],[hx+.1,hy-1.2],[hx-2.5,hy-1.9]],rHi,rDk);
+  poly([[hx-2.4,hy+.7],[hx+2.6,hy+.7],[hx+2.0,hy+1.9],[hx-1.8,hy+1.9]],rDk);
+  if(!T){ctx.fillStyle=cEm;for(const vx of[-1.0,0,1.0])ctx.fillRect(hx+vx-.2,hy+.95,.4,.65);}
+  // ยอดมงกุฎ/หงอนศิลาบนศีรษะ
+  if(isLava){
+    // ราชันย์ลาวา: มงกุฎหินออบซิเดียน 3 ยอดเพลิงทอง
+    for(const[cx0,h0]of[[-1.8,2.2],[.1,3.1],[2.0,2.2]]){
+      poly([[hx+cx0-.9,hy-2.4],[hx+cx0,hy-2.4-h0],[hx+cx0+.9,hy-2.4]],'#2a1412',rDk);
+      poly([[hx+cx0-.45,hy-2.5],[hx+cx0,hy-2.2-h0*.85],[hx+cx0+.45,hy-2.5]],cx0===.1?cEy:cEm);
+    }
+  }else if(isIce){
+    // ยักษ์น้ำแข็ง: มงกุฎผลึกน้ำแข็ง 3 แฉก
+    for(const[cx0,h0]of[[-1.6,2.0],[.1,2.9],[1.8,2.0]]){
+      poly([[hx+cx0-.8,hy-2.4],[hx+cx0,hy-2.4-h0],[hx+cx0+.8,hy-2.4]],'#e8fbff',rDk);
+      poly([[hx+cx0-.35,hy-2.5],[hx+cx0,hy-2.2-h0*.8],[hx+cx0+.35,hy-2.5]],cEm);
+    }
+  }else{
+    // โกเลมหิน / หินเดินได้: แท่นศิลารูนโบราณปกคลุมด้วยมอสและอักขระมรกต
+    poly([[hx-2.0,hy-2.5],[hx-1.3,hy-4.1],[hx+1.5,hy-4.1],[hx+2.1,hy-2.5]],rMd,rDk);
+    poly([[hx-1.5,hy-3.8],[hx+1.6,hy-3.8],[hx+1.9,hy-2.9],[hx-1.7,hy-2.9]],'#5a8a48');
+    if(!T){ctx.fillStyle=cEm;ctx.fillRect(hx-.35,hy-3.6,.9,1.1);}
+  }
+
+  // 8) แขนหน้า (สนับหมัดศิลาบดขยี้ขนาดยักษ์ + นิ้วหิน 3 ข้อ)
+  const fSh=[tx+5.6,ty-10.8];
+  const fEl=atk===1?(qk?[tx+6.6,ty-14.0]:[tx+3.6,ty-8.2]):atk===2?(qk?[tx+5.0,-3.5]:[tx+7.4,ty-8.0]):[tx+6.6+wk*.7,ty-7.0-wk*.4];
+  const fHd=atk===1?(qk?[tx+5.4,ty-16.2]:[tx+2.4,ty-5.2]):atk===2?(qk?[tx+3.8,-.6]:[tx+9.2,ty-7.2]):[tx+6.8+wk*1.1,ty-2.8-wk*.5];
+  cap(fSh,fEl,2.0,1.65,rMd,rDk);
+  ell(fEl[0],fEl[1],1.25,1.25,cEm,rDk);
+  cap(fEl,fHd,2.3,2.6,rLt,rDk);
+  // สนับเกราะหมัดหินยักษ์ + แถบรูนเรืองแสง + สันหมัด 3 นิ้ว
+  poly([[fHd[0]-2.4,fHd[1]-2.0],[fHd[0]+2.4,fHd[1]-2.0],[fHd[0]+2.7,fHd[1]+1.8],[fHd[0]-2.2,fHd[1]+1.9]],rHi,rDk);
+  poly([[fHd[0]-2.2,fHd[1]-.4],[fHd[0]+2.4,fHd[1]-.4],[fHd[0]+2.4,fHd[1]+1.8],[fHd[0]-2.1,fHd[1]+1.8]],rLt,rDk);
+  if(!T){
+    ctx.fillStyle=cEm;ctx.fillRect(fHd[0]-1.7,fHd[1]-1.1,3.4,.7);
+    ctx.fillStyle=rDk;for(const fx0 of[-.9,.5])ctx.fillRect(fHd[0]+fx0,fHd[1]+.2,.45,1.5);
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+}
+function drawGolemHD(ctx,pal,x,y,sc,flip,tint,f){
+  const px=sc>=4?4:3,ox=135,oy=210,k=(sc/px)*(sc>=8?1:1.36),dir=flip?-1:1;
+  const t=(typeof G!=='undefined'&&G.t)||0;
+  const P={
+    br:Math.round(Math.sin(t*.08)*3)/3,
+    wk:f&&f.state==='walk'?Math.round(Math.sin(t*.25)*3)/3:0,
+    atk:f&&f.state==='attack'?(f.phase==='startup'?1:f.phase==='active'?2:3):0,
+    qk:f&&f.state==='attack'&&f.move&&f.move.quake?1:0,
+    weak:f&&f.weakT>0?1:0
+  };
+  let key=null;
+  if(!tint){
+    key='GOL|'+(pal.r||'')+(pal.m||'')+'|'+dir+'|'+P.br+','+P.wk+','+P.atk+','+P.qk+','+P.weak+'|'+px;
+    const hit=RCACHE.get(key);
+    if(hit){ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(hit.c,Math.round(x+hit.dx*k),Math.round(y+hit.dy*k),Math.round(hit.c.width*k),Math.round(hit.c.height*k));ctx.restore();return;}
+  }
+  const bx=ox-14*px,by=oy-21*px,bw=28*px,bh=Math.min(230-by,23*px);
+  RX.setTransform(1,0,0,1,0,0);RX.clearRect(bx,by,bw,bh);
+  drawGolemChibi(RX,ox,oy,px,dir,pal,P,tint);
+  const bb=rigShade(bx,by,bw,bh,dir,!!tint);if(!bb)return;
+  const cx0=bx+bb[0],cy0=by+bb[1],cw=bb[2]-bb[0]+1,ch=bb[3]-bb[1]+1;
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(RIGC,cx0,cy0,cw,ch,Math.round(x+(cx0-ox)*k),Math.round(y+(cy0-oy)*k),Math.round(cw*k),Math.round(ch*k));
+  ctx.restore();
+  if(key){if(RCACHE.size>700)RCACHE.clear();const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(RIGC,cx0,cy0,cw,ch,0,0,cw,ch);RCACHE.set(key,{c,dx:cx0-ox,dy:cy0-oy});}
+}
+
+/* ===== โมเดลเซราฟตาเดียว HD-2D ใหม่ (Seraph · บอสวิหารศักดิ์สิทธิ์) =====
+   ปีกเทวทูตซ้อน 2 คู่ (6 แฉกขนนกไล่ระดับ) · อาภรณ์วิหารขลิบทอง · วงรัศมีศักดิ์สิทธิ์ · ดวงตาเทวทูตกลางศีรษะ */
+function drawSeraphChibi(ctx,ox,oy,px,pal,P,tint){
+  ctx.setTransform(px,0,0,px,ox,oy);ctx.lineJoin='round';
+  const T=!!tint,C=c=>tint||c,Dk=(c,m)=>tint||shade(c,m),lw=1/px;
+  const cIv=C(pal.c||'#f1ead0'),cCr=C(pal.C||'#d8cfae'),cSh=C(pal.D||'#b8ac98'),cOut=C(pal.o||'#1a1630');
+  const cWg=C(pal.w||'#f4f0e0'),cWgM=C(pal.W||'#b9b6c4'),cWgD=C(pal.V||'#8a879c');
+  const cIr=C(pal.i||'#7a9a8c'),cIrL=C(pal.I||'#b8d0c0'),cPup=C(pal.p||'#0e0c20'),cSkin=C(pal.k||'#c08a70');
+  const cGold=C('#e8c468'),cGoldD=Dk('#e8c468',.62);
+  const fill=(col,edge)=>{ctx.fillStyle=col;ctx.fill();if(edge&&!T){ctx.strokeStyle=edge;ctx.lineWidth=lw;ctx.stroke();}};
+  const poly=(pts,col,edge)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);ctx.closePath();fill(col,edge);};
+  const ell=(cx,cy,rx,ry,col,edge,rot=0)=>{ctx.beginPath();ctx.ellipse(cx,cy,Math.max(.1,rx),Math.max(.1,ry),rot,0,7);fill(col,edge);};
+  const cap=(a,b,ra,rb,col,edge)=>{const dx=b[0]-a[0],dy=b[1]-a[1],an=Math.atan2(dy,dx),H=Math.PI/2;ctx.beginPath();ctx.arc(a[0],a[1],ra,an+H,an+3*H);ctx.arc(b[0],b[1],rb,an-H,an+H);ctx.closePath();fill(col,edge);};
+
+  const wg=P.wg||0,atk=P.atk||0,beam=P.beam||0,weak=P.weak||0,dir=P.dir||-1;
+  const spread=atk===1?1.15:atk===2?1.25:1.0,flap=wg*.8;
+
+  // 1) วงรัศมีศักดิ์สิทธิ์ด้านหลัง (Celestial Halo & Outer Ring)
+  if(!T){
+    ctx.strokeStyle=cGold;ctx.lineWidth=lw*1.4;
+    ctx.beginPath();ctx.ellipse(0,-27.2,5.6,1.5,0,0,7);ctx.stroke();
+    ctx.strokeStyle='#fff8d8';ctx.lineWidth=lw*.9;
+    ctx.beginPath();ctx.ellipse(0,-27.2,4.4,1.0,0,0,7);ctx.stroke();
+    ctx.strokeStyle=cGoldD;ctx.lineWidth=lw*1.1;
+    ctx.beginPath();ctx.arc(0,-17.5,9.5,-.6,Math.PI+.6);ctx.stroke();
+  }
+
+  // 2) ปีกเทวทูต 2 คู่ (ปีกบนกว้างสง่า + ปีกล่างโอบล้อม)
+  for(const sd of[-1,1]){
+    // ปีกบนหลัก (Upper Primary Wing)
+    const wx=sd*4.5,wy=-16.5;
+    const tipX=sd*(16.2*spread),tipY=-24.2-flap*1.2;
+    const midX=sd*(14.8*spread),midY=-13.5-flap*.5;
+    poly([[wx,wy],[sd*9.2,-24.5-flap*.8],[tipX,tipY],[midX,midY],[sd*8.5,-9.5],[wx,wy+4.5]],cWgD,cOut);
+    poly([[wx,wy+.4],[sd*8.8,-23.2-flap*.8],[tipX-sd*1.2,tipY+1.4],[midX-sd*1.4,midY-.6],[sd*7.6,-10.5]],cWgM);
+    // ขนนกชั้นในสว่าง + ขนนกปลายปีก 4 แฉก
+    poly([[wx,wy+1.0],[sd*7.8,-20.5-flap*.6],[sd*12.5*spread,-21.0-flap],[sd*11.2*spread,-14.2],[sd*6.5,-11.5]],cWg);
+    for(let i=0;i<4;i++){
+      const fy=-22.5+i*2.8-flap*(1-i*.2),fx=sd*(13.8-i*.8)*spread;
+      poly([[fx-sd*2.4,fy],[fx+sd*1.6,fy-.8],[fx+sd*.6,fy+1.6]],i%2?cWg:cWgM,cOut);
+    }
+    // ปีกล่างรอง (Lower Secondary Wing)
+    const lx=sd*4.2,ly=-10.2;
+    poly([[lx,ly],[sd*12.2*spread,-10.5+flap*.4],[sd*11.0*spread,-2.8+flap*.6],[sd*6.4,-3.2],[lx,ly+4.0]],cWgM,cOut);
+    poly([[lx,ly+.6],[sd*10.4*spread,-9.2+flap*.4],[sd*9.2*spread,-4.2+flap*.5],[sd*5.6,-4.2]],cWg);
+  }
+
+  // 3) อาภรณ์วิหารยาวและชายผ้าปลิว (Cathedral Vestments)
+  const rSway=wg*.6;
+  poly([[-3.6,-13.8],[3.6,-13.8],[5.6,-5.5],[6.4+rSway,-.4],[3.0,.4],[0,-.3],[-3.0,.4],[-6.4+rSway,-.4],[-5.6,-5.5]],cIv,cOut);
+  // รอยพับเงาด้านข้างและชายชุด
+  poly([[-5.4,-5.5],[-3.6,-13.6],[-2.2,-13.6],[-3.2,-5.5],[-4.4,-.2],[-6.1+rSway,-.5]],cCr);
+  poly([[5.4,-5.5],[3.6,-13.6],[2.2,-13.6],[3.2,-5.5],[4.4,-.2],[6.1+rSway,-.5]],cSh);
+  // ขลิบทองชายกระโปรง
+  poly([[-6.1+rSway,-1.3],[6.1+rSway,-1.3],[6.3+rSway,-.3],[0,-.2],[-6.3+rSway,-.3]],cGold,cGoldD);
+
+  // ผ้าพาดเอวและสโตลวิหารกลางอก (Central Golden Stole)
+  poly([[-1.6,-13.6],[1.6,-13.6],[2.1,-1.0],[0,-.3],[-2.1,-1.0]],cCr,cSh);
+  poly([[-1.1,-13.5],[1.1,-13.5],[1.4,-1.2],[0,-.6],[-1.4,-1.2]],cIv);
+  if(!T){
+    ctx.strokeStyle=cGold;ctx.lineWidth=lw*1.2;
+    ctx.beginPath();ctx.moveTo(-1.1,-13.3);ctx.lineTo(-1.4,-1.2);ctx.moveTo(1.1,-13.3);ctx.lineTo(1.4,-1.2);ctx.stroke();
+    // ตราวิหารกลางอกและเข็มกลัดทอง
+    poly([[0,-11.5],[1.3,-9.8],[0,-8.1],[-1.3,-9.8]],cGold,cGoldD);
+    ctx.fillStyle=weak?'#7af0c0':'#8ae0d0';ctx.fillRect(-.45,-10.2,.9,.9);
+  }
+
+  // ผ้าคลุมไหล่ (Mantle)
+  poly([[-5.0,-13.4],[0,-14.6],[5.0,-13.4],[4.2,-10.5],[0,-9.6],[-4.2,-10.5]],cWg,cOut);
+  poly([[-4.6,-11.2],[0,-10.1],[4.6,-11.2],[4.2,-10.4],[0,-9.4],[-4.2,-10.4]],cGold);
+
+  // 4) แขนและมือร่ายเวท (ขยับตามท่าโจมตี)
+  for(const sd of[-1,1]){
+    const sh=[sd*3.8,-12.5];
+    const hd=atk===1?[sd*6.4,-15.5]:atk===2?[sd*7.6,-10.2]:[sd*6.0,-7.0+wg*.4];
+    cap(sh,hd,1.5,1.8,cIv,cOut);
+    poly([[hd[0]-sd*1.5,hd[1]-1.2],[hd[0]+sd*1.5,hd[1]-1.2],[hd[0]+sd*1.8,hd[1]+.6],[hd[0]-sd*1.6,hd[1]+.6]],cGold,cGoldD);
+    ell(hd[0],hd[1]+1.1,1.15,1.15,cSkin,cOut);
+    if(!T&&(atk===1||beam)){
+      ell(hd[0],hd[1]+1.1,1.6,1.6,'rgba(255,242,168,.45)');
+    }
+  }
+
+  // 5) ศีรษะและดวงตาเทวทูต (All-Seeing Seraphic Eye)
+  const hy=-18.8;
+  // หมวกผ้าคลุมศีรษะทรงโดมศักดิ์สิทธิ์
+  poly([[-4.4,hy+3.8],[-5.0,hy],[-3.2,hy-4.6],[0,hy-5.6],[3.2,hy-4.6],[5.0,hy],[4.4,hy+3.8],[0,hy+4.8]],cIv,cOut);
+  poly([[1.2,hy-5.1],[3.2,hy-4.5],[4.8,hy],[4.2,hy+3.6],[1.6,hy+4.2],[2.6,hy]],cCr);
+  // ขอบทองประดับศีรษะ + แฉกมงกุฎหน้าผาก
+  poly([[-1.6,hy-4.8],[0,hy-6.5],[1.6,hy-4.8],[0,hy-3.8]],cGold,cGoldD);
+  if(!T){
+    ctx.strokeStyle=cGold;ctx.lineWidth=lw*1.2;
+    ctx.beginPath();ctx.arc(0,hy,3.8,0,7);ctx.stroke();
+  }
+  // ดวงตาขนาดใหญ่กลางศีรษะ
+  ell(0,hy,3.25,3.35,'#ffffff',cOut);
+  ell(0,hy,2.55,2.65,weak?'#7af0c0':cIr);
+  ell(0,hy-.2,1.95,2.05,weak?'#c8fff0':cIrL);
+  // รูม่านตาแนวตั้ง (หันตาม dir เล็กน้อย · ขยายสว่างตอนยิงลำแสง)
+  const pxOff=dir*.25,pw=beam?1.15:.75,ph=beam?2.15:1.95;
+  ell(pxOff,hy,pw,ph,cPup);
+  if(!T){
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(-1.3,hy-1.5,1.0,1.0);
+    ctx.fillRect(.8,hy+.8,.5,.5);
+    if(beam||atk===1){
+      ell(pxOff,hy,.45,1.1,'#e8fbff');
+    }
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+}
+function drawSeraphHD(ctx,pal,x,y,sc,flip,tint,f){
+  const px=sc>=4?4:3,ox=135,oy=212,k=(sc/px)*(sc>=8?1:1.18),dir=f&&f.dir?f.dir:1;
+  const t=(typeof G!=='undefined'&&G.t)||0;
+  const P={
+    wg:Math.round(Math.sin(t*.08)*3)/3,
+    atk:f&&f.state==='attack'?(f.phase==='startup'?1:f.phase==='active'?2:3):0,
+    beam:f&&f.state==='attack'&&f.move&&f.move.beam?1:0,
+    weak:f&&f.weakT>0?1:0,
+    dir
+  };
+  let key=null;
+  if(!tint){
+    key='SER|'+dir+'|'+P.wg+','+P.atk+','+P.beam+','+P.weak+'|'+px;
+    const hit=RCACHE.get(key);
+    if(hit){ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(hit.c,Math.round(x+hit.dx*k),Math.round(y+hit.dy*k),Math.round(hit.c.width*k),Math.round(hit.c.height*k));ctx.restore();return;}
+  }
+  const bx=ox-19*px,by=oy-31*px,bw=38*px,bh=Math.min(230-by,33*px);
+  RX.setTransform(1,0,0,1,0,0);RX.clearRect(bx,by,bw,bh);
+  drawSeraphChibi(RX,ox,oy,px,pal,P,tint);
+  const bb=rigShade(bx,by,bw,bh,-1,!!tint);if(!bb)return;
+  const cx0=bx+bb[0],cy0=by+bb[1],cw=bb[2]-bb[0]+1,ch=bb[3]-bb[1]+1;
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(RIGC,cx0,cy0,cw,ch,Math.round(x+(cx0-ox)*k),Math.round(y+(cy0-oy)*k),Math.round(cw*k),Math.round(ch*k));
+  ctx.restore();
+  if(key){if(RCACHE.size>700)RCACHE.clear();const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(RIGC,cx0,cy0,cw,ch,0,0,cw,ch);RCACHE.set(key,{c,dx:cx0-ox,dy:cy0-oy});}
+}
 // แปลงเป็นพิกเซลอาร์ต: ตัดขอบเบลอ → แรเงา (บนสว่าง ล่าง/หลังมืด) → เส้นขอบ 1 พิกเซลสีเข้มของชิ้นที่ติดกัน (sel-out)
 function rigShade(bx,by,w,h,dir,flat){const im=RX.getImageData(bx,by,w,h),d=im.data,n=w*h,op=new Uint8Array(n);
   for(let i=0;i<n;i++){const a=d[i*4+3];if(a>=110){op[i]=1;if(a<255){const f=255/a;d[i*4]=Math.min(255,d[i*4]*f);d[i*4+1]=Math.min(255,d[i*4+1]*f);d[i*4+2]=Math.min(255,d[i*4+2]*f);}d[i*4+3]=255;}else d[i*4+3]=0;}

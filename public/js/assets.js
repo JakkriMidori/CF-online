@@ -21,7 +21,7 @@ const ASSET_SPEC={
 const AS={img:{},fit:{},tint:{},loaded:0,tried:0,
   names(){const n=[...Object.values(ASSET_SPEC.tex),...Object.keys(ASSET_SPEC.prop).map(k=>'prop_'+k),...ASSET_SPEC.mon.map(k=>'mon_'+k),...ASSET_SPEC.bg.map(k=>'bg_'+k),...ASSET_SPEC.sheet];return n;},
   // อ่านรายชื่อจาก assets/list.json ก่อน (เซิร์ฟเวอร์ Render สร้างให้อัตโนมัติ) แล้วโหลดเฉพาะไฟล์ที่มีจริง — ไม่มีรายชื่อ = ใช้ภาพวาดเดิมทั้งหมด
-  load(){if(typeof document==='undefined'||typeof fetch==='undefined')return;const base=(window.CF_ASSETS||'assets/'),want=new Set(this.names());
+  load(){if(typeof document==='undefined'||typeof fetch==='undefined'||(typeof location!=='undefined'&&location.protocol==='file:'))return;const base=(window.CF_ASSETS||'assets/'),want=new Set(this.names());
     fetch(base+'list.json',{cache:'no-cache'}).then(r=>r.ok?r.json():[]).catch(()=>[]).then(list=>{this.list=list;
       for(const n of list){if(!want.has(n))continue;const im=new Image();im.onload=()=>{this.img[n]=im;this.loaded++;this.changed();};im.onerror=()=>{this.tried++;};im.src=base+n+'.png';}});},
   _t:0,changed(){clearTimeout(this._t);this._t=setTimeout(()=>{try{if(typeof Z!=='undefined'&&Z&&typeof buildBg==='function')buildBg();if(typeof BT!=='undefined'&&BT&&typeof buildBattleBg==='function'&&buildBattleBg.last)buildBattleBg(buildBattleBg.last);}catch(e){console.warn(e);}},120);},

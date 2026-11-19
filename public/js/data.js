@@ -456,7 +456,8 @@ const FOES={
       M('พุ่งชนเพลิง',22,14,28,13,44,6,26,{hy:50,hh:80,lunge:2.8,kd:1,el:'fire'}),M('ขว้างหินเพลิง',18,3,24,11,0,4,22,{proj:{spd:4,r:11,hits:1,rock:1},far:1,el:'fire'})]},
   mslime:{n:'สไลม์ปรอท',kind:'mon',map:'SLIME',pal:'mslime',sc:4,hw:22,h:34,spd:1.1,range:32,cd:[26,56],el:'phys',
     attr:{str:20,agi:10,int:5,vit:30,luk:5},base:{hp:300,atk:58,def:14,mdef:6},res:{phys:.3,fire:-.4},xp:60,loot:'tower',
-    phases:[{at:.4,n:'สไลม์ปรอทรวมร่างใหม่!',cdMul:.85,spdMul:1.1,heal:.25}]},   // ครั้งเดียว: ฟื้น HP 25%
+    phases:[{at:.4,n:'สไลม์ปรอทรวมร่างใหม่!',cdMul:.85,spdMul:1.1,heal:.25}],
+    moves:[M('สาดปรอท',10,4,18,11,34,3,16,{hy:18,hh:32}),M('เด้งทับปรอท',18,8,22,15,30,4,22,{hy:18,hh:40,lunge:2.5,kd:1})]},   // ครั้งเดียว: ฟื้น HP 25%
   homunc:{n:'ฮอมุนคูลัสร่างทดลอง',kind:'rig',look:'HOMUNC',wpn:'adagger',hw:14,h:100,el:'poison',
     attr:{str:15,agi:25,int:35,vit:15,luk:10},skills:['acidflask','fireflask','sparkflask'],base:{hp:340,atk:62,def:12,mdef:16},res:{poison:.5,ice:-.3},xp:75,loot:'tower',meterStart:0},
   gargoyle:{n:'การ์กอยล์ศิลา',kind:'rig',look:'GARGOYLE',wpn:'ghammer',hw:16,h:100,el:'phys',

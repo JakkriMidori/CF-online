@@ -430,13 +430,13 @@ const BOSS_AI={cdMul:.7,farChance:.8,specialChance:.5,rigUltCD:600,rigSkillChanc
 const isSpecialMove=m=>!!(m.beam||m.rain||m.quake||m.proj||m.multi||m.kd||m.lunge);
 function aiMon(e,p){
   if(!actionable(e)||p.state==='ko')return;
-  const d=e.def,dx=p.x-e.x,dist=Math.abs(dx),bz=d.boss?BOSS_AI:null,cdm=e.cdMul*(e.elite?.85:1)*(bz?bz.cdMul:1);e.think--;
+  const d=e.def,dx=p.x-e.x,dist=Math.abs(dx),bz=d.boss?BOSS_AI:null,cdm=e.cdMul*(e.elite?.85:1)*(bz?bz.cdMul:1),moves=e.moves||[];e.think--;
   if(e.think<=0&&enemyCast(e,p,dist))return;
   if(dist>d.range+p.hw+10){
-    if(e.think<=0&&dist>150){const far=e.moves.find(m=>m.far);if(far&&rand()<(bz?bz.farChance:.5)){startAtk(e,far);e.think=rint(d.cd[0],d.cd[1])*cdm|0;return;}}
+    if(e.think<=0&&dist>150){const far=moves.find(m=>m.far);if(far&&rand()<(bz?bz.farChance:.5)){startAtk(e,far);e.think=rint(d.cd[0],d.cd[1])*cdm|0;return;}}
     e.state='walk';e.x+=Math.sign(dx)*d.spd*e.spdMul;
   }else{e.state='idle';
-    if(e.think<=0){const ms=e.moves.filter(m=>!m.far),sp=bz?ms.filter(isSpecialMove):[];startAtk(e,sp.length&&rand()<bz.specialChance?pick(sp):pick(ms));e.think=rint(d.cd[0],d.cd[1])*cdm|0;}
+    if(e.think<=0){const ms=moves.filter(m=>!m.far),sp=bz?ms.filter(isSpecialMove):[];if(ms.length){startAtk(e,sp.length&&rand()<bz.specialChance?pick(sp):pick(ms));e.think=rint(d.cd[0],d.cd[1])*cdm|0;}}
     else if(e.think>25&&dist<d.range*.6)e.x-=Math.sign(dx)*d.spd*.6;}
 }
 function updBattle(){
@@ -588,13 +588,13 @@ function poseFor(f){
 }
 /* ---------- draw ---------- */
 function drawMon(f,tint){
-  const d=f.def,sc=d.sc,map=SPR[d.map]||GOLEM,pal=PAL[d.pal],nf=d.noFlip||map===GOLEM;let x=f.x,y=f.y;
+  const d=f.def,sc=d.sc,map=SPR[d.map]||GOLEM,pal=PAL[d.pal],nf=d.noFlip||(map===GOLEM&&!(typeof RIG_HD!=='undefined'&&RIG_HD.on));let x=f.x,y=f.y;
   if(d.hover&&f.state!=='down'&&f.state!=='ko')y-=14+Math.round(Math.sin(G.t*.07)*3);
   if(f.state==='attack'){if(f.phase==='startup')x-=f.dir*3;else if(f.phase==='active')x+=f.dir*6;}
   if(f.state==='hurt')x+=rnd(-1.5,1.5);if(f.state==='walk')y-=Math.round(Math.abs(Math.sin(G.t*.25))*2);if(f.state==='stun')x+=Math.sin(G.t*.3)*1.5;
   const lying=f.state==='down'||f.state==='ko'||f.state==='airhurt';
   const ai=AS.has('mon_'+f.kind),mh=ai?Math.max(map.length*sc,d.boss?110:48):map.length*sc,sq=f.state==='attack'&&f.phase==='startup'?1.06:1;
-  const dm=(X,Y)=>ai?AS.mon(g,f.kind,X,Y,mh*sq,f.dir<0&&!nf,tint):spr(g,map,pal,X,Y,sc,f.dir<0&&!nf,tint);
+  const dm=(X,Y)=>ai?AS.mon(g,f.kind,X,Y,mh*sq,f.dir<0&&!nf,tint):spr(g,map,pal,X,Y,sc,f.dir<0&&!nf,tint,f);
   if(lying){g.save();g.translate(x,y);g.rotate(-f.dir*(f.state==='airhurt'?.6:1.3));dm(0,0);g.restore();}
   else dm(x,y);
   if(f.weakT>0&&d.weakPoint&&!lying){const p=(Math.sin(G.t*.3)+1)/2;g.fillStyle=`rgba(90,255,176,${.38+p*.32})`;g.beginPath();g.arc(x,y-sc*(d.weakY||6.5),sc*2.2+p*3,0,7);g.fill();}

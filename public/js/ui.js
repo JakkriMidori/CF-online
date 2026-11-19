@@ -129,12 +129,20 @@ const UI={
         ${eqd?'':`<button class="btn ghost sm" data-salv="${sel.uid}">แยกชิ้นส่วน</button>`}${eqd?'':`<span class="dim" style="align-self:center">${ico('coin',14)} ขายได้ที่ร้านค้าลุงชายเท่านั้น</span>`}</div>`;}
     return det;
   },
+  eqSlot:'weapon',
   scr_equip(){
-    const sel=this.sel&&itemByUid(this.sel);const F=this.filt;
-    const slots=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return`<button class="eslot" data-slot="${s}" ${it?rc(it.rar):''}><small>${SLOTN[s]}</small><span>${it?bIco(it.base,16)+' '+itemName(it):'—'}</span></button>`;}).join('');
-    const det=this.itemDet(sel);
-    return`<h2>${ico('equip',22)} สวมใส่อุปกรณ์ <small class="dim">ทอง ${G.gold}</small></h2><div class="eqg"><div><canvas id="pv" width="220" height="270"></canvas><div class="slots9">${slots}</div></div>
-      <div><div class="detail">${det}</div><div class="acts"><button class="btn sm" data-open="bag">${ico('bag',14)} เปิดช่องเก็บของ (${kbName('bag')})</button></div></div></div>`;
+    const S=StatSync.get(),sel=this.sel&&itemByUid(this.sel),slot=SLOTS.includes(this.eqSlot)?this.eqSlot:'weapon';
+    const typ=slot.startsWith('ring')?'ring':slot,cur=G.eq[slot]&&itemByUid(G.eq[slot]);
+    const rows=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return`<button class="eqrow${s===slot?' on':''}" data-slot="${s}"><small>${SLOTN[s]}</small><span ${it?rc(it.rar):'class="dim"'}>${it?bIco(it.base,16)+' '+itemName(it):'— ว่าง —'}</span></button>`;}).join('');
+    const A=[['พลังโจมตี',S.ap],['พลังเวท',S.mpow],['DEF',S.def],['M.DEF',S.mdef],['STR',S.str],['AGI',S.agi],['INT',S.int],['VIT',S.vit],['LUK',S.luk],['อัตราคริ',pct(S.critRate)],['HP สูงสุด',S.maxHP],['MP สูงสุด',S.maxMP]].map(([n,v])=>`<div class="eqa"><span>${n}</span><b>${v}</b></div>`).join('');
+    const cands=G.bag.filter(it=>BASES[it.base].type===typ&&it.uid!==(cur&&cur.uid)),list=(cur?[cur]:[]).concat(cands).map(it=>`<button class="eqcand${sel&&sel.uid===it.uid?' on':''}" data-sel="${it.uid}">${cur&&it.uid===cur.uid?'<em>สวมอยู่</em>':''}<span ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</span><b>Lv.${it.req}</b></button>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ชนิดนี้ในช่องเก็บของ</div>';
+    return`<h2>${ico('equip',22)} สวมใส่อุปกรณ์ <small class="gold-r">${ico('coin',16)} ${G.gold}</small></h2>
+      <div class="eq4"><div class="eqc"><canvas id="pv" width="220" height="270"></canvas><div class="eqn">${pname()}</div><div class="dim">Lv.${G.level} · ${TALENTS[G.talent].th}</div>
+          <div class="sb"><span>HP</span><div class="mbar"><i style="width:${Math.min(100,G.hp/Math.max(1,S.maxHP)*100)}%;background:#b8413a"></i></div><b>${Math.round(G.hp)}/${S.maxHP}</b></div>
+          <div class="sb"><span>MP</span><div class="mbar"><i style="width:${Math.min(100,G.mp/Math.max(1,S.maxMP)*100)}%;background:#3a7ac8"></i></div><b>${Math.round(G.mp)}/${S.maxMP}</b></div></div>
+        <div class="eqp"><h3>ค่าสถานะ</h3>${A}</div>
+        <div class="eqp"><h3>อุปกรณ์</h3>${rows}<div class="acts"><button class="btn sm" data-open="bag">${ico('bag',14)} ช่องเก็บของ (${kbName('bag')})</button></div></div>
+        <div class="eqp"><h3>เปลี่ยนเป็น · ${SLOTN[slot]}</h3><div class="eqlist">${list}</div><div class="detail">${this.itemDet(sel)}</div></div></div>`;
   },
 
 
@@ -439,12 +447,15 @@ const UI={
 
   lootPopup(out,title,xp=0,ups=0,newSk=[]){
     this.cur='loot';G.mode='menu';ov.classList.remove('hidden');const best=(out.items||[]).reduce((a,it)=>Math.max(a,RARS.indexOf(it.rar)),0);SFX.loot(RARS[best]);
-    pn.innerHTML=`<h2>🏆 ${title}</h2>${xp?`<div class="big">+${xp} XP${ups?` · <b class="good">เลเวลอัปเป็น Lv.${G.level}! (+${ups*CONFIG.levelPoints} แต้ม)</b>`:''}</div>`:''}
-      ${out.items&&out.items.length&&out.dropped!==undefined?`<h3>🎁 รางวัลพิเศษ (เข้าช่องเก็บของแล้ว)</h3><div class="loot">${out.items.map(it=>`<div class="lc" style="border-color:${RARC[it.rar]}">${itemTip(it)}</div>`).join('')}</div>`:''}
-      ${out.dropped!==undefined?`<div class="big">${out.dropped?`💰 ของตก ${out.dropped} ชิ้นรอบจุดที่ศัตรูล้ม — เดินไปกด E เก็บภายใน ${LOOT_CONFIG.ground.lifetime/60} วินาที (ของคุณคนเดียว)`:'ไม่มีของตก'}</div>`:`<div>🪙 +${out.gold} ทอง ${Object.entries(out.mats).map(([k,q])=>`· ${mIco(k,14)} ${MATS[k].n} ×${q}`).join(' ')}</div>
-      <div class="loot">${out.items.map(it=>`<div class="lc" style="border-color:${RARC[it.rar]}">${itemTip(it)}</div>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ดรอป</div>'}</div>`}
-      ${newSk.length?`<div class="good big">✨ ปลดล็อกสกิลใหม่: ${newSk.map(k=>SKILLS[k].n+(SKILLS[k].tier==='ultimate'?' (ใส่ช่องสุดยอดอัตโนมัติ)':'')).join(', ')}</div>`:''}
-      <div style="text-align:right;margin-top:10px"><button class="btn" data-close="1">ตกลง (Enter)</button></div>`;
+    const row=(l,v)=>`<div class="brow"><span>${l}</span><b>${v}</b></div>`,mats=Object.entries(out.mats||{}).map(([k,q])=>`${mIco(k,14)} ${MATS[k].n} ×${q}`).join(' · ');
+    const items=(out.items||[]).map(it=>`<div class="lc" style="border-color:${RARC[it.rar]}">${itemTip(it)}</div>`).join('');
+    const rows=[xp?row('EXP ที่ได้รับ',`${xp} XP${ups?` <em class="good">เลเวลอัป! Lv.${G.level} (+${ups*CONFIG.levelPoints} แต้ม)</em>`:''}`):'',
+      out.gold?row('ทองที่ได้รับ',`${ico('coin',16)} ${out.gold}`):'',
+      out.dropped!==undefined?row('ของตก',out.dropped?`${out.dropped} ชิ้นรอบจุดที่ศัตรูล้ม — กด E เก็บภายใน ${LOOT_CONFIG.ground.lifetime/60} วินาที`:'—'):'',
+      mats?row('วัตถุดิบ',mats):'',
+      newSk.length?row('สกิลใหม่',`<span class="good">${newSk.map(k=>SKILLS[k].n+(SKILLS[k].tier==='ultimate'?' (ใส่ช่องสุดยอดอัตโนมัติ)':'')).join(', ')}</span>`):''].join('');
+    pn.innerHTML=`<h2>${title}<small class="gold-r">${ico('coin',16)} ${G.gold}</small></h2><div class="bres">${rows}${row('ไอเทมที่ได้รับ',items?'':'—')}${items?`<div class="loot">${items}</div>`:''}</div>
+      <div class="bnext"><button class="btn" data-close="1">ถัดไป (Enter)</button></div>`;
     if(ups)this.levelUp(ups);
   },
 
@@ -454,7 +465,7 @@ const UI={
     return`<h2>🛠 เครื่องมือดีบัก</h2><div class="acts">
       <button class="btn sm" data-dbg="xp">+500 XP</button><button class="btn sm" data-dbg="gold">+1000 ทอง</button><button class="btn sm" data-dbg="mats">+วัตถุดิบทุกชนิด ×5</button>
       <button class="btn sm" data-dbg="scrolls">ปลดล็อกทุกสูตร</button><button class="btn sm" data-dbg="items">สุ่มไอเท็มทุกระดับ</button><button class="btn sm" data-dbg="god">โหมดอมตะ: ${G.god?'เปิด':'ปิด'}</button>
-      <button class="btn sm" data-dbg="heal">ฟื้นเต็ม</button><button class="btn sm" data-dbg="lava">วาร์ปเหมืองลาวา</button><button class="btn sm" data-dbg="w_golem">🪨 วาร์ปบอสโกเลม</button><button class="btn sm" data-dbg="w_lavaking">🌋 วาร์ปบอสราชันย์ลาวา</button><button class="btn sm" data-dbg="w_seraph">👁️ วาร์ปบอสเซราฟ</button><button class="btn sm" data-dbg="books">📚 ให้ตำราสกิลทุกเล่ม</button><button class="btn sm" data-dbg="seal">🗝️ +ตราทำลายผนึก & เรียนสกิลเฉพาะตัวทั้งหมด</button></div>
+      <button class="btn sm" data-dbg="heal">ฟื้นเต็ม</button><button class="btn sm" data-dbg="lava">วาร์ปเหมืองลาวา</button><button class="btn sm" data-dbg="w_golem">🪨 วาร์ปบอสโกเลม</button><button class="btn sm" data-dbg="w_lavaking">🌋 วาร์ปบอสราชันย์ลาวา</button><button class="btn sm" data-dbg="w_homunculus">🧪 วาร์ปบอสหอคอย (ฮอมุนคูลัส)</button><button class="btn sm" data-dbg="w_seraph">👁️ วาร์ปบอสเซราฟ</button><button class="btn sm" data-dbg="books">📚 ให้ตำราสกิลทุกเล่ม</button><button class="btn sm" data-dbg="seal">🗝️ +ตราทำลายผนึก & เรียนสกิลเฉพาะตัวทั้งหมด</button></div>
       <div class="filt">หน้าต่างคอมโบ <input type="range" min="4" max="30" value="${CONFIG.comboWindow}" data-cw> <b id="cwv">${CONFIG.comboWindow}</b> เฟรม</div>
       <h3>บันทึกดาเมจล่าสุด (สูตร: พลัง×สัมประสิทธิ์×100/(100+DEF หลังเจาะ) × (1−ต้านธาตุ) × คริ × ตัวคูณ × (1−ลดดาเมจ))</h3>
       <table class="fd"><tr><th>ใคร</th><th>ท่า</th><th>ชนิด</th><th>ฐาน</th><th>DEF ใช้</th><th>ต้าน</th><th>คริ</th><th>ตัวคูณ</th><th>DR</th><th>ผล</th></tr>${log||'<tr><td colspan=10 class="dim">ยังไม่มี</td></tr>'}</table>
@@ -490,7 +501,7 @@ pn.addEventListener('click',e=>{
   if(d.tal){newGame(d.tal);return;}
   if(d.al){Prog.allocate(d.al);UI.rerender();UI.hud();return;}
   if(d.use){const r=Inv.use(d.use);if(r.ok){toast(r.msg);SFX.pick();}UI.rerender();UI.hud();return;}
-  if(d.slot&&!d.sk&&!d.skeq){const it=G.eq[d.slot]&&itemByUid(G.eq[d.slot]);if(it)UI.sel=it.uid;UI.rerender();return;}
+  if(d.slot&&!d.sk&&!d.skeq){const it=G.eq[d.slot]&&itemByUid(G.eq[d.slot]);UI.eqSlot=d.slot;UI.sel=it?it.uid:null;UI.rerender();return;}
   if(d.sel){UI.sel=+d.sel;UI.rerender();return;}
   if(d.eq){const it=itemByUid(+d.eq);if(!Equip.equip(it))toast('เลเวลไม่ถึงที่ต้องการ');else SFX.pick();UI.rerender();return;}
   if(d.uneq){for(const s of SLOTS)if(G.eq[s]===+d.uneq)G.eq[s]=null;UI.rerender();return;}
@@ -566,7 +577,7 @@ function debugAction(a){
   if(a==='heal'){const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;}
   if(a==='lava'){UI.close();enterDungeon(1);return;}
   if(a.startsWith('w_')){const k=a.slice(2);UI.close();
-    if(k==='golem')enterBossRoom('golem');
+    if(k==='golem'||k==='homunculus')enterBossRoom(k);
     else if(k==='lavaking')enterDungeon(3);else enterDungeon(3,'ice');
     const b=Z.foes.find(f=>f.kind===k);if(b){b.alive=true;b.cool=180;P.x=b.x-56;P.y=b.y;if(blocked(P.x,P.y))P.x=b.x-40;}
     CAM.snap=1;G.hp=StatSync.get().maxHP;G.mp=StatSync.get().maxMP;UI.hud();toast(`🛠 วาร์ปถึงบอส ${FOES[k].n} — เดินเข้าไปเพื่อเริ่มสู้`,2500);return;}

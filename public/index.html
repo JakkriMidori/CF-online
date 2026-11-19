@@ -480,6 +480,19 @@ body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:
 #pn .emenu .sumcard{padding:3% 3% 3% 30%!important;min-height:0}
 #pn .emenu canvas#pv.mport{left:3%!important;top:50%!important;transform:translateY(-50%);width:22%!important;height:auto!important}
 #pn .emenu .sgold{top:6%;bottom:auto;right:4%;font-size:1.1em}
+/* ===== หน้าสวมใส่อุปกรณ์ 4 คอลัมน์ ===== */
+.eq4{display:grid;grid-template-columns:minmax(150px,19%) minmax(150px,21%) minmax(170px,25%) 1fr;gap:1.2%;align-items:start}
+.eqc,.eqp{background:rgba(4,12,32,.5);border:1px solid rgba(150,195,255,.28);border-radius:4px;padding:.7em .8em}
+.eqc{text-align:center}.eqc canvas{width:100%;max-width:210px;height:auto}.eqn{font-weight:700;font-size:1.15em;margin-top:.3em}
+.eqc .sb{display:grid;grid-template-columns:2em 1fr auto;gap:.5em;align-items:center;margin-top:.4em;text-align:left;font-size:.85em}
+.eqp h3{margin:0 0 .5em;padding-bottom:.3em;border-bottom:1px solid rgba(150,195,255,.3);color:#cfe6ff;letter-spacing:.05em}
+.eqa{display:flex;justify-content:space-between;padding:.22em .2em;border-bottom:1px solid rgba(150,195,255,.12)}.eqa b{color:#fff}
+.eqrow,.eqcand{width:100%;display:flex;flex-direction:column;gap:0;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(150,195,255,.18);border-radius:3px;padding:.18em .6em;margin-bottom:.2em;color:inherit;font:inherit;line-height:1.2;cursor:pointer}
+.eqrow small{opacity:.6;font-size:.72em}.eqrow span{font-size:.95em}.eqrow.on,.eqcand.on{background:linear-gradient(90deg,rgba(80,140,230,.55),rgba(40,80,160,.25));border-color:#cfe6ff}.eqrow:hover,.eqcand:hover{border-color:#cfe6ff}
+.eqcand{flex-direction:row;align-items:center;justify-content:space-between;gap:.5em}.eqcand em{font-style:normal;font-size:.75em;background:#2e7a4a;border-radius:3px;padding:0 .4em}.eqcand b{font-size:.8em;opacity:.7}
+.eqlist{max-height:30vh;overflow:auto;margin-bottom:.5em}.gold-r{float:right;font-size:.7em;color:#ffd98a}
+.bres{margin-top:.6em;max-width:70%}.brow{display:flex;justify-content:space-between;align-items:center;gap:1em;background:linear-gradient(90deg,rgba(6,16,44,.85),rgba(6,16,44,.35));border-bottom:1px solid rgba(190,220,255,.45);padding:.7em 1em;margin-bottom:.5em;font-size:1.1em}
+.brow b{font-weight:600;text-align:right}.bres .loot{margin-top:.4em}.bnext{position:absolute;right:3.2%;bottom:3.5%}
 </style>
 </head>
 <body>
@@ -503,7 +516,7 @@ body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:
       <button class="btn ghost" id="newBtn">เริ่มเกมใหม่</button>
       <button class="btn ghost hidden" id="delBtn">ลบเซฟ</button>
     </div>
-    <p class="ver">v0.2.5</p>
+    <p class="ver">v0.2.5b</p>
     <p class="credits">ไอคอน: game-icons.net (Lorc, Delapouite · CC BY 3.0) · เสียง UI: Kenney (CC0) · ฟอนต์: Kanit, Sarabun, Cinzel (OFL)</p>
   </div></div>
 </div>

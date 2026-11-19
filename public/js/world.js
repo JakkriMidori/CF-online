@@ -521,7 +521,7 @@ function drawExplore(){
     if(AS.has('mon_'+e.kind)){shadow(g,e.x,e.y,d.boss?16:7);AS.mon(g,e.kind,e.x,e.y+Math.round(Math.sin(G.t*.08+e.x)*1)-(d.hover?4:0),d.boss?mh*2.2:Math.max(16,mh*1.8),e.face<0,mt);}
     else if(d.h<60){shadow(g,e.x,e.y,6);spr(g,SPR[d.map]||RAT,PAL[d.pal],e.x,e.y+1-(Math.abs(Math.sin(G.t*.3))*(e.vx||e.vy?1:0)|0),1,e.face<0,e.cool>0&&G.t%8<4?'rgba(255,255,255,.6)':null);}
     else if(d.kind==='rig'){const K=d.look?LOOK_BY_NAME[d.look]:(e._K=e._K||Object.assign(palLook(PAL[d.pal||(e.kind==='kage'?'kage':'shade')],e.kind),{weapon:d.wpn||'sword'}));drawWalker(e.x,e.y,e.face,K,e.vx||e.vy,G.t*.22,e.x|0,e.cool>0&&G.t%8<4?'rgba(255,255,255,.6)':null);}
-    else{shadow(g,e.x,e.y,16);spr(g,SPR[d.map]||GOLEM,PAL[d.pal],e.x,e.y+Math.round(Math.sin(G.t*.04))-(d.hover?4:0),d.map==='ANGEL'?1.6:d.boss?2:1.4,false);}}});
+    else{shadow(g,e.x,e.y,16);spr(g,SPR[d.map]||GOLEM,PAL[d.pal],e.x,e.y+Math.round(Math.sin(G.t*.04))-(d.hover?4:0),d.map==='ANGEL'?1.6:d.boss?2:1.4,e.face<0&&!d.noFlip,null,e);}}});
   list.push({x:P.x,y:P.y,f:()=>drawWalker(P.x,P.y,P.face,K,P.moving,P.anim*1.4,0,null,'char_player',P.dir4||'down')});
   HDD.push(list,cx);   // ของตกแต่งพื้น: กองหิน คริสตัล กอหญ้า ตอเสา
   HD.walls(list,cx,cy);list.sort((a,b)=>a.y-b.y).forEach(o=>o.raw?o.f():HD.bb(g,o.x,o.y,o.f));
