@@ -323,6 +323,56 @@ function runTests(){
   T('ST9) ประสิทธิภาพ: ไม่คำนวณใหม่เมื่อไม่มีอะไรเปลี่ยน',()=>{StatSync.get();const r0=StatSync.recalcs,t=performance.now();for(let i=0;i<20000;i++)StatSync.get();for(let i=0;i<20;i++)StatSync.tick();const ms=performance.now()-t;
     return{ok:StatSync.recalcs===r0&&ms<50,info:`get() 20,000 ครั้ง + tick 20 รอบ = ${ms.toFixed(1)}ms · คำนวณใหม่ ${StatSync.recalcs-r0} ครั้ง`};});
   StatSync.mods.length=0;ssSave.mods.forEach(m=>StatSync.mods.push(m));Object.assign(G.eq,ssSave.eq);G.bag=ssSave.bag;StatSync.invalidate('test-end');}
+
+  // ===== v0.2.0: ดันกว้าง · กับดัก · มอนซ่อน · ขวดยา · บอสเกิดใหม่ · อาวุธบนหลังในเมือง =====
+  {const z0=Z,px0=P.x,py0=P.y,hp0=G.hp,mode0=G.mode,cd0=G.flags.bossCD,pf0=G.pendingFoe,rng0=RNG;RNG=saveRNG;   // ใช้สุ่มจริง (เทสก่อนหน้าอาจล็อกค่าสุ่มไว้)
+  try{
+  T('V2-1) ดันเจียนกว้างขึ้น: 52 ช่อง (เดิม 30) บันไดอยู่ขวาสุด',()=>{const z=makeDungeon(1,'stone'),st=z.props.find(o=>o.k==='stairs');return{ok:z.grid[0].length===52&&st&&st.x>48*16,info:`กว้าง ${z.grid[0].length} ช่อง · บันได x=${st&&st.x}`};});
+  T('V2-2) กับดักไม่อยู่ใกล้ประตู/บันได และหลุมไม่อยู่บนทางเดินหลัก',()=>{let bad=0,n=0;for(let i=0;i<20;i++){const z=makeDungeon(1+(i%2),['stone','ice','lava','tower'][i%4]);for(const t of z.traps){n++;const x=t.tx*16+8,y=t.ty*16+8;
+      if(z.props.some(o=>o.inter&&Math.hypot(o.x-x,o.y-y)<TRAP.near))bad++;if(t.type==='pit'&&(t.ty===8||t.ty===9))bad++;if(z.grid[t.ty][t.tx]!=='.')bad++;}}return{ok:bad===0&&n>40,info:`กับดัก ${n} จุดใน 20 ด่าน · ผิดกติกา ${bad}`};});
+  T('V2-3) มอนทั่วไปซ่อนอยู่ ไม่อยู่ใกล้ประตูหรือจุดเกิด · บอส/ตัวละครเนื้อเรื่องไม่ซ่อน',()=>{let bad=0,hid=0;for(let i=0;i<10;i++){loadZone(makeDungeon(1,['stone','ice','lava','tower'][i%4]));
+      for(const e of Z.foes){const d=FOES[e.kind];if(d.kind==='mon'&&!d.boss&&!d.miniboss){if(!e.hidden)bad++;hid++;if(Math.hypot(e.x-Z.spawn.x,e.y-Z.spawn.y)<TRAP.near*1.3)bad++;
+        if(Z.props.some(o=>(o.k==='exitdoor'||o.k==='stairs')&&Math.hypot(o.x-e.x,o.y-e.y)<TRAP.near))bad++;}}}
+    loadZone(makeCave());const kage=Z.foes.find(e=>e.kind==='kage');return{ok:bad===0&&hid>10&&kage&&!kage.hidden,info:`ซ่อน ${hid} ตัว · ผิด ${bad} · คาเงะแสดงอยู่ ${!!kage&&!kage.hidden}`};});
+  T('V2-4) เดินเข้าจุดที่มอนซ่อน = เข้าไฟต์ (แบบ RPG Maker)',()=>{loadZone(makeDungeon(1,'stone'));const e=Z.foes.find(f=>f.hidden&&f.alive);G.mode='explore';e.cool=0;P.x=e.x;P.y=e.y;G.pendingFoe=null;
+    const blk=blocked;updExplore();return{ok:G.mode==='trans'&&G.pendingFoe===e,info:'mode='+G.mode};});
+  T('V2-5) กับดักหนามลด HP 10% แต่ไม่ทำให้ตาย',()=>{loadZone(makeDungeon(1,'stone'));const S=StatSync.get();Z.traps=[{tx:Math.floor(P.x/16),ty:Math.floor((P.y-2)/16),type:'spike',seen:0,cd:0}];
+    G.hp=S.maxHP;checkTraps();const a=G.hp;G.hp=3;Z.traps[0].cd=0;checkTraps();return{ok:a===S.maxHP-Math.round(S.maxHP*TRAP.spikeDmg)&&G.hp===1&&Z.traps[0].seen===1,info:`HP ${S.maxHP} → ${a} · ถ้าเหลือ 3 → ${G.hp}`};});
+  T('V2-6) ตกหลุมชั้น 1 → ร่วงลงชั้น 2',()=>{loadZone(makeDungeon(1,'stone'));Z.traps=[{tx:Math.floor(P.x/16),ty:Math.floor((P.y-2)/16),type:'pit',seen:0,cd:0}];checkTraps();return{ok:Z.floor===2&&Z.id==='stone2',info:'อยู่ที่ '+Z.id};});
+  T('V2-7) บอสเกิดใหม่ตามเวลา: ระหว่างรอห้องว่างและประตูเปิด · หมดเวลาแล้วบอสกลับมา',()=>{G.flags.bossCD={};setBossCD('golem');const r1=makeBossRoom('golem');G.flags.bossCD.golem=Date.now()-1;const r2=makeBossRoom('golem');
+    return{ok:r1.foes.length===0&&r1.props.every(p=>!p.locked)&&r1.bossWait==='golem'&&r2.foes.length===1&&fmtLeft(BOSS_RESPAWN.min*60000)==='05:00',info:`รอ: มอน ${r1.foes.length} · หมดเวลา: มอน ${r2.foes.length}`};});
+  T('V2-8) ในเมืองอาวุธสะพายหลัง (ใช้ตัวแปรแยก ไม่กระทบตอนสู้)',()=>{const K={weapon:'sword',hair:'#000'},k=sheathed(K);return{ok:k.sheathe===1&&!K.sheathe&&sheathed(K)===k,info:'sheathe='+k.sheathe};});
+  T('V2-9) ขวดยา 3 ครั้งต่อการต่อสู้: ฟื้น 30% HP ครั้งที่ 4 ใช้ไม่ได้',()=>{loadZone(makeDungeon(1,'stone'));const e=mkFoe('rat',{x:P.x+40,y:P.y});Z.foes.push(e);setupBattle(e);G.mode='battle';BT.intro=0;const p=BT.p,mx=p.S.maxHP;
+    const drink=()=>{p.hp=mx*.2;p.state='idle';p.drinkT=0;const h0=p.hp,k=BT.flask;pressed.KeyQ=true;keys.KeyQ=true;try{control(p,BT.e);}finally{keys.KeyQ=false;pressed.KeyQ=false;}for(let i=0;i<FLASK.frames+2;i++){if(p.drinkT>0){p.drinkT--;p.hp=Math.min(mx,p.hp+p.drinkH);}}return[k,BT.flask,Math.round(p.hp-h0)];};
+    const r=[drink(),drink(),drink(),drink()];const ok=BT.flask===0&&r[0][2]===Math.round(mx*FLASK.heal)&&r[3][2]===0&&r[0][0]===3;BT=null;G.mode='explore';return{ok,info:r.map(x=>x.join('→')).join(' | ')};});
+  // ===== v0.2.1 =====
+  T('V21-1) ถ้ำชีสมีทางออกเดียว',()=>{const z=makeCave(),ex=z.props.filter(o=>o.inter==='town');return{ok:ex.length===1,info:'ทางออก '+ex.length+' จุด'};});
+  T('V21-2) ประตูเหมืองลาวาล็อกจนกว่าจะมีกุญแจจากคาเงะ',()=>{const f0=Object.assign({},G.flags),k0=G.mats.key_lava||0;G.flags.kageDown=1;G.flags.keyEra=1;G.mats.key_lava=0;const a=hasLavaKey();G.mats.key_lava=1;const b=hasLavaKey();
+    G.flags={kageDown:1};G.mats.key_lava=0;const old=hasLavaKey();G.flags=f0;G.mats.key_lava=k0;return{ok:!a&&b&&old,info:`ไม่มีกุญแจ=${a} · มีกุญแจ=${b} · เซฟเก่าที่ชนะแล้ว=${old}`};});
+  T('V21-3) คาเงะดรอปแค่กุญแจ และกุญแจไม่หายจากพื้น',()=>{const r=LootManager.generate({tableId:'kage',cls:'miniboss',level:6});const z={ground:[]};const gi=LootManager.spawn(z,0,0,r);
+    return{ok:r.drops.length===1&&r.drops[0].mat==='key_lava'&&gi[0].expire===Infinity,info:r.drops.map(d=>d.mat||d.kind).join(',')};});
+  T('V21-4) คาเงะอ่อนลง (HP 400 ATK 44)',()=>({ok:FOES.kage.base.hp===400&&FOES.kage.base.atk===44,info:`HP ${FOES.kage.base.hp} ATK ${FOES.kage.base.atk}`}));
+  T('V21-5) ยามานาใช้ได้ 3 ครั้งต่อไฟต์',()=>{loadZone(makeDungeon(1,'stone'));const e=mkFoe('rat',{x:P.x+40,y:P.y});Z.foes.push(e);setupBattle(e);G.mode='battle';BT.intro=0;const p=BT.p,m0=G.mats.mp_s||0;G.mats.mp_s=9;G.potCD=0;
+    const used=[];for(let i=0;i<4;i++){p.mp=0;G.potCD=0;p.state='idle';pressed.KeyR=true;keys.KeyR=true;try{control(p,BT.e);}finally{pressed.KeyR=false;keys.KeyR=false;}used.push(p.mp>0?1:0);}
+    const left=BT.mana;BT=null;G.mode='explore';G.mats.mp_s=m0;return{ok:used.join('')==='1110'&&left===0,info:'ดื่มสำเร็จ '+used.join('')};});
+  T('V21-6) ชุดละเอียดใช้กับผู้เล่นเท่านั้น (NPC ไม่โดน) และไม่มีหน้าสเปกแล้ว',()=>{const K=Equip.look(),N=palLook(PAL.smith||Object.values(PAL)[0],'smith');
+    return{ok:K.outfit===1&&!!K.pauldronR&&!N.outfit&&!UI.scr_spec&&!document.getElementById('specCv'),info:'ชุด '+K.specArmorId};});
+  T('V22-1) ปุ่มควบคุมผูกใหม่ได้ และสลับกับปุ่มเดิมในกลุ่มเดียวกัน',()=>{const old=KB.flask,oldM=KB.mana;
+    try{kbSet('flask','KeyX');const a=KB.flask==='KeyX';kbSet('mana','KeyX');const b=KB.mana==='KeyX'&&KB.flask===oldM;
+      return{ok:a&&b&&kb('left').includes('ArrowLeft'),info:'flask='+KB.flask+' mana='+KB.mana};}
+    finally{kbReset();}});
+  T('V22-2) ปุ่มระบบ (Esc/Tab/Enter) ผูกไม่ได้ และค่าเริ่มต้นคืนได้',()=>{try{const before=KB.flee;const ok1=kbSet('flee','Escape');
+      kbReset();return{ok:ok1===false&&before==='KeyF'&&KB.flee==='KeyF',info:'flee='+KB.flee};}finally{kbReset();}});
+  T('V22-3) ตัวจับเวลาฟื้นศัตรูคงอยู่หลังบันทึก/โหลด (ไม่ค้างตาย)',()=>{const cv=CAVE;const r=cv.foes.find(f=>f.respawnable);
+    const sv=[r.alive,r.respawn];try{r.alive=false;r.respawn=600;const d=World.serialize();const idx=cv.foes.indexOf(r);
+      World.restore(JSON.parse(JSON.stringify(d)));const r2=CAVE.foes[idx];
+      const kept=r2.alive===false&&r2.respawn===600;
+      // บันทึกรุ่นเก่า (ไม่มี respawn): ศัตรูที่ตายแล้วต้องได้เวลาฟื้นคืนเต็ม ไม่ค้างตลอดไป
+      const old=JSON.parse(JSON.stringify(d));old.foes[idx]={alive:false,elite:false};World.restore(old);
+      const legacy=CAVE.foes[idx].respawn===CONFIG.respawnFrames;
+      return{ok:kept&&legacy,info:'kept='+kept+' legacy='+legacy};}
+    finally{r.alive=sv[0];r.respawn=sv[1];}});
+  }finally{RNG=rng0;Z=z0;P.x=px0;P.y=py0;G.hp=hp0;G.mode=mode0;G.flags.bossCD=cd0;G.pendingFoe=pf0;try{buildBg();}catch(e){}}}
   RNG=saveRNG;Object.assign(G,saveG);[Status.onStun,Status.onStunEnd,Status.onSynergy]=prevHooks;
   window.__testResults={pass,fail,out};return{pass,fail,out};
 }

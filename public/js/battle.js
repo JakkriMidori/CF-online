@@ -49,6 +49,7 @@ function buildBattleBg(scene){
   const vg=c.createRadialGradient(W2/2,H2*.45,H2*.2,W2/2,H2*.5,H2*.85);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.7)');c.fillStyle=vg;c.fillRect(0,0,W2,H2);
   c.fillStyle=P.glow;c.globalAlpha=.06;c.fillRect(0,GY-2,W2,2);c.globalAlpha=1;
 }
+const FLASK={uses:3,heal:.30,frames:30};   // ขวดยาฟื้นพลัง: 3 ครั้งต่อการต่อสู้ ฟื้น 30% HP ระหว่างดื่มขยับไม่ได้ 0.5 วิ
 function startBattle(e){G.mode='trans';G.tt=0;G.pendingFoe=e;SFX.hit(true);}
 function setupBattle(e){
   const def=FOES[e.kind],zl=Z.levelAt(Math.floor(e.x/16)),lv=foeLevel(def,zl);
@@ -60,16 +61,16 @@ function setupBattle(e){
   const en=mkF({x:340,dir:-1,kind:e.kind,def,S:ES,hp:ES.maxHP,maxHp:ES.maxHP,dhp:ES.maxHP,lv:def.fixedLv||lv,elite:e.elite,rig:def.kind==='rig',
     look:LOOK_BY_NAME[def.look]||null,wpn:def.wpn,hw:def.hw,h:def.kind==='rig'?100:def.h,armor:!!def.armor,
     statusRes:def.statusRes||{},stunImmuneAfter:def.stunImmuneAfter,name:(e.elite?ELITE.prefix+' ':'')+def.n,moves:def.moves?def.moves.slice():null,cdMul:Diff.cur().aiCD,spdMul:Diff.cur().eSpd,ultT:600});
-  BT={foe:e,def,p,e:en,proj:[],parts:[],nums:[],bursts:[],bolts:[],hitstop:0,shake:0,intro:90,end:0,slow:0,result:null,msg:null,small:null,lastMove:null,lastT:0,
+  BT={flask:FLASK.uses,mana:FLASK.uses,foe:e,def,p,e:en,proj:[],parts:[],nums:[],bursts:[],bolts:[],hitstop:0,shake:0,intro:90,end:0,slow:0,result:null,msg:null,small:null,lastMove:null,lastT:0,
     comboT:0,comboShow:0,flash:null,time:99*60,white:0,fullCombo:null,phaseMsg:null};
   wrap.classList.add('battle');
 }
 function updTrans(){G.tt++;if(G.tt===22){if(G.vsPending){G.vsPending=false;setupVS([0,0],1);}else setupBattle(G.pendingFoe);}if(G.tt>=44)G.mode='battle';}
 const actionable=f=>['idle','walk','crouch','block','cblock'].includes(f.state);
 /* ปุ่มของแต่ละนักสู้: ปกติใช้ชุดของ P1 (WASD/ลูกศร + J K Space) — โหมดประลองแยกเป็น P1=WASD+J,K,Space / P2=ลูกศร+, . / */
-const KDEF={R:KR,L:KL,U:KU,D:KD,J:['KeyJ'],K:['KeyK'],X:['Space'],B:['KeyE']};   // B = ป้องกัน (ถือ E)
+const KDEF={get R(){return kb('right')},get L(){return kb('left')},get U(){return kb('up')},get D(){return kb('down')},get J(){return[...kb('punch'),'PadX']},get K(){return[...kb('kick'),'PadY']},get X(){return kb('dodge')},get B(){return kb('guard')}};   // ปุ่มผูกไว้ได้ที่เมนู ปุ่มควบคุม (B = ป้องกัน)
 const VSK1={R:['KeyD'],L:['KeyA'],U:['KeyW'],D:['KeyS'],J:['KeyJ'],K:['KeyK'],X:['Space'],B:['KeyE']};
-const DEF_SK=[['Digit1','Numpad1'],['Digit2','Numpad2'],['Digit3','Numpad3'],['Digit4','Numpad4','KeyL']];   // ปุ่มสกิลช่อง 1-4 (โหมดปกติ)
+const skillKeys=i=>[KB['s'+(i+1)],'Numpad'+(i+1)].concat(i===3?[KB.ult]:[]);   // ปุ่มสกิลช่อง 1-4 (โหมดปกติ) ปรับได้
 const VSS1=[['Digit1'],['Digit2'],['Digit3'],['Digit4','KeyL']];      // P1 ลานประลอง: เลข 1-4 บนแถวบน (L สำหรับช่อง 4)
 const cdLeftF=(p,id)=>p.cd?(p.cd[id]||0):Skills.cdLeft(id);
 const kk=f=>f.keys||KDEF;
@@ -152,14 +153,16 @@ function pressAttack(p,btn){const C=cmdCheck(p,btn);
   const m=pickMove(p,btn);if(m&&m.skill!==undefined)return useSkill(p,m.skill);return attemptMove(p,m);}
 function control(p,e){
   if(p.state==='ko'||BT.result)return;
+  if(p.drinkT>0){p.drinkT--;p.hp=Math.min(p.S.maxHP,p.hp+p.drinkH);p.state='idle';p.vx*=.8;if(p.drinkT%6===0)BT.parts.push({x:p.x+rnd(-6,6),y:p.y-rnd(10,40),vx:0,vy:-.6,l:26,c:'#7aff9a',s:2});return;}   // กำลังดื่มยา: ขยับไม่ได้ชั่วครู่
   if(p.cd)for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;if(p.dashCD>0)p.dashCD--;
   const n=numDir(p);if(n!==p.lastN){p.hist.push({n,t:G.t});if(p.hist.length>14)p.hist.shift();p.lastN=n;}
   const K=kk(p),fwdK=p.dir>0?K.R:K.L,backK=p.dir>0?K.L:K.R,holdB=down(...backK),Dn=down(...K.D),Rt=down(...K.R),Lt=down(...K.L);
   const blk=down(...(K.B||[]));if(tap(...(K.B||[])))p.backPressT=G.t;   // กด E ตรงจังหวะ = ปัดป้อง
   if(p.skBuf){if(--p.skBuf.ttl<=0)p.skBuf=null;else if(actionable(p)||p.state==='land'){const s=p.skBuf.slot;p.skBuf=null;useSkill(p,s,true);}}
-  for(let i=0;i<4;i++)if(tap(...(p.skk||DEF_SK)[i]))useSkill(p,i);
-  if(!BT.vs&&tap('KeyR')){const id=Mana.bestPotion(p,p.S);if(!id)BT.small={t:'ไม่มียามานา',l:50};else{const r=Mana.drink(p,p.S,id);if(r.ok){num(p,'+'+r.gained+' MP','#7ab8ff',18,-30);SFX.pick();}else BT.small={t:r.err,l:50};}}
-  if(!BT.vs&&(tap('KeyF')||fleeTap)){fleeTap=false;tryFlee(p,e);if(BT.result)return;}
+  for(let i=0;i<4;i++)if(tap(...(p.skk?p.skk[i]:skillKeys(i))))useSkill(p,i);
+  if(!BT.vs&&tap(KB.flask)){if(!(BT.flask>0))BT.small={t:'ขวดยาหมดแล้ว (ได้ 3 ครั้งต่อการต่อสู้)',l:60};else if(actionable(p)&&p.hp<p.S.maxHP){BT.flask--;const h=Math.round(p.S.maxHP*FLASK.heal);p.drinkT=FLASK.frames;p.drinkH=h/FLASK.frames;num(p,'+'+h+' HP','#7aff9a',18,-30);SFX.heal?SFX.heal():SFX.pick();}}   // v0.2.0: ขวดยา 3 ครั้ง/ไฟต์
+  if(!BT.vs&&tap(KB.mana)){const id=Mana.bestPotion(p,p.S);if(!(BT.mana>0))BT.small={t:'ยามานาใช้ครบ 3 ครั้งแล้วในไฟต์นี้',l:60};else if(!id)BT.small={t:'ไม่มียามานา',l:50};else{const r=Mana.drink(p,p.S,id);if(r.ok){BT.mana--;num(p,'+'+r.gained+' MP','#7ab8ff',18,-30);SFX.pick();}else BT.small={t:r.err,l:50};}}
+  if(!BT.vs&&(tap(KB.flee)||fleeTap)){fleeTap=false;tryFlee(p,e);if(BT.result)return;}
   if(tap(...K.J))pressAttack(p,'J');else if(tap(...K.K))pressAttack(p,'K');
   if(!actionable(p))return;
   const spd=p.S.spd,swift=p.S.passives.has('swift')?.7:1;
@@ -485,11 +488,12 @@ function finishBattle(){
     const out={gold:0,mats:{},items:[],dropped};
     const ups=Prog.gainXP(xp);
     if(foe.kind==='rat'){const h=G.q.hunt;if(h.active&&!h.done){h.count++;if(h.count>=QUESTS.hunt.count)Quest.complete('hunt');else toast(`กำจัดหนูถ้ำ ${h.count}/3`);}}
-    if(foe.kind==='kage'){G.flags.kageDown=1;Quest.advance('main1',4);setTimeout(()=>toast('🪨 ผนึกห้องบอสใน "ถ้ำหินโกเลม" (ทางใต้สุดของเมือง) คลายแล้ว',4500),1200);}
+    if(foe.kind==='kage'){G.flags.kageDown=1;G.flags.keyEra=1;Quest.advance('main1',4);setTimeout(()=>toast('🪨 ผนึกห้องบอสใน "ถ้ำหินโกเลม" (ทางใต้สุดของเมือง) คลายแล้ว',4500),1200);}
     if(foe.kind==='golem'){G.flags.golemDown=1;Quest.advance('main1',5);Quest.activate('lava');}
     if(foe.kind==='lavaking'){G.flags.lavaDown=1;Quest.advance('lava',3);for(const pt of Z.props)if(pt.k==='portal'||pt.k==='stairs')pt.locked=0;}
     if(foe.kind==='seraph')G.flags.seraphDown=1;
     if(foe.kind==='duelist'){G.flags.duelWon=1;foe.alive=false;G.skills.learned.add('bluejudge');setTimeout(()=>toast('🐉 ได้รับท่าสุดยอด: คำพิพากษาตาคราม — ตั้งช่อง 4 ที่หน้าสกิล (K)',5000),1500);}
+    if(d.boss)setBossCD(foe.kind);
     if(Z.bossRoom&&d.boss){Z.cleared=1;for(const pt of Z.props)if(pt.k==='portal'||pt.k==='exitdoor')pt.locked=0;setTimeout(()=>toast('🔓 ผนึกห้องบอสคลายแล้ว — เก็บของแล้วออกทางประตูหรือพอร์ทัลได้',3500),400);}
     const newSk=Skills.check();
     BT=null;G.mode='explore';UI.lootPopup(out,`ชนะ! ${d.n} Lv.${b.e.lv}${foe.elite?' (หัวหน้า)':''}`,xp,ups,newSk);

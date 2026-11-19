@@ -366,7 +366,7 @@ const LootManager={
   /* ---- BP_GroundItem ---- */
   spawn(zone,x,y,result){zone.ground=zone.ground||[];const R=LOOT_CONFIG.ground.radius,out=[];
     result.drops.forEach((d,i)=>{let px=x,py=y;for(let k=0;k<8;k++){const a=rand()*6.283,r=6+rand()*R;px=x+Math.cos(a)*r;py=y+Math.sin(a)*r*.6;if(!blocked||!blocked(px,py))break;px=x;py=y;}
-      const gi={gid:(G.gidSeq=(G.gidSeq||0)+1),owner:result.pid,drop:d,x:px,y:py,born:G.t,expire:G.t+LOOT_CONFIG.ground.lifetime,picked:false};zone.ground.push(gi);out.push(gi);});
+      const gi={gid:(G.gidSeq=(G.gidSeq||0)+1),owner:result.pid,drop:d,x:px,y:py,born:G.t,expire:d.kind==='mat'&&MATS[d.mat]&&MATS[d.mat].key?Infinity:G.t+LOOT_CONFIG.ground.lifetime,picked:false};/* กุญแจไม่หายจากพื้น */zone.ground.push(gi);out.push(gi);});
     return out;},
   name(d){return d.kind==='gold'?`${d.q} ทอง`:d.kind==='mat'?MATS[d.mat].n+(d.q>1?' ×'+d.q:''):itemName(d.item);},
   icon(d){return '';},   // ป้ายบนแคนวาส: ไม่ใช้ emoji

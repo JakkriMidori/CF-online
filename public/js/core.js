@@ -26,20 +26,50 @@ function weighted(obj){let tot=0;for(const k in obj)tot+=obj[k];let r=rand()*tot
 const keys={},pressed={};
 addEventListener('keydown',e=>{
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'))return;
+  if(KB_WAIT){e.preventDefault();const id=KB_WAIT;KB_WAIT=null;if(e.code!=='Escape')kbSet(id,e.code);if(typeof UI!=='undefined')UI.rerender();return;}
   const k=e.code;if(!keys[k])pressed[k]=true;keys[k]=true;
   if(e.target&&e.target.tagName==='BUTTON'&&(k==='Space'||k==='Enter'))return;
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Backquote','Tab'].includes(k))e.preventDefault();initAudio();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
-// เมาส์ในฉากต่อสู้: คลิกซ้าย = ต่อย (J) · คลิกขวา = เตะ (K)
-const MOUSE_KEY={0:'KeyJ',2:'KeyK'};
-cv.addEventListener('mousedown',e=>{if(typeof G==='undefined'||G.mode!=='battle')return;const k=MOUSE_KEY[e.button];if(!k)return;e.preventDefault();if(!keys[k])pressed[k]=true;keys[k]=true;initAudio();});
-addEventListener('mouseup',e=>{const k=MOUSE_KEY[e.button];if(k)keys[k]=false;});
+/* ปุ่มควบคุม — ปรับได้จากเมนู "ปุ่มควบคุม" (บันทึกใน localStorage 'cf_keys') */
+const KB_DEFS=[
+  {g:'move',id:'left',n:'เดินซ้าย',def:'KeyA'},{g:'move',id:'right',n:'เดินขวา',def:'KeyD'},
+  {g:'move',id:'up',n:'กระโดด / มองขึ้น',def:'KeyW'},{g:'move',id:'down',n:'ย่อตัว',def:'KeyS'},
+  {g:'move',id:'dodge',n:'พุ่งหลบ',def:'Space'},
+  {g:'battle',id:'punch',n:'ต่อย',def:'KeyJ'},{g:'battle',id:'kick',n:'เตะ',def:'KeyK'},
+  {g:'battle',id:'guard',n:'ป้องกัน (ถือค้าง)',def:'KeyE'},
+  {g:'battle',id:'s1',n:'สกิลช่อง 1',def:'Digit1'},{g:'battle',id:'s2',n:'สกิลช่อง 2',def:'Digit2'},
+  {g:'battle',id:'s3',n:'สกิลช่อง 3',def:'Digit3'},{g:'battle',id:'s4',n:'สกิลช่อง 4',def:'Digit4'},
+  {g:'battle',id:'ult',n:'ท่าสุดยอด (ช่อง 4)',def:'KeyL'},
+  {g:'battle',id:'flask',n:'ขวดยา',def:'KeyQ'},{g:'battle',id:'mana',n:'ยามานา',def:'KeyR'},
+  {g:'battle',id:'flee',n:'หลบหนี',def:'KeyF'},
+  {g:'explore',id:'interact',n:'คุย / เก็บ / เปิด / ตีเหล็ก',def:'KeyE'},
+  {g:'explore',id:'equip',n:'อุปกรณ์และกระเป๋า',def:'KeyI'},{g:'explore',id:'char',n:'สถานะตัวละคร',def:'KeyC'},
+  {g:'explore',id:'skills',n:'สกิล',def:'KeyK'},{g:'explore',id:'quests',n:'เควสต์',def:'KeyQ'},
+  {g:'explore',id:'map',n:'แผนที่โลก',def:'KeyM'},{g:'explore',id:'ency',n:'สารานุกรม',def:'KeyB'},
+  {g:'explore',id:'mini',n:'ซ่อน / แสดงแผนที่เล็ก',def:'KeyN'}];
+const KB={};for(const a of KB_DEFS)KB[a.id]=a.def;
+try{const sv=JSON.parse(localStorage.getItem('cf_keys')||'null');if(sv)for(const a of KB_DEFS)if(typeof sv[a.id]==='string')KB[a.id]=sv[a.id];}catch(e){}
+const KB_ALT={left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'};   // ลูกศรใช้แทนการเดิน/กระโดด/ย่อเสมอ
+const KB_RESERVED=['Escape','Tab','Backquote','Enter','NumpadEnter'];                  // ปุ่มระบบ ห้ามผูก
+let KB_WAIT=null;                                                                       // id ที่กำลังรอปุ่มใหม่
+const kb=id=>KB_ALT[id]?[KB[id],KB_ALT[id]]:[KB[id]];
+function kbSet(id,code){const a=KB_DEFS.find(x=>x.id===id);if(!a||KB_RESERVED.includes(code))return false;
+  const old=KB[id];for(const b of KB_DEFS)if(b.g===a.g&&b.id!==id&&KB[b.id]===code)KB[b.id]=old;   // ซ้ำในกลุ่มเดียวกัน = สลับกัน
+  KB[id]=code;try{localStorage.setItem('cf_keys',JSON.stringify(KB));}catch(e){}return true;}
+function kbReset(){for(const a of KB_DEFS)KB[a.id]=a.def;try{localStorage.removeItem('cf_keys');}catch(e){}}
+const kbLabel=c=>({ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→',Space:'Space',Backquote:'`'}[c]||(c||'').replace(/^Key/,'').replace(/^Digit/,'').replace(/^Numpad/,'Num '));
+const kbName=id=>kbLabel(KB[id]);
+// เมาส์ในฉากต่อสู้: คลิกซ้าย = ต่อย · คลิกขวา = เตะ (ตามปุ่มที่ผูกไว้)
+const MOUSE_ACT={0:'punch',2:'kick'};
+cv.addEventListener('mousedown',e=>{if(typeof G==='undefined'||G.mode!=='battle')return;const id=MOUSE_ACT[e.button];if(!id)return;const k=KB[id];e.preventDefault();if(!keys[k])pressed[k]=true;keys[k]=true;initAudio();});
+addEventListener('mouseup',e=>{const id=MOUSE_ACT[e.button];if(id)keys[KB[id]]=false;});
 cv.addEventListener('contextmenu',e=>{if(typeof G!=='undefined'&&G.mode==='battle')e.preventDefault();});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 const padKeys={};
 const down=(...ks)=>ks.some(k=>keys[k]||padKeys[k]);
 /* GAMEPAD — d-pad/stick → arrows, A → confirm/interact, B → back, X → J, Y → K, LB/RB → skills 1/2 */
-const PADMAP={12:'ArrowUp',13:'ArrowDown',14:'ArrowLeft',15:'ArrowRight',0:'PadA',1:'Escape',2:'KeyJ',3:'KeyK',4:'Digit1',5:'Digit2',9:'Enter'};
+const PADMAP={12:'ArrowUp',13:'ArrowDown',14:'ArrowLeft',15:'ArrowRight',0:'PadA',1:'Escape',2:'PadX',3:'PadY',4:'Digit1',5:'Digit2',9:'Enter'};   // X/Y = ต่อย/เตะ (ควบคู่กับปุ่มที่ผูกไว้)
 const padPrev={};
 function pollPad(){
   const gp=navigator.getGamepads?[...navigator.getGamepads()].find(Boolean):null;if(!gp)return;
@@ -48,7 +78,6 @@ function pollPad(){
   for(const k in st){if(st[k]&&!padPrev[k])pressed[k]=true;padKeys[k]=st[k];padPrev[k]=st[k];}
 }
 const tap=(...ks)=>ks.some(k=>pressed[k]);
-const KR=['KeyD','ArrowRight'],KL=['KeyA','ArrowLeft'],KU=['KeyW','ArrowUp'],KD=['KeyS','ArrowDown'];
 
 /* SOUND */
 let AC=null,NB=null;
@@ -272,13 +301,20 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
   if(K.cape){const S=ad(J.sh,-1.4,.6),w2=wv*1.3-P.lean*4;poly([ad(S,2.2,-.6),ad(S,-6.5+w2*.6,8),ad(S,-8.5+w2,15.5),ad(S,-4.5+w2*.8,17.5),ad(S,-.5+w2*.4,16),ad(S,1.6,6)],C(K.cape.col),Dk(K.cape.col,.6));
     poly([ad(S,-1,1),ad(S,-6+w2*.6,9),ad(S,-7.8+w2,15.4),ad(S,-6.6+w2,15.8),ad(S,-4.8+w2*.6,9.4)],C(K.cape.col2||shade(K.cape.col,1.2)));}
   if(K.scarf){const S=ad(J.sh,-.8,-.4);poly([S,ad(S,-6,1.2+wv*1.5),ad(S,-10,2.6+wv*2.5),ad(S,-9.4,4+wv*2.3),ad(S,-5.4,2.8+wv),ad(S,-.4,1.4)],Dk(K.scarf,.8),Dk(K.scarf,.55));}
+  const WpS=K.sheathe&&K.weapon&&WEAPONS[K.weapon]&&(WEAPONS[K.weapon].len||WEAPONS[K.weapon].shape)?WEAPONS[K.weapon]:null;
+  if(WpS){const bU=(cx,cy,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(cx-w/2,cy-h/2,w,h);},sU=(a,b,w,col)=>{const dx=b[0]-a[0],dy=b[1]-a[1],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)*2.4));for(let k=0;k<=n;k++)bU(a[0]+dx*k/n,a[1]+dy*k/n,w,w,col);};
+    drawWeaponShape(WpS,[J.sh[0]-1.2,J.sh[1]-1.6],Math.PI/2+.78,0,false,C,sU,bU,tint,K);}   // ในเมือง: อาวุธสะพายหลัง
   // ---- แขน/ขาหลัง ----
   const limbB=(a,j,e,r1,r2,r3,col)=>{cap(a,j,r1,r2,col,Dk(col,.6));cap(j,e,r2,r3,col,Dk(col,.6));};
   limbB(J.bs,J.be.j,J.be.end,1.25,1.05,.95,Dk(K.sleeve||K.body,.72));cap(J.be.j,J.be.end,1.05,.95,Dk(K.gloves||K.skin,.72));ell(J.be.end[0],J.be.end[1],1.3,1.3,Dk(K.gloves||K.skin,.7));
-  const boot=(e,col)=>{poly([ad(e,-1.5,-3.4),ad(e,1.3,-3.4),ad(e,1.5,-1.7),ad(e,3.3,-1.1),ad(e,3.6,.4),ad(e,-1.7,.4)],col,Dk(col,.55));if(!T){ctx.fillStyle=shade(col,.5);ctx.fillRect(e[0]-1.7,e[1]-.15,5.3,.55);ctx.fillStyle=shade(col,1.35);ctx.fillRect(e[0]-1.2,e[1]-3.3,2.2,.45);}};
-  const leg=(hipP,kn,ft,col,bc)=>{cap(hipP,kn,1.75,1.45,col,Dk(col,.6));cap(kn,ad(ft,0,-1.8),1.45,1.15,col,Dk(col,.6));boot(ft,bc);};
+  const OF=K.outfit&&!T;   // v0.2.1 ชุดละเอียดของผู้เล่น (สายรัดบูท หัวเหล็ก สายคาดอก สนับแขน เกราะไหล่ ผ้าคลุมเอว) — สีจาก EQUIP_SPEC
+  const boot=(e,col)=>{poly([ad(e,-1.5,OF?-4.8:-3.4),ad(e,1.3,OF?-4.8:-3.4),ad(e,1.5,-1.7),ad(e,3.3,-1.1),ad(e,3.6,.4),ad(e,-1.7,.4)],col,Dk(col,.55));
+    if(OF){ctx.fillStyle=K.bootStraps;for(const sy of[-4.2,-3,-1.8])ctx.fillRect(e[0]-1.4,e[1]+sy,2.8,.62);poly([ad(e,1.4,-1.3),ad(e,3.3,-1.1),ad(e,3.6,.4),ad(e,1.2,.4)],K.toeCap,shade(K.toeCap,.55));}
+    if(!T){ctx.fillStyle=shade(col,.5);ctx.fillRect(e[0]-1.7,e[1]-.15,5.3,.55);ctx.fillStyle=shade(col,1.35);ctx.fillRect(e[0]-1.2,e[1]-3.3,2.2,.45);}};
+  const leg=(hipP,kn,ft,col,bc,front)=>{cap(hipP,kn,1.75,1.45,col,Dk(col,.6));if(OF&&front)ell((hipP[0]+kn[0])/2+.4,(hipP[1]+kn[1])/2,.75,1.4,K.knee);cap(kn,ad(ft,0,-1.8),1.45,1.15,col,Dk(col,.6));boot(ft,bc);};
   leg(J.bhp,J.bk.j,J.bk.end,Dk(K.pants,.74),Dk(K.boots,.74));
-  leg(J.fhp,J.fk.j,J.fk.end,C(K.pants),C(K.boots));
+  const cw=wv*.35-(P.lean||0)*2;if(OF&&!K.robe)poly([tp(.05,-.8),tp(.05,-3),[J.hip[0]-6.4+cw,J.hip[1]+6.2],[J.hip[0]-2.2+cw*.5,J.hip[1]+8],tp(-.1,.5)],shade(K.coat,.6),shade(K.coat,.45));   // ผ้าคลุมเอวแผ่นหลัง
+  leg(J.fhp,J.fk.j,J.fk.end,C(K.pants),C(K.boots),1);
   // ---- ลำตัว ----
   const bw=F?[3.05,2.3,3.0,2.5]:[2.9,2.7,3.3,2.7],bc=C(K.body),bd=Dk(K.body,.6);
   poly([tp(-.05,bw[0]),tp(.38,bw[1]),tp(.72,F&&!K.plate?bw[2]+.6:bw[2]),tp(1.02,bw[3]),tp(1.08,0),tp(1.02,-bw[3]),tp(.72,-bw[2]),tp(.38,-bw[1]),tp(-.05,-bw[0])],bc,bd);
@@ -287,8 +323,13 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
   // ชายเสื้อ/เสื้อคลุม
   if(K.robe){const fy=Math.max(J.fk.end[1],J.bk.end[1])-1.2;poly([tp(.15,3.1),[J.hip[0]+5.6,fy],[J.hip[0]+2,fy+.6+wv*.3],[J.hip[0]-2,fy+.4],[J.hip[0]-5.4,fy-.2],tp(.15,-3.1)],C(K.robe),Dk(K.robe,.6));
     if(!T){ctx.fillStyle=K.trim||shade(K.robe,1.4);ctx.fillRect(J.hip[0]-5.2,fy-1,10.6,.7);ctx.fillStyle=shade(K.robe,.75);ctx.fillRect(J.hip[0]+.2,J.hip[1]+1,.5,fy-J.hip[1]-1.5);}}
+  else if(OF){const H=J.hip;poly([tp(.04,2.6),tp(.04,-2.6),[H[0]-5.4+cw,H[1]+6.4],[H[0]-1+cw*.5,H[1]+8.2],[H[0]+1.6,H[1]+6.6],[H[0]+3.6,H[1]+5.6]],K.coat,shade(K.coat,.58));
+    poly([tp(0,-.4),tp(0,-1.4),[H[0]-3.2+cw*.6,H[1]+7.4],[H[0]-1.8+cw*.5,H[1]+7.9]],shade(K.coat,.6));
+    poly([[H[0]-5.4+cw,H[1]+6.1],[H[0]-1+cw*.5,H[1]+8.2],[H[0]+1.6,H[1]+6.6],[H[0]+1.3,H[1]+5.3],[H[0]-1+cw*.5,H[1]+6.7],[H[0]-4.6+cw,H[1]+4.9]],K.hemTrim,shade(K.hemTrim,.55));
+    ctx.fillStyle=K.hemStuds;for(let k=0;k<4;k++){const u2=(k+.4)/4;ctx.fillRect(H[0]-4.4+cw*(1-u2)+u2*5.2-.4,H[1]+5.9+Math.sin(u2*Math.PI)*1.3-.4,.8,.8);}}   // ผ้าคลุมเอวผ่าหน้า ขลิบขอบ ตอกหมุด
   else poly([tp(.12,bw[0]+.1),tp(-.32,bw[0]+1.2),tp(-.4,1.2),tp(-.28,0),tp(-.4,-1.4),tp(-.32,-bw[0]-1),tp(.12,-bw[0]-.1)],Dk(K.body,.86),bd);
   // เข็มขัด เกราะอก
+  if(OF){poly([tp(.96,2.4),tp(1.08,.8),tp(.82,.6),tp(.78,2.6)],K.lapel,shade(K.lapel,.55));for(const t2 of[.52,.74]){poly([tp(t2,-1.8),tp(t2,3.1),tp(t2+.1,3.1),tp(t2+.1,-1.8)],K.chestStraps);const q=tp(t2+.05,1.8);ctx.fillStyle=K.strapBuckle;ctx.fillRect(q[0]-.55,q[1]-.42,1.1,.84);}}   // ปกเสื้อ + สายหนังคาดอก 2 เส้น
   if(!T){const bl=K.belt||K.trim;if(bl){poly([tp(.05,bw[0]+.15),tp(.19,bw[1]+.4),tp(.19,-bw[1]-.4),tp(.05,-bw[0]-.15)],bl,shade(bl,.55));const q=tp(.12,1.3);ctx.fillStyle='#e8c060';ctx.fillRect(q[0]-.5,q[1]-.55,1.1,1.1);}
     if(K.plate){poly([tp(.36,2.7),tp(.92,2.9),tp(.98,0),tp(.92,-1.2),tp(.36,-1)],shade(K.body,1.3),shade(K.body,.6));const a=tp(.85,1.6),b=tp(.5,2.2);ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}
     if(K.scales)for(const t2 of[.32,.5,.68])for(const s2 of[-1.4,.4,2.1]){const q=tp(t2,s2);ell(q[0],q[1],.8,.5,K.scales,shade(K.scales,.6));}
@@ -345,10 +386,13 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
   cap(J.fs,J.fe.j,1.3,1.1,sl2,Dk(K.sleeve||K.body,.6));cap(J.fe.j,J.fe.end,1.1,1,K.gloves?gl:sl2,Dk(K.gloves||K.sleeve||K.body,.6));
   if(!K.gloves&&!T){const m=[(J.fe.j[0]*.35+J.fe.end[0]*.65),(J.fe.j[1]*.35+J.fe.end[1]*.65)];cap(m,J.fe.end,1,.95,skin,skd);}
   const Wp=K.weapon&&WEAPONS[K.weapon]&&(WEAPONS[K.weapon].len||WEAPONS[K.weapon].shape)?WEAPONS[K.weapon]:null;
-  if(Wp){const blkU=(cx,cy,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(cx-w/2,cy-h/2,w,h);},segU=(a,b,w,col)=>{const dx=b[0]-a[0],dy=b[1]-a[1],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)*2.4));for(let k=0;k<=n;k++)blkU(a[0]+dx*k/n,a[1]+dy*k/n,w,w,col);};
+  if(Wp&&!K.sheathe){const blkU=(cx,cy,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(cx-w/2,cy-h/2,w,h);},segU=(a,b,w,col)=>{const dx=b[0]-a[0],dy=b[1]-a[1],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)*2.4));for(let k=0;k<=n;k++)blkU(a[0]+dx*k/n,a[1]+dy*k/n,w,w,col);};
     drawWeaponShape(Wp,J.fe.end,P.wa,0,false,C,segU,blkU,tint,K);}
   ell(J.fe.end[0],J.fe.end[1],1.35,1.3,gl,Dk(K.gloves||K.skin,.6));
-  if(K.pads&&!T){const q=ad(J.sh,.4,.7);ell(q[0],q[1],K.plate?2.9:2.4,K.plate?2.1:1.7,K.trim||'#8a8f9a',shade(K.trim||'#8a8f9a',.5));ell(q[0]+.3,q[1]-.7,1.3,.5,shade(K.trim||'#8a8f9a',1.5));}
+  if(OF){const m1=[J.fe.j[0]*.6+J.fe.end[0]*.4,J.fe.j[1]*.6+J.fe.end[1]*.4],m2=[J.fe.j[0]*.3+J.fe.end[0]*.7,J.fe.j[1]*.3+J.fe.end[1]*.7];ell(m1[0],m1[1],1.15,.5,K.bracerBands[0]);ell(m2[0],m2[1],1.1,.45,K.bracerBands[1]);   // สนับแขน
+    const R2=dir>0,pc=R2?K.pauldronR:K.pauldronL,q=ad(J.sh,.5,.8);ell(q[0],q[1],2.7,2,pc,shade(pc,.52));ell(q[0]+.2,q[1]-.7,1.4,.5,shade(pc,1.4));   // เกราะไหล่ไม่สมมาตร: หันขวาเห็นไหล่ขวา หันซ้ายเห็นไหล่ซ้าย
+    if(R2){ctx.fillStyle=K.pauldronRTrim;ctx.fillRect(q[0]+.7,q[1]-.2,.85,.85);ctx.fillRect(q[0]-1.3,q[1]+.1,.7,.7);}else{ctx.fillStyle=K.pauldronLStitch[0];ctx.fillRect(q[0]-.9,q[1]-.3,1,.8);ctx.fillStyle=K.pauldronLStitch[1];ctx.fillRect(q[0]+.4,q[1]+.1,1,.8);}}
+  else if(K.pads&&!T){const q=ad(J.sh,.4,.7);ell(q[0],q[1],K.plate?2.9:2.4,K.plate?2.1:1.7,K.trim||'#8a8f9a',shade(K.trim||'#8a8f9a',.5));ell(q[0]+.3,q[1]-.7,1.3,.5,shade(K.trim||'#8a8f9a',1.5));}
   if(K.ring&&!T){ctx.fillStyle=K.ring;ctx.fillRect(J.fe.end[0]+.6,J.fe.end[1]-.4,.6,.6);}
   ctx.setTransform(1,0,0,1,0,0);
 }
@@ -364,7 +408,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
   const lL=-Math.max(0,sw)*1.6,lR=-Math.max(0,-sw)*1.6,hipY=-11.6+bob,shY=-20.8+bob,Hc=[0,-26.6+bob];
   const hs=K.hstyle||'short',helm=K.head==='helm',hc=C(K.hair),hcd=Dk(K.hair,.62),hcl=Dk(K.hair,1.45),skin=C(K.skin),skd=Dk(K.skin,.72);
   const hp=(dx,dy)=>[Hc[0]+dx,Hc[1]+dy],M=pts=>pts.map(q=>[-q[0],q[1]]),both=(pts,col,edge)=>{poly(pts,col,edge);poly(M(pts),col,edge);};
-  const Wp=K.weapon&&WEAPONS[K.weapon]&&(WEAPONS[K.weapon].len||WEAPONS[K.weapon].shape)?WEAPONS[K.weapon]:null,bigW=Wp&&(Wp.len||0)>12;
+  const Wp=K.weapon&&WEAPONS[K.weapon]&&(WEAPONS[K.weapon].len||WEAPONS[K.weapon].shape)?WEAPONS[K.weapon]:null,bigW=Wp&&((Wp.len||0)>12||K.sheathe);
   const blkU=(cx,cy,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(cx-w/2,cy-h/2,w,h);},segU=(a,b,w,col)=>{const dx=b[0]-a[0],dy=b[1]-a[1],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)*2.4));for(let k=0;k<=n;k++)blkU(a[0]+dx*k/n,a[1]+dy*k/n,w,w,col);};
   const onBack=()=>drawWeaponShape(Wp,back?[3.4,shY-1.6]:[-3.4,shY-1.6],back?Math.PI/2+.62:Math.PI/2-.62,0,false,C,segU,blkU,tint,K);
   const hair=K.head==='helm'?'none':hs;
@@ -377,19 +421,33 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
   }
   // ---- ขา + รองเท้า ----
   const leg=(sx,lift,col,bc)=>{const top=[sx*1.45,hipY+.6],ft=[sx*1.6,-1.3+lift];cap(top,ft,1.75,1.3,col,Dk(col,.6));
-    poly([[ft[0]-1.6,ft[1]-1.6],[ft[0]+1.6,ft[1]-1.6],[ft[0]+1.8,ft[1]+1.3],[ft[0]-1.8,ft[1]+1.3]],bc,Dk(bc,.55));
+    const OFb=K.outfit&&!T;if(OFb&&!back)ell(sx*1.6,hipY+2.6,.8,1.4,K.knee);
+    poly([[ft[0]-1.6,ft[1]-(OFb?4.4:1.6)],[ft[0]+1.6,ft[1]-(OFb?4.4:1.6)],[ft[0]+1.8,ft[1]+1.3],[ft[0]-1.8,ft[1]+1.3]],bc,Dk(bc,.55));
+    if(OFb){ctx.fillStyle=K.bootStraps;for(const sy of[-3.8,-2.6,-1.4])ctx.fillRect(ft[0]-1.6,ft[1]+sy,3.2,.62);if(!back)poly([[ft[0]-1.75,ft[1]+.1],[ft[0]+1.75,ft[1]+.1],[ft[0]+1.85,ft[1]+1.3],[ft[0]-1.85,ft[1]+1.3]],K.toeCap,shade(K.toeCap,.55));}
     if(!T){ctx.fillStyle=shade(bc,.5);ctx.fillRect(ft[0]-1.8,ft[1]+.9,3.6,.5);ctx.fillStyle=shade(bc,1.35);ctx.fillRect(ft[0]-1,ft[1]-1.5,1.4,.45);}};
   leg(-1,lL,C(K.pants),C(K.boots));leg(1,lR,Dk(K.pants,.9),Dk(K.boots,.9));
   // ---- แขน (หลังลำตัวเล็กน้อย) ----
-  const arm=(sx,swing,sleeve,hand)=>{const a=[sx*3.3,shY+1],e=[sx*4.1,shY+4.6+swing*.4],h=[sx*4.3,shY+7.6+swing];cap(a,e,1.3,1.1,sleeve,Dk(K.sleeve||K.body,.6));cap(e,h,1.1,1,K.gloves?hand:sleeve,Dk(K.gloves||K.sleeve||K.body,.6));ell(h[0],h[1],1.3,1.25,hand,Dk(K.gloves||K.skin,.6));return h;};
+  const arm=(sx,swing,sleeve,hand)=>{const a=[sx*3.3,shY+1],e=[sx*4.1,shY+4.6+swing*.4],h=[sx*4.3,shY+7.6+swing];cap(a,e,1.3,1.1,sleeve,Dk(K.sleeve||K.body,.6));cap(e,h,1.1,1,K.gloves?hand:sleeve,Dk(K.gloves||K.sleeve||K.body,.6));if(K.outfit&&!T){ctx.fillStyle=K.bracerBands[0];ctx.fillRect(e[0]-1.1,e[1]+.4,2.2,.65);ctx.fillStyle=K.bracerBands[1];ctx.fillRect(e[0]-1.1,e[1]+1.4,2.2,.55);}ell(h[0],h[1],1.3,1.25,hand,Dk(K.gloves||K.skin,.6));
+    if(K.outfit&&!T){const R2=back?sx>0:sx<0,pc=R2?K.pauldronR:K.pauldronL;ell(sx*3.7,shY+1.1,2.3,1.8,pc,shade(pc,.55),sx*.18);ell(sx*3.55,shY+.5,1.15,.5,shade(pc,1.4));if(R2){ctx.fillStyle=K.pauldronRTrim;ctx.fillRect(sx*4.2-.42,shY+1.1,.85,.85);}else{ctx.fillStyle=K.pauldronLStitch[0];ctx.fillRect(sx*3.5-.5,shY+.7,1,.75);ctx.fillStyle=K.pauldronLStitch[1];ctx.fillRect(sx*4.2-.4,shY+1.3,.8,.75);}}return h;};
   // ---- ลำตัว ----
   const bc=C(K.body),bd=Dk(K.body,.6),wst=F?2.3:2.7,chs=F?3.1:3.4;
   const torso=()=>{poly([[-2.9,hipY+.2],[-wst,hipY-3.6],[-chs,shY+2.2],[-2.9,shY],[0,shY-.6],[2.9,shY],[chs,shY+2.2],[wst,hipY-3.6],[2.9,hipY+.2]],bc,bd);
     if(K.robe)poly([[-3.1,hipY-1],[3.1,hipY-1],[5,-1.2],[-5,-1.2]],C(K.robe),Dk(K.robe,.6));
+    else if(K.outfit&&!T){const co=K.coat,cd=shade(co,.58),hm=K.hemTrim,w2=wv*.25;
+      if(!back)for(const sd of[-1,1]){poly([[sd*1.8,hipY-.4],[sd*3.6,hipY-.2],[sd*(6.2+w2),hipY+6.2],[sd*(5.4+w2),hipY+8.2],[sd*2.2,hipY+7]],co,cd);poly([[sd*2.6,hipY+.4],[sd*3.3,hipY+.4],[sd*(4.5+w2),hipY+7.2],[sd*(3.6+w2),hipY+7]],cd);
+        poly([[sd*(6.2+w2),hipY+6],[sd*(5.4+w2),hipY+8.3],[sd*2.2,hipY+7.1],[sd*2.4,hipY+5.8]],hm,shade(hm,.55));ctx.fillStyle=K.hemStuds;for(let k=0;k<3;k++){const t2=(k+.5)/3;ctx.fillRect(sd*(2.5+t2*3.3)-.4,hipY+6.4+t2*1.1-.4,.8,.8);}}
+      else{poly([[-3.1,hipY],[3.1,hipY],[5.6+w2,hipY+7.6],[3.5,hipY+9.3],[1.6,hipY+8.8],[0,hipY+9.4],[-1.6,hipY+8.8],[-3.5,hipY+9.3],[-5.6+w2,hipY+7.6]],co,cd);
+        poly([[-1.6,hipY+.3],[-.6,hipY+.3],[-.9,hipY+8.6],[-1.9,hipY+8.6]],cd);poly([[.6,hipY+.3],[1.6,hipY+.3],[1.9,hipY+8.6],[.9,hipY+8.6]],cd);
+        ctx.fillStyle=K.hemStuds;ctx.fillRect(-2.6,hipY+5.2,.8,1.2);ctx.fillRect(1.8,hipY+5.2,.8,1.2);
+        for(const sd of[-1,1]){poly([[sd*5.5,hipY+7.2],[sd*3.7,hipY+8.2],[sd*4.5,hipY+6.1]],hm,shade(hm,.6));poly([[sd*3.2,hipY+8.2],[sd*2.1,hipY+9.6],[sd*1.1,hipY+8.2]],hm,shade(hm,.6));}}}
     else poly([[-3,hipY-.6],[3,hipY-.6],[3.8,hipY+2.6],[1,hipY+2.2],[0,hipY+2.8],[-1,hipY+2.2],[-3.8,hipY+2.6]],Dk(K.body,.86),bd);
     if(T)return;
     if(K.robe){ctx.fillStyle=K.trim||shade(K.robe,1.4);ctx.fillRect(-4.9,-2.2,9.8,.7);ctx.fillStyle=shade(K.robe,.78);ctx.fillRect(-.25,hipY,.5,hipY*-1-2.5);}
     const bl=K.belt||K.trim;if(bl){ctx.fillStyle=bl;ctx.fillRect(-2.95,hipY-1.4,5.9,1.2);if(!back){ctx.fillStyle='#e8c060';ctx.fillRect(-.55,hipY-1.5,1.1,1.4);}}
+    if(K.outfit){if(!back){poly([[-2.7,shY+.1],[-1.1,shY-.2],[-1.4,shY+3.2],[-2.8,shY+2.2]],K.lapel,shade(K.lapel,.55));poly([[2.7,shY+.1],[1.1,shY-.2],[1.4,shY+3.2],[2.8,shY+2.2]],K.lapel,shade(K.lapel,.55));
+        for(const sy of[shY+2.6,shY+4.6]){ctx.fillStyle=K.chestStraps;ctx.fillRect(-2.6,sy,5.2,1.05);ctx.fillStyle=K.strapBuckle;ctx.fillRect(-1.5,sy+.12,1,.8);ctx.fillRect(.5,sy+.12,1,.8);}
+        ctx.fillStyle=K.beltPouch;ctx.fillRect(-2.4,hipY-1.2,1.2,1.1);ctx.fillRect(1.2,hipY-1.2,1.2,1.1);}
+      else{ctx.strokeStyle=K.chestStraps;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(2.7,shY+.6);ctx.lineTo(-2.5,hipY-1.4);ctx.stroke();}}
     if(back){ctx.fillStyle=shade(K.body,.8);ctx.fillRect(-.25,shY+1,.5,hipY-shY-3);}
     else{if(F&&!K.plate){ell(-1.4,shY+3.6,1.3,.5,shade(K.body,.72));ell(1.4,shY+3.6,1.3,.5,shade(K.body,.72));}
       if(K.plate){poly([[-2.6,shY+1.4],[2.6,shY+1.4],[2.2,hipY-3],[0,hipY-2.2],[-2.2,hipY-3]],shade(K.body,1.3),shade(K.body,.6));ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(-1.6,shY+2.2,.5,3);}
@@ -405,7 +463,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
   else{arm(-1,sw*1.2,sl,hd);const hR=arm(1,-sw*1.2,Dk(K.sleeve||K.body,.92),Dk(K.gloves||K.skin,.92));torso();
     if(Wp&&!bigW){const up=['staff','wand','spear','scythe'].includes(Wp.shape);drawWeaponShape(Wp,[-4.3,shY+7.6+sw*1.2],up?-Math.PI/2-.18:Math.PI/2+.32,0,false,C,segU,blkU,tint,K);}   // ไม้เท้า/หอก ถือตั้งขึ้น · ดาบสั้นถือลง
     {const h=[-4.3,shY+7.6+sw*1.2];ell(h[0],h[1],1.3,1.25,hd,Dk(K.gloves||K.skin,.6));}}
-  if(K.pads&&!T){const pc=K.trim||'#8a8f9a';for(const sx of[-1,1]){ell(sx*3.5,shY+.9,K.plate?2.3:1.9,K.plate?1.7:1.4,pc,shade(pc,.5));ell(sx*3.5-.3,shY+.3,1,.4,shade(pc,1.5));}}
+  if(K.pads&&!T&&!K.outfit){const pc=K.trim||'#8a8f9a';for(const sx of[-1,1]){ell(sx*3.5,shY+.9,K.plate?2.3:1.9,K.plate?1.7:1.4,pc,shade(pc,.5));ell(sx*3.5-.3,shY+.3,1,.4,shade(pc,1.5));}}
   // ---- หัว ----
   cap([0,shY+.4],[0,Hc[1]+3.2],1.05,1.05,skd);
   const notBald=hair!=='none'&&hair!=='bald'&&hair!=='mohawk';
@@ -510,9 +568,9 @@ function lighting(ls,dark){
   L.globalCompositeOperation='destination-out';
   for(const l of ls){const gr=L.createRadialGradient(l.x,l.y,0,l.x,l.y,l.r);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.45,'rgba(0,0,0,.75)');gr.addColorStop(1,'rgba(0,0,0,0)');L.fillStyle=gr;L.fillRect(l.x-l.r,l.y-l.r,l.r*2,l.r*2);}
   L.globalCompositeOperation='source-over';g.drawImage(lc,0,0);
-  g.globalCompositeOperation='lighter';
+  g.globalCompositeOperation='lighter';g.globalAlpha=.6;   // v0.2.0: แสงสีจากตะเกียง/คริสตัล/ของตก ลดลง
   for(const l of ls)if(l.c){const gr=g.createRadialGradient(l.x,l.y,0,l.x,l.y,l.r*.8);gr.addColorStop(0,l.c);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(l.x-l.r,l.y-l.r,l.r*2,l.r*2);}
-  g.globalCompositeOperation='source-over';
+  g.globalCompositeOperation='source-over';g.globalAlpha=1;
 }
 function drawTorch(ctx,x,y,s=1){ctx.fillStyle='#3a2a1e';ctx.fillRect(x-s,y,2*s,5*s);const f=Math.round(Math.sin(G.t*.3+x)*s);
   ctx.fillStyle='#ff6a1a';ctx.fillRect(x-2*s,y-4*s+f,4*s,4*s);ctx.fillStyle='#ffd27a';ctx.fillRect(x-s,y-3*s+f,2*s,3*s);}

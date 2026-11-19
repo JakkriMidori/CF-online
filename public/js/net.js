@@ -28,7 +28,7 @@ class NetCore{
   reset(){G.vsOther=null;this.ws=null;this.kind=null;this.room=null;this.bc=null;this.pres=null;this.seen={};this.qk=0;this.unsub=null;this.inK=0;this.tapK=0;this.taps=[];this.lastTap=0;this.evK=0;this.evRing=[];this.lastEv=0;this.snapK=0;this.role=null;this.code=null;this.lobby={phase:'menu',peer:false,err:''};this.rid=0;this.inBattle=false;this.lastRx=0;this.evq=[];this.tpAcc=0;this.lastM=-1;this.joinTimer=null;this.sfxOrig=null;}
   newCode(){let c='';for(let i=0;i<4;i++)c+=NET_LETTERS[Math.floor(Math.random()*NET_LETTERS.length)];return c;}
   now(){return typeof performance!=='undefined'?performance.now():Date.now();}
-  label(){return this.kind==='ws'?'🌐 เชื่อมต่อเซิร์ฟเวอร์ Cave Forge แล้ว — เล่นข้ามเครื่องได้':this.kind==='claude'?'🌐 เชื่อมต่อออนไลน์แล้ว — เล่นข้ามเครื่องได้':this.kind==='local'?'⚠ ต่อระบบออนไลน์ไม่ได้'+(this.why?' ('+this.why+')':'')+' — ตอนนี้เล่นได้แค่แท็บอื่นในเบราว์เซอร์เดียวกัน':'ยังไม่ได้เชื่อมต่อ';}
+  label(){return this.kind==='ws'?'🌐 เชื่อมต่อเซิร์ฟเวอร์ Ray of Aether แล้ว — เล่นข้ามเครื่องได้':this.kind==='claude'?'🌐 เชื่อมต่อออนไลน์แล้ว — เล่นข้ามเครื่องได้':this.kind==='local'?'⚠ ต่อระบบออนไลน์ไม่ได้'+(this.why?' ('+this.why+')':'')+' — ตอนนี้เล่นได้แค่แท็บอื่นในเบราว์เซอร์เดียวกัน':'ยังไม่ได้เชื่อมต่อ';}
   /* เซิร์ฟเวอร์ของตัวเอง: เมื่อเกมถูกเปิดจากเซิร์ฟเวอร์ Cave Forge (ไม่ใช่ claude.ai) ใช้ WebSocket ที่ /ws ของโดเมนเดียวกัน */
   wsURL(){if(typeof window==='undefined'||!window.CF_WS||typeof location==='undefined'||!/^https?:$/.test(location.protocol))return null;   // CF_WS ใส่มาโดยเซิร์ฟเวอร์ Cave Forge เท่านั้น
     

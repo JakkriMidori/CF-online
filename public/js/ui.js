@@ -60,10 +60,10 @@ const UI={
     const A=(a,ic,l,k)=>`<button class="mrow" data-${a}="1"><span class="mi">${ico(ic)}</span><span class="ml">${l}</span>${k?`<kbd>${k}</kbd>`:''}</button>`;
     const S=StatSync.get(),bar=(v,m,c)=>`<div class="mbar"><i style="width:${Math.max(0,Math.min(100,v/Math.max(1,m)*100))}%;background:${c}"></i></div>`;
     return`<div class="emenu"><div class="emn-l">
-        <div class="mlist">${R('char','status','สถานะตัวละคร','C')}${R('equip','equip','อุปกรณ์และกระเป๋า','I')}${R('skills','skill','สกิล','K')}${R('quests','scroll','เควสต์','Q')}${R('map','map','แผนที่โลก','M')}${R('ency','ency','สารานุกรมศัตรู','B')}</div>
+        <div class="mlist">${R('char','status','สถานะตัวละคร',kbName('char'))}${R('equip','equip','อุปกรณ์และกระเป๋า',kbName('equip'))}${R('skills','skill','สกิล',kbName('skills'))}${R('quests','scroll','เควสต์',kbName('quests'))}${R('map','map','แผนที่โลก',kbName('map'))}${R('ency','ency','สารานุกรมศัตรู',kbName('ency'))}</div>
         <div class="mlist sub">${A('save','save','บันทึกเกม','')}${A('load','load','โหลดเกม','')}${A('vol','sound','เสียง: '+Math.round(SND.vol*100)+'%','')}${R('controls','controls','ปุ่มควบคุม','?')}${A('title','home','กลับหน้าหลัก (บันทึกก่อน)','')}${R('debug','gear','เครื่องมือดีบัก','`')}${window.CF_WS?'':`<a class="mrow" href="balance.html" style="text-decoration:none"><span class="mi">${ico('controls')}</span><span class="ml">Balance Lab (ปรับค่าเกม)</span></a>`}</div>
       </div>
-      <div class="emn-r"><div class="sumcard">
+      <div class="emn-r"><div class="sumcard"><canvas id="pv" class="mport" width="220" height="270"></canvas>
         <div class="emn-head">${pname()}</div>
         <div class="sl">Lv.${G.level} · ${TALENTS[G.talent].th} · ${Diff.cur().n}</div>
         <div class="sb"><span>HP</span>${bar(G.hp,S.maxHP,'#b8413a')}<b>${Math.round(G.hp)} / ${S.maxHP}</b></div>
@@ -71,44 +71,49 @@ const UI={
         <div class="sb"><span>XP</span>${bar(G.xp,CONFIG.xpNext(G.level),'#c8a464')}<b>${G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)}</b></div>
         <div class="sgold">${ico('coin',18)} ${G.gold}</div>
       </div>
-      <p class="dim hint">Tab หรือ Esc เพื่อปิด · N ซ่อน/แสดงแผนที่เล็ก</p></div></div>`;},
-  scr_controls(){return`<h2>ปุ่มควบคุม</h2>${document.getElementById('help').innerHTML}`;},
+</div></div>`;},
+  scr_controls(){
+    const grp=(g,t)=>`<div class="kbsec"><h3>${t}</h3>${KB_DEFS.filter(a=>a.g===g).map(a=>{const w=KB_WAIT===a.id;return`<div class="kbrow"><span>${a.n}</span><kbd class="kbk${w?' wait':''}">${w?'กดปุ่มใหม่… (Esc ยกเลิก)':kbName(a.id)}</kbd><button class="btn sm ghost" data-kbset="${a.id}">เปลี่ยน</button></div>`;}).join('')}</div>`;
+    return`<h2>${ico('controls',22)} ปุ่มควบคุม</h2><div class="kbcols">${grp('move','เคลื่อนที่และพุ่งหลบ')}${grp('battle','ต่อสู้')}${grp('explore','สำรวจและเมนู')}</div>
+      <p class="dim">ปุ่มคงที่: ลูกศรใช้เดิน กระโดด ย่อได้เสมอ · Enter / Space ยืนยันและคุย · Tab / Esc เปิดหรือปิดเมนู · ปุ่มใต้ Esc เปิดดีบัก · V เปิดปิด HD-2D · แพดใช้ X / Y แทนต่อยและเตะ</p>
+      <div class="acts"><button class="btn ghost" data-kbreset="1">คืนค่าเริ่มต้นทั้งหมด</button></div>`;
+  },
   scr_talent(){return`<h2>ระดับความยาก${CONFIG.diffLock?' <small class="dim">(ล็อกไว้ที่ดาร์กโซล)</small>':''}</h2><div class="diffrow">${Object.entries(DIFFICULTY).filter(([k])=>!CONFIG.diffLock||k===CONFIG.diffLock).map(([k,d])=>`<button class="diffc ${k} on" ${CONFIG.diffLock?'disabled style="grid-column:1/-1;cursor:default"':`data-diff="${k}"`}><b>${d.ic} ${d.n}</b><small>${d.desc}</small></button>`).join('')}</div><h2>เลือกพรสวรรค์ (Unique Talent) — เลือกได้ 1 อย่างเท่านั้น</h2><div class="tal">`+Object.entries(TALENTS).map(([k,t])=>{const sk=SKILLS[t.skill];
     return`<button class="talc" data-tal="${k}"><div class="ti">${ico(TALENT_ICO[k],34)}</div><b>${t.n}</b><div class="dim">${t.th}</div><p>${t.desc}</p><div class="sk">สกิลเฉพาะตัว: <b>${sk.n}</b><br><small>${sk.desc}</small></div></button>`;}).join('')+'</div><p class="dim">พรสวรรค์เลือกครั้งเดียวตอนสร้างตัวละคร และกำหนดสกิลช่องที่ 3 (เฉพาะตัว)</p>';},
 
   /* ---- character status ---- */
   scr_char(){
     const S=StatSync.get(),L=equipped();
-    const attrs=Object.keys(ATTRN).map(k=>`<div class="arow"><span>${ATTRN[k]}</span><b>${S[k]}</b><small class="dim">(พื้นฐาน ${BASE_ATTR[k]} + แจก ${G.alloc[k]} + อุปกรณ์ ${S[k]-BASE_ATTR[k]-G.alloc[k]}) · สูงสุด ${CONFIG.attrMax} · ${ATTR_HINT[k]}</small><button class="btn sm" data-al="${k}" ${G.points&&BASE_ATTR[k]+G.alloc[k]<CONFIG.attrMax?'':'disabled'}>${BASE_ATTR[k]+G.alloc[k]>=CONFIG.attrMax?'MAX':'+1'}</button></div>`).join('');
-    const mast=Object.keys(WEAPONS).filter(w=>G.mastery[w]).map(w=>`<div>${WEAPONS[w].n}: Lv.${Prog.masteryLv(w)} <small class="dim">(+${Prog.masteryLv(w)*2}% ดาเมจ, ${G.mastery[w]} XP)</small></div>`).join('')||'<div class="dim">ยังไม่มี — ใช้อาวุธตีศัตรูเพื่อเพิ่ม</div>';
+    const attrs=Object.keys(ATTRN).map(k=>`<div class="arow"><span>${ATTRN[k]}</span><b>${S[k]}</b><button class="btn sm" data-al="${k}" ${G.points&&BASE_ATTR[k]+G.alloc[k]<CONFIG.attrMax?'':'disabled'}>${BASE_ATTR[k]+G.alloc[k]>=CONFIG.attrMax?'MAX':'+1'}</button></div>`).join('');
+    const mast=Object.keys(WEAPONS).filter(w=>G.mastery[w]).map(w=>`<div>${WEAPONS[w].n}: Lv.${Prog.masteryLv(w)} </div>`).join('')||'<div class="dim">ยังไม่มี — ใช้อาวุธตีศัตรูเพื่อเพิ่ม</div>';
     const sets=activeSetBonuses(L).map(s=>`<div class="good">${SETS[s.set].n} ${s.n} ชิ้น: ${s.b.d||Object.keys(s.b).map(k=>(STATN2[k]||k)+' '+fmtStat(k,s.b[k])).join(', ')}</div>`).join('')||'<div class="dim">—</div>';
     const pas=[...S.passives].map(p=>{const P=PASSIVES.leg[p]||PASSIVES.god[p];return P?`<div>★ ${P.n}: ${P.d}</div>`:'';}).join('')||'<div class="dim">—</div>';
     const modsHtml=S.mods&&S.mods.length?S.mods.map(m=>`<div class="${m.kind==='debuff'?'bad':'good'}">${m.kind==='debuff'?'▼':'▲'} ${m.n||m.id}: ${m.stat} ${m.op==='mul'?'×'+m.v:(m.v>0?'+':'')+m.v} <small class="dim">(เหลือ ${(m.left/60).toFixed(1)} วิ)</small></div>`).join(''):'<div class="dim">ไม่มี</div>';
     const ago=StatSync.lastTickAt?Math.round((Date.now()-StatSync.lastTickAt)/1000):null;
-    const syncLine=`<div class="ts dim">${ico('gear',14)} อัปเดตค่าสถานะอัตโนมัติทุก 5 วินาที${ago!==null?` · รอบล่าสุด ${ago} วิที่แล้ว`:''} · ทรัพยากร: HP ${Math.round(G.hp)}/${S.maxHP} · MP ${Math.round(G.mp)}/${S.maxMP} · สตามินา ${S.maxSTA}/${S.maxSTA}</div>`;
+    const syncLine=`<div class="ts dim">${ico('gear',14)} ทรัพยากร: HP ${Math.round(G.hp)}/${S.maxHP} · MP ${Math.round(G.mp)}/${S.maxMP} · สตามินา ${S.maxSTA}/${S.maxSTA}</div>`;
     return`<h2>${ico('status',22)} ค่าสถานะตัวละคร${G.look&&G.look.name?' — '+G.look.name.replace(/[<>&]/g,''):''}</h2><div class="eqg"><div><canvas id="pv" width="220" height="270"></canvas><p><button class="btn sm" data-open="create">🎨 แต่งตัวละคร</button></p>
       <div class="stat"><span>เลเวล</span><b>${G.level}</b><span>XP</span><b>${G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)}</b><span>พรสวรรค์</span><b>${TALENTS[G.talent].ic} ${TALENTS[G.talent].th}</b><span>ความยาก</span><b>${Diff.cur().ic} ${Diff.cur().n}</b><span>ทอง</span><b>${G.gold}</b></div></div>
     <div><h3>ค่าพลังหลัก — แต้มคงเหลือ <span class="pts">${G.points}</span> ${Inv.has('reset')?'<button class="btn ghost sm" data-use="reset">📜 ใช้คัมภีร์ล้างค่าพลัง</button>':''}</h3>${attrs}
       <h3>ค่าที่คำนวณได้</h3><div class="stat2">
-      <span>HP สูงสุด</span><b>${S.maxHP}</b><small>500 + VIT×20 + Lv×50</small>
-      <span>MP สูงสุด</span><b>${S.maxMP}</b><small>100 + INT×10</small>
-      <span>สตามินา</span><b>${S.maxSTA}</b><small>100 + (AGI−10)×2</small>
-      <span>พลังโจมตี</span><b>${S.ap}</b><small>อาวุธ + STR×2</small>
-      <span>พลังเวท</span><b>${S.mpow}</b><small>อาวุธ + INT×3</small>
-      <span>DEF / M.DEF</span><b>${S.def} / ${S.mdef}</b><small>10 + อุปกรณ์ + AGI ทุก 10 = +3 DEF</small>
-      <span>อัตราคริติคอล</span><b>${pct(S.critRate)}</b><small>5% + LUK×0.2% (เพดาน 75%)</small>
-      <span>ดาเมจคริติคอล</span><b>${pct(S.critDmg)}</b><small>150% + LUK×1% (เพดาน 350%)</small>
-      <span>เจาะเกราะ %</span><b>${pct(S.apenPct)}</b><small>ลด DEF ศัตรูตามสัดส่วน (คิดก่อนแบบค่าคงที่)</small>
-      <span>เจาะเกราะ (คงที่)</span><b>${S.apen}</b><small></small>
-      <span>ต้านคริติคอลกายภาพ</span><b>${pct(S.pcritRes)}</b><small>DEF ทุก 10 = +1%</small>
-      <span>ต้านคริติคอลเวท</span><b>${pct(S.mcritRes)}</b><small>M.DEF ทุก 10 = +1%</small>
-      <span>หลบหลีก</span><b>${pct(S.evasion)}</b><small>AGI ทุก 10 = +1% (เพดาน 70%) · ท่าสุดยอด/ลำแสงหลบไม่ได้</small>
-      <span>ลดดาเมจ</span><b>${pct(S.dr)}</b><small>เพดาน 75%</small>
-      <span>ความเร็ว</span><b>${pct(S.spd)}</b><small>AGI</small>
-      <span>ฟื้นฟูมานา</span><b>+${pct(S.mpRegen)}</b><small>1 MP/3 วิ ในการต่อสู้ · 1 MP/1.5 วิ นอกการต่อสู้ (โบนัสเพดาน 30%)</small>
-      <span>ลดค่ามานา</span><b>${pct(S.mpCost)}</b><small>เพดาน 30%</small>
-      <span>ต้านสถานะผิดปกติ</span><b>${pct(S.statusRes)}</b><small>STR ทุก 10 = +1% (เพดาน 75%)</small>
-      <span>เกจสุดยอด</span><b>${Math.floor(G.ult||0)} / 100</b><small>ตีโดน +2 · คอมโบครบ +5 · ปัดป้อง +8 · สวนกลับ +5 · โดนตี +1</small></div>
+      <span>HP สูงสุด</span><b>${S.maxHP}</b>
+      <span>MP สูงสุด</span><b>${S.maxMP}</b>
+      <span>สตามินา</span><b>${S.maxSTA}</b>
+      <span>พลังโจมตี</span><b>${S.ap}</b>
+      <span>พลังเวท</span><b>${S.mpow}</b>
+      <span>DEF / M.DEF</span><b>${S.def} / ${S.mdef}</b>
+      <span>อัตราคริติคอล</span><b>${pct(S.critRate)}</b>
+      <span>ดาเมจคริติคอล</span><b>${pct(S.critDmg)}</b>
+      <span>เจาะเกราะ %</span><b>${pct(S.apenPct)}</b>
+      <span>เจาะเกราะ (คงที่)</span><b>${S.apen}</b>
+      <span>ต้านคริติคอลกายภาพ</span><b>${pct(S.pcritRes)}</b>
+      <span>ต้านคริติคอลเวท</span><b>${pct(S.mcritRes)}</b>
+      <span>หลบหลีก</span><b>${pct(S.evasion)}</b>
+      <span>ลดดาเมจ</span><b>${pct(S.dr)}</b>
+      <span>ความเร็ว</span><b>${pct(S.spd)}</b>
+      <span>ฟื้นฟูมานา</span><b>+${pct(S.mpRegen)}</b>
+      <span>ลดค่ามานา</span><b>${pct(S.mpCost)}</b>
+      <span>ต้านสถานะผิดปกติ</span><b>${pct(S.statusRes)}</b>
+      <span>เกจสุดยอด</span><b>${Math.floor(G.ult||0)} / 100</b></div>
       ${S.uniq?`<div class="ts">พาสซีฟเฉพาะตัว: ${SKILLS[S.uniq.skill].n} (${S.uniq.id} ${pct(S.uniq.v)})</div>`:''}<div class="ts">ต้านทาน: ${Object.entries(S.res).map(([k,v])=>`<span style="color:${ELC[k]}">${ELN[k]} ${pct(v)}</span>`).join(' · ')}</div>
       <h3>บัฟ / ดีบัฟที่ทำงานอยู่</h3>${modsHtml}${syncLine}
       <h3>โบนัสเซ็ต</h3>${sets}<h3>พาสซีฟพิเศษ</h3>${pas}<h3>ความชำนาญอาวุธ</h3>${mast}</div></div>`;
@@ -182,7 +187,6 @@ const UI={
       <p>สกิลเดิมและเลเวลอัปเกรดจะถูกเก็บไว้ในคลัง · สกิลใหม่จะถูกผนึกถาวรทันที · ตราจะถูกใช้เมื่อกดยืนยันเท่านั้น</p>
       <div class="acts"><button class="btn" data-skrepyes="1" autofocus>ยืนยัน ใช้ตราและเปลี่ยน</button><button class="btn ghost" data-skno="1">ยกเลิก</button></div></div></div>`;}
     return`<h2>✨ ซ็อกเก็ตรูนสกิล</h2><div class="runes">${sockets}</div>
-      <p class="dim">ในการต่อสู้: กด <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> ใช้สกิลในช่องนั้น · <kbd>L</kbd> = ท่าสุดยอด (เกจ 100) · โจมตีปกติใช้ <kbd>คลิกซ้าย</kbd> ต่อย / <kbd>คลิกขวา</kbd> เตะ</p>
       <div class="skpanel">${panel}</div>
       ${modal}`;
   },
@@ -386,6 +390,7 @@ pn.addEventListener('input',e=>{if(e.target.id==='pname'){G.look=Object.assign({
 pn.addEventListener('click',e=>{
   if(!e.target.closest('button')){const row=e.target.closest('.srow.sel');const c=row&&row.querySelector('[data-ssel]');if(c){c.click();return;}}   // คลิกทั้งแถวเพื่อเลือก
   const t=e.target.closest('button');if(!t)return;const d=t.dataset;
+  if(d.kbset){KB_WAIT=d.kbset;UI.rerender();return;}if(d.kbreset){kbReset();UI.rerender();return;}
   if(d.cyf){UI.filt[d.cyf]=d.cyv;UI.rerender();return;}
   if(d.close){UI.close();return;}
   if(d.vol){SND.cycle();UI.rerender();return;}
@@ -540,10 +545,6 @@ function drawVSUI(b){
   if(b.comboT>0&&b.comboShow>=2){const left=b.comboWho===p;outlineText(b.comboShow+' HITS',left?110:850,180,36,'#ffd23a');}
   if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd23a');
   // (คำแนะนำคอมโบ VS ถูกนำออก)
-  if(b.net){outlineText(b.net==='guest'?'คุณคือ P2 (ขวา) · A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J หรือ , ตี · K หรือ . เตะ · Space หรือ / พุ่งหลบ · ถือ E=กัน':'คุณคือ P1 (ซ้าย) · A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J ตี · K เตะ · Space พุ่งหลบ · ถือ E=กัน',480,520,12,'rgba(122,216,255,.9)');}else{
-  outlineText('P1: A/D เดิน · W กระโดด · S ย่อ · คลิกซ้าย ต่อย · คลิกขวา เตะ · Space พุ่งหลบ · ถือ E กัน',240,520,11,'rgba(122,216,255,.85)');
-  outlineText('P2: ←/→ เดิน · ↑ กระโดด · ↓ ย่อ · , ตี · . เตะ · / พุ่งหลบ · ถือ \' =กัน',720,520,11,'rgba(255,154,138,.85)');}
-  outlineText('เดินหน้า+คลิกซ้าย = ท่าหนัก · ลานประลองใช้เลเวล อุปกรณ์ และสกิลของแต่ละคน ไม่ใช้ยา',480,536,11,'rgba(255,255,255,.5)');
   if(b.intro>0){outlineText(b.intro>30?`ROUND ${v.round}`:'FIGHT!',480,250,b.intro>30?52:76,b.intro>30?'#fff':'#ffd23a');if(b.intro>30)outlineText('P1  VS  P2',480,310,22,'#fff');}
   if(b.msg)outlineText(b.msg.t,480,250,b.msg.t==='K.O.'?96:64,b.msg.c);
   if(b.result&&b.end>0&&b.end<70)outlineText(b.result==='win'?'P1 ชนะยกนี้!':b.result==='lose'?'P2 ชนะยกนี้!':'เสมอ',480,330,32,'#ffd23a');
@@ -572,7 +573,9 @@ function drawBattleUI(){
   {const gx=14,gy=428,gw=240,v=(G.ult||0)/CONFIG.ult.max;D.fillStyle='rgba(0,0,0,.65)';rrect(gx,gy,gw,14,7);D.fill();
    const gg=D.createLinearGradient(gx,0,gx+gw,0);gg.addColorStop(0,'#ff7a1a');gg.addColorStop(1,'#ffd23a');D.fillStyle=v>=1&&G.t%20<10?'#fff6a0':gg;rrect(gx,gy,gw*v,14,7);D.fill();
    outlineText('เกจสุดยอด '+Math.floor(G.ult||0)+'/100'+(v>=1?'  [L] พร้อม!':''),gx+gw/2,gy+7,11,'#fff');
-   const np=Mana.potionIds.reduce((a,k)=>a+(G.mats[k]||0),0);outlineText(`🧪 ยามานา ×${np} [R]${G.potCD>0?' · '+(G.potCD/60).toFixed(1)+' วิ':''}`,gx+gw/2,gy-12,11,G.potCD>0?'#999':'#9fd8ff');}
+   const np=Mana.potionIds.reduce((a,k)=>a+(G.mats[k]||0),0),f=BT.vs?-1:(BT.flask||0);
+   if(f>=0)outlineText(`❤️ ขวดยา ${'●'.repeat(f)}${'○'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,gx+gw*.25,gy-12,11,f?'#8aff9a':'#888');   // v0.2.0 ขวดยา 3 ครั้ง/ไฟต์
+   const mu=BT.vs?-1:(BT.mana||0);outlineText(`🧪 ยามานา ×${np}${mu>=0?' '+'●'.repeat(mu)+'○'.repeat(Math.max(0,FLASK.uses-mu)):''} [R]${G.potCD>0?' · '+(G.potCD/60).toFixed(1)+' วิ':''}`,f>=0?gx+gw*.72:gx+gw/2,gy-12,11,G.potCD>0||mu===0?'#999':'#9fd8ff');}
   // combo route
   // (คำแนะนำคอมโบกลางจอถูกนำออก)
   if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd23a');
@@ -584,7 +587,6 @@ function drawBattleUI(){
     D.fillStyle='#3a6ad0';D.fillRect(X+(m.s+m.a)*k,Y,m.r*k,10);D.fillStyle=p.didHit?(G.t%8<4?'#ffe27a':'#fff6c8'):'rgba(255,226,122,.25)';D.fillRect(X+(m.s+m.a)*k,Y-2,Math.min(CONFIG.comboWindow,m.r)*k,14);
     if(p.state==='attack'){const el=p.phase==='startup'?p.pt:p.phase==='active'?m.s+p.pt:m.s+m.a+p.pt;D.fillStyle='#fff';D.fillRect(X+el*k-1.5,Y-5,3,20);}
     D.globalAlpha=1;outlineText(m.n,480,Y+26,15,'#fff');}
-  outlineText('คลิกซ้าย ต่อย · เดินหน้า+คลิกซ้าย หนัก · คลิกขวา เตะ · S+คลิกขวา กวาดขา · ถือ E กัน · 1-4 สกิล · L สุดยอด · R ยามานา · Space พุ่งหลบ · W กระโดด · F หนี',480,530,12,'rgba(255,255,255,.6)');
   if(b.small)outlineText(b.small.t,p.x*S,(p.y-p.h-26)*S,15,'#9fe6ff');
   if(b.flash){const f=b.flash.f,lft=f.x<240;D.save();D.beginPath();D.moveTo(0,190);D.lineTo(960,150);D.lineTo(960,300);D.lineTo(0,340);D.closePath();
     const gr=D.createLinearGradient(0,0,960,0);gr.addColorStop(0,'rgba(10,8,20,.95)');gr.addColorStop(.5,ELC[b.flash.m.el]||'#ffd23a');gr.addColorStop(1,'rgba(10,8,20,.95)');D.fillStyle=gr;D.fill();D.clip();

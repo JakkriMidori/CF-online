@@ -230,7 +230,7 @@ function rFormulas(){const C=CONFIG,DV=C.derived;
   <h2>6. สถานะผิดปกติ</h2>
   ${f('โอกาสติด','100% + โบนัสโอกาสติด (Hexweaver +25%) − ค่าต้านของเป้า · จำกัด 0–100%')}
   ${f('ระยะเวลา','ค่าเริ่มต้น '+(C.statusDur/60)+' วินาที (ตั้งต่อสกิล/ท่าได้ที่ช่อง "นาน (วิ)") · เฉพาะ Hexweaver: + (โอกาสติดสถานะ% × <span class="gold">'+C.statusChanceDur+'</span> วิ) · +25% = +'+(25*C.statusChanceDur).toFixed(2)+' วิ · ซ้อนพิษ/เลือดออกได้ '+C.maxStacks+' สแตก')}
-  ${f('ดาเมจต่อวินาที','พิษ 5×สแตก · เลือดออก 10 + 5×(สแตก−1) · เผาไหม้ 20 · ช็อต 10 (แล้วสตัน)')}
+  ${f('ดาเมจต่อวินาที',`พิษ ${CONFIG.dot.poison.base} + ${CONFIG.dot.poison.per}×(สแตก−1) · เลือดออก ${CONFIG.dot.bleed.base} + ${CONFIG.dot.bleed.per}×(สแตก−1) · เผาไหม้ ${CONFIG.dot.burn.base} · ช็อต ${CONFIG.dot.shock.base}`+' (แล้วสตัน)')}
   <h2>7. ระบบป้องกัน</h2>
   ${f('การ์ด','ป้องกันได้ <span class="gold">'+C.guard.max+'</span> ครั้ง แล้วแตก <span class="gold">'+(C.guard.breakT/60)+'</span> วินาที · ปัดป้องติด = รีเซ็ต')}
   <h2>8. โค้ดต้นฉบับ</h2>

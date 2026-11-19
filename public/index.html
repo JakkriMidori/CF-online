@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cave Forge — ต้นแบบเกม HD-2D</title>
+<title>Ray of Aether</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root{--gold:#f3c969;--ink:#f4ead8;--panel:rgba(16,11,18,.96);--line:rgba(243,201,105,.45)}
@@ -327,13 +327,140 @@ body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:
 #dialog .pt{position:absolute;left:-1%;bottom:0;width:19%;aspect-ratio:3/4;image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7))}
 #dialog.hasPt{padding-left:21%}
 #title .credits{position:absolute;left:0;right:0;bottom:2%;font-size:clamp(8px,1vw,11px);letter-spacing:.02em;color:rgba(200,220,255,.55);font-family:'Sarabun',sans-serif}
+
+/* ===== v0.2.0: เมนูแบบหน้าต่าง JRPG (แยกหน้าต่างคำสั่ง / สถานะ) ไม่ใช่แผงเว็บ ===== */
+.panel:has(.emenu){background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
+.panel:has(.emenu)::before,.panel:has(.emenu)::after{display:none}
+.emenu{gap:14px!important;align-items:flex-start}
+.emn-l,.emenu .sumcard,#title .tbtns,#saveCard{background:linear-gradient(180deg,rgba(34,64,150,.94),rgba(10,24,74,.94) 70%,rgba(8,18,58,.96));border:2px solid #e6eeff;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(90,130,220,.9),inset 0 2px 0 rgba(255,255,255,.25),0 8px 22px rgba(0,0,0,.6)}
+.emn-l{padding:10px 8px!important}
+.emenu .mrow{border-bottom:0!important;text-shadow:1px 1px 0 #061030}
+.emenu kbd,.emenu .mrow[data-open="debug"],.emenu a.mrow[href="balance.html"]{display:none!important}
+.emn-l .mlist.sub{border-top:1px solid rgba(200,220,255,.25);padding-top:6px}
+.emenu .sumcard{position:relative;padding:14px 16px 14px 120px!important;min-height:130px}
+.emenu canvas#pv.mport{position:absolute!important;left:8px;top:6px;width:96px!important;height:118px!important;max-width:none;background:none!important;border:0!important;box-shadow:none!important;image-rendering:pixelated}
+.emenu .emn-head{font-size:1.35em;text-shadow:1px 1px 0 #061030}
+.emenu .sb b,.emenu .sl{text-shadow:1px 1px 0 #061030}
+.emenu .hint{opacity:.55;font-size:.85em}
+.emenu .sgold{position:absolute;right:14px;bottom:10px}
+/* หน้าแรก: หน้าต่างคำสั่ง + เลขเวอร์ชัน */
+#title .tbtns{display:inline-flex;flex-direction:column;align-items:stretch;padding:8px 10px;min-width:220px;gap:2px!important}
+#title .tbtns .btn{background:none!important;border:0!important;box-shadow:none!important;text-align:left;padding:6px 14px 6px 36px;position:relative;text-shadow:1px 1px 0 #061030}
+#title .tbtns .btn:hover,#title .tbtns .btn:focus-visible{background:linear-gradient(90deg,rgba(150,200,255,.28),transparent)!important}
+#title .tkeys{opacity:.5;font-size:.8em;margin-top:10px}
+#title .ver{position:absolute;right:2.2%;bottom:2%;margin:0;font-family:'Cinzel',serif;font-weight:700;font-size:clamp(11px,1.4vw,16px);letter-spacing:.12em;color:#dfe9ff;text-shadow:0 0 8px rgba(120,170,255,.8),1px 1px 0 #061030}
+#title .credits{right:12%}
+
+.fd code{font-size:.82em;opacity:.8;margin-right:6px}
+#pv{cursor:pointer}
+#title h1{font-size:clamp(26px,5.6vw,62px)!important;letter-spacing:.16em!important;white-space:nowrap}
+.kbcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.kbsec h3{margin:6px 0}
+.kbrow{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(160,195,255,.15)}
+.kbrow span{flex:1}
+.kbk{min-width:70px;text-align:center}
+.kbk.wait{color:#ffe28a;border-color:#ffe28a}
+
+/* ===== แผนที่โลกสไตล์ภาพวาดเกาะแฟนตาซี (Kingdom of Collawarrie) ===== */
+.panel:has(.wmap-screen){width:100%!important;height:100%!important;max-height:100%!important;padding:0!important;border:0!important;border-radius:0!important;background:#1d2830!important;box-shadow:none!important;overflow:hidden!important}
+.panel:has(.wmap-screen)::before,.panel:has(.wmap-screen)::after,.panel:has(.wmap-screen)>.backbar{display:none!important}
+.wmap-screen{position:relative;width:100%;height:100%;overflow:hidden;user-select:none;background:radial-gradient(ellipse at 52% 48%,#526d7a 0%,#3c5360 48%,#253640 85%,#172229 100%);color:#f6eedc;font-family:'Sarabun','Cinzel',serif}
+.wmap-screen>svg.wm-art{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+/* แถบเควสต์มุมซ้ายบน (ตามภาพตัวอย่าง) */
+.wm-quest{position:absolute;left:1.2%;top:2.2%;z-index:6;display:flex;align-items:center;gap:8px;padding:6px 18px 6px 10px;
+  background:linear-gradient(90deg,rgba(18,16,14,.92) 0%,rgba(34,28,22,.88) 78%,rgba(34,28,22,0) 100%);
+  border-top:1.5px solid #d7b56d;border-bottom:1.5px solid #9e7b3b;border-left:3px solid #f0cf82;
+  box-shadow:0 6px 18px rgba(0,0,0,.6);cursor:pointer;text-align:left;color:#f7efde;font:inherit;max-width:36%}
+.wm-quest:hover,.wm-quest:focus-visible{background:linear-gradient(90deg,rgba(36,30,22,.96) 0%,rgba(58,46,32,.9) 82%,rgba(58,46,32,0) 100%);outline:none}
+.wm-qbadge{position:relative;width:clamp(22px,2.5vw,30px);height:clamp(22px,2.5vw,30px);flex:none;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle,#fff3a8 0%,#f5c23b 60%,#b87914 100%);color:#231604;font-weight:900;font-family:'Cinzel',serif;font-size:clamp(13px,1.5vw,18px);
+  clip-path:polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%);box-shadow:0 0 10px rgba(255,210,70,.8)}
+.wm-qtxt{display:flex;flex-direction:column;line-height:1.25}
+.wm-qtxt b{font-family:'Kanit','Cinzel',serif;font-size:clamp(10px,1.25vw,14.5px);color:#f7dfa0;letter-spacing:.03em;text-shadow:0 1px 2px #000}
+.wm-qtxt span{font-size:clamp(9px,1.1vw,12.5px);color:#ffffff;opacity:.92;text-shadow:0 1px 2px #000}
+/* ป้ายริบบิ้นชื่ออาณาจักรด้านบนกลาง */
+.wm-title{position:absolute;left:50%;top:1.4%;transform:translateX(-50%);z-index:5;pointer-events:none;text-align:center;
+  padding:5px 44px 7px;min-width:34%;
+  background:linear-gradient(180deg,#e5cfa6 0%,#cdb07e 52%,#b3925e 100%);
+  border:2px solid #755629;border-radius:3px;
+  box-shadow:inset 0 0 0 1.5px #f5e6c8,0 8px 22px rgba(0,0,0,.65)}
+.wm-title::before,.wm-title::after{content:'';position:absolute;top:6px;width:26px;height:82%;background:linear-gradient(180deg,#b8945e,#8d6b3a);border:1.5px solid #5e431c;z-index:-1}
+.wm-title::before{left:-18px;transform:skewY(8deg);box-shadow:-4px 4px 10px rgba(0,0,0,.5)}
+.wm-title::after{right:-18px;transform:skewY(-8deg);box-shadow:4px 4px 10px rgba(0,0,0,.5)}
+.wm-title h2{margin:0;padding:0;background:none!important;font-family:'Cinzel','Kanit',serif;font-weight:800;font-size:clamp(13px,1.75vw,21px);color:#33210d;letter-spacing:.08em;text-shadow:0 1px 0 rgba(255,245,220,.7)}
+.wm-title small{display:block;font-family:'Cinzel','Sarabun',serif;font-size:clamp(8px,.9vw,10.5px);color:#5c3f1e;letter-spacing:.16em;font-weight:700;margin-top:-1px}
+/* หมุดแลนด์มาร์กทั้ง 6 จุดบนเกาะ */
+.wm-node{position:absolute;transform:translate(-50%,-50%);z-index:6;background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;color:#fff;font:inherit;outline:none}
+.wm-node:hover .wm-ico,.wm-node:focus-visible .wm-ico,.wm-node.sel .wm-ico{transform:scale(1.14) translateY(-2px);border-color:#fff4b8;box-shadow:0 0 0 2px #8a5e1a,0 0 18px rgba(255,225,120,.95),0 6px 14px rgba(0,0,0,.75)}
+.wm-node.fog .wm-ico{filter:saturate(.45) brightness(.82)}
+.wm-ico{position:relative;width:clamp(30px,3.6vw,42px);height:clamp(30px,3.6vw,42px);border-radius:8px;
+  background:radial-gradient(circle at 35% 28%,#fef9eb 0%,#e2cda3 65%,#b99b6b 100%);
+  border:2px solid #4a3419;box-shadow:0 0 0 1.5px #e8cf96,0 5px 12px rgba(0,0,0,.7);
+  display:flex;align-items:center;justify-content:center;transition:transform .16s,box-shadow .16s}
+.wm-ico svg{width:76%;height:76%;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.wm-node.danger .wm-ico{background:radial-gradient(circle at 35% 28%,#fff2e2 0%,#dfa878 65%,#9e5430 100%);border-color:#3d180a}
+.wm-node.here .wm-ico{border-color:#ffd84a;box-shadow:0 0 0 2px #5e3c08,0 0 20px rgba(255,216,74,.95),0 5px 12px rgba(0,0,0,.75)}
+.wm-lbl{margin-top:3px;padding:1.5px 8px 2px;border-radius:10px;background:rgba(16,13,10,.88);border:1px solid rgba(226,193,120,.65);
+  font-family:'Kanit','Sarabun',sans-serif;font-size:clamp(9px,1.05vw,12px);font-weight:600;color:#f7ebd2;white-space:nowrap;
+  text-shadow:0 1px 2px #000;box-shadow:0 2px 6px rgba(0,0,0,.65);display:flex;align-items:center;gap:4px}
+.wm-lbl small{font-size:.86em;color:#ffd27a;font-weight:500}
+.wm-node.sel .wm-lbl{background:linear-gradient(180deg,#523816,#2b1c09);border-color:#ffe38e;color:#fff}
+/* เครื่องหมายเควสต์ (!) เหนือจุดแลนด์มาร์ก */
+.wm-qmark{position:absolute;top:clamp(-22px,-2.3vw,-16px);left:50%;transform:translateX(-50%);z-index:8;
+  width:clamp(22px,2.4vw,28px);height:clamp(22px,2.4vw,28px);display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle,#fff7b8 0%,#f7c232 58%,#b37208 100%);color:#1e1202;
+  font-family:'Cinzel',serif;font-weight:900;font-size:clamp(13px,1.45vw,17px);
+  border:1.5px solid #3a2304;box-shadow:0 0 0 1.5px #fff0a0,0 4px 10px rgba(0,0,0,.75);
+  clip-path:polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%);
+  animation:wmQBob 1.1s ease-in-out infinite alternate;pointer-events:none}
+@keyframes wmQBob{from{transform:translateX(-50%) translateY(0) scale(1)}to{transform:translateX(-50%) translateY(-5px) scale(1.07)}}
+/* หมุดหน้าตัวละครผู้เล่น (ตำแหน่งปัจจุบัน) */
+.wm-heropin{position:absolute;right:clamp(-30px,-3.2vw,-22px);top:clamp(-16px,-1.6vw,-10px);z-index:9;
+  width:clamp(32px,3.6vw,42px);height:clamp(32px,3.6vw,42px);
+  background:linear-gradient(135deg,#8fd4ff 0%,#2668b8 55%,#123268 100%);
+  border:2px solid #fff2b8;border-radius:7px;transform:rotate(45deg);
+  box-shadow:0 0 0 1.5px #3d2708,0 0 14px rgba(120,205,255,.9),0 6px 12px rgba(0,0,0,.75);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:none;
+  animation:wmPinBob 1.3s ease-in-out infinite alternate}
+.wm-heropin canvas{width:132%;height:132%;transform:rotate(-45deg) translateY(2px);image-rendering:pixelated;display:block}
+@keyframes wmPinBob{from{margin-top:0}to{margin-top:-4px}}
+.wm-blood{position:absolute;left:clamp(-20px,-2.1vw,-14px);top:-10px;z-index:8;font-size:clamp(12px,1.4vw,16px);filter:drop-shadow(0 2px 4px #000);pointer-events:none}
+/* หน้าต่างแสดงชั้นย่อย 1-3 เมื่อคลิกเลือกจุดแลนด์มาร์ก */
+.wm-drawer{position:absolute;right:2.2%;top:12.5%;bottom:11.5%;width:min(41%,385px);z-index:10;
+  background:linear-gradient(180deg,rgba(244,231,202,.97) 0%,rgba(227,207,170,.97) 55%,rgba(210,186,144,.98) 100%);
+  color:#2b1d0e;border:2px solid #6b4c24;border-radius:6px;
+  box-shadow:inset 0 0 0 2px #f7ebd4,inset 0 0 24px rgba(120,82,32,.25),0 16px 44px rgba(0,0,0,.75);
+  display:flex;flex-direction:column;padding:12px 14px;overflow:hidden;animation:wmSlide .16s ease-out}
+@keyframes wmSlide{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.wm-dhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-bottom:1.5px solid rgba(107,76,36,.35);padding-bottom:7px;margin-bottom:8px}
+.wm-dhead h3{margin:0;font-family:'Kanit','Cinzel',serif;font-size:clamp(14px,1.6vw,18px);color:#2b1a08;font-weight:700}
+.wm-dhead small{display:block;font-size:clamp(10px,1.1vw,12px);color:#6a4c28;margin-top:1px}
+.wm-dclose{background:#4a3319;color:#f7ebd4;border:1px solid #8c683a;border-radius:4px;width:26px;height:26px;cursor:pointer;font-weight:800;line-height:1}
+.wm-dclose:hover{background:#694823;color:#fff}
+.wm-flist{flex:1;overflow:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px}
+.wm-fcard{padding:8px 10px;border-radius:5px;background:rgba(255,248,233,.72);border:1.5px solid rgba(120,88,46,.4);box-shadow:0 2px 5px rgba(0,0,0,.08)}
+.wm-fcard.here{background:linear-gradient(90deg,rgba(255,236,168,.92),rgba(255,248,230,.85));border-color:#b87e14;box-shadow:0 0 0 1px #e0a82e,0 3px 8px rgba(0,0,0,.15)}
+.wm-fcard.fog{opacity:.68;background:rgba(210,194,166,.55);border-style:dashed}
+.wm-ftop{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:700;font-size:clamp(11px,1.25vw,14px);color:#261708}
+.wm-flv{font-size:.86em;font-weight:600;color:#6e491c;background:rgba(130,92,40,.14);padding:1px 7px;border-radius:10px}
+.wm-fmeta{margin-top:4px;font-size:clamp(9.5px,1.08vw,12px);color:#4a341b;display:flex;flex-direction:column;gap:2px}
+.wm-tag{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:.94em}
+.wm-tag.here{color:#9c5800}.wm-tag.q{color:#b33a00}.wm-tag.boss{color:#8a1c14}.wm-tag.blood{color:#a81010}
+.wm-dfoot{margin-top:8px;padding-top:6px;border-top:1px solid rgba(107,76,36,.28);font-size:clamp(9px,1vw,11px);color:#5c4222;line-height:1.35}
+/* แถบปุ่มควบคุมมุมขวาล่าง ([G] ตำแหน่งปัจจุบัน [Esc] กลับ) */
+.wm-foot{position:absolute;right:1.6%;bottom:2.2%;z-index:8;display:flex;align-items:center;gap:8px;
+  padding:5px 12px;background:rgba(12,11,10,.88);border:1.5px solid rgba(215,180,108,.65);border-radius:4px;
+  box-shadow:0 4px 14px rgba(0,0,0,.7)}
+.wm-fbtn{background:none;border:0;color:#f4ead6;font:600 clamp(10px,1.15vw,13px) 'Kanit','Sarabun',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:2px 6px;border-radius:3px}
+.wm-fbtn:hover,.wm-fbtn:focus-visible{background:rgba(215,180,108,.22);color:#fff;outline:none}
+.wm-fbtn kbd{background:#262018;border:1px solid #b89658;border-radius:3px;color:#ffd98a;padding:0 5px;font-family:'Cinzel',serif;font-size:.9em}
 </style>
 </head>
 <body>
 <div id="wrap">
   <canvas id="c" width="960" height="540"></canvas>
   <div class="tilt top"></div><div class="tilt bot"></div>
-  <div id="hud"><div id="hudname"></div><div class="gl">🪙 <span id="gold">0</span> · <kbd>Tab</kbd> เมนู · <kbd>N</kbd> แผนที่</div>
+  <div id="hud"><div id="hudname"></div><div class="gl">🪙 <span id="gold">0</span></div>
     <div class="row"><span>HP</span><div class="bar"><i id="hpb"></i></div><small id="hpt"></small></div>
     <div class="row"><span>MP</span><div class="bar"><i id="mpb"></i></div><small id="mpt"></small></div>
     <div class="row"><span>XP</span><div class="bar"><i id="xpb"></i></div><small></small></div></div>
@@ -343,23 +470,16 @@ body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:
   <div id="dialog" class="hidden"><canvas class="pt" width="120" height="160"></canvas><div class="who"></div><div class="tx"></div><div class="nx">▼ E</div></div>
   <div id="ov" class="ov hidden"><div class="panel" id="pn"></div></div>
   <div id="title" class="ov"><div class="box">
-    <h1>CAVE FORGE</h1><p>ต้นแบบ 2.5D Action RPG</p>
+    <h1>RAY OF AETHER</h1><p>ต้นแบบ 2.5D Action RPG</p>
     <div id="saveCard" class="hidden"><div class="sc-t">เซฟล่าสุด</div><div id="saveInfo"></div></div>
     <div class="tbtns">
       <button class="btn" id="contBtn">เล่นต่อ</button>
       <button class="btn ghost" id="newBtn">เริ่มเกมใหม่</button>
       <button class="btn ghost hidden" id="delBtn">ลบเซฟ</button>
     </div>
-    <p class="dim tkeys">Enter เล่นต่อ · ↑↓ เลือก · Tab ในเกมเปิดเมนู</p>
+    <p class="ver">v0.2.2</p>
     <p class="credits">ไอคอน: game-icons.net (Lorc, Delapouite · CC BY 3.0) · เสียง UI: Kenney (CC0) · ฟอนต์: Kanit, Sarabun, Cinzel (OFL)</p>
   </div></div>
-</div>
-<div id="help" style="display:none">
-  <div><b>สำรวจ</b><br><kbd>WASD</kbd> เดิน · <kbd>E</kbd> คุย / เก็บ / เปิดหีบ / ตีเหล็ก · เมนูใช้ลูกศร + Enter หรือจอยได้<br><kbd>C</kbd> ค่าสถานะ · <kbd>I</kbd> กระเป๋า · <kbd>K</kbd> สกิล · <kbd>Q</kbd> เควสต์ · <kbd>M</kbd> แผนที่ · <kbd>B</kbd> สารานุกรม · <kbd>`</kbd> ดีบัก + เทสต์</div>
-  <div><b>ต่อสู้ (เมาส์)</b><br><kbd>คลิกซ้าย</kbd> ต่อย · <kbd>เดินหน้า</kbd>+<kbd>คลิกซ้าย</kbd> ท่าหนัก · <kbd>คลิกขวา</kbd> เตะ · <kbd>S</kbd>+<kbd>คลิกขวา</kbd> กวาดขา<br>
-  <b>ถือ</b> <kbd>E</kbd> ป้องกัน (ได้ 4 ครั้ง แล้วการ์ดแตก 8 วิ) · กด <kbd>E</kbd> ตรงจังหวะโดนตี = ปัดป้อง · <kbd>E</kbd>+<kbd>S</kbd> กันท่าต่ำ<br>
-  <kbd>1</kbd>-<kbd>4</kbd> สกิล · <kbd>L</kbd> ท่าสุดยอด (เกจ 100) · <kbd>R</kbd> ยามานา · <kbd>F</kbd> หลบหนี (50%)</div>
-  <div><b>เคลื่อนที่</b><br><kbd>A</kbd><kbd>D</kbd> เดิน (แตะ 2 ครั้ง = แดช) · <kbd>W</kbd> กระโดด · <kbd>S</kbd> ย่อ · <kbd>Space</kbd> พุ่งหลบ · ใช้ <kbd>J</kbd>/<kbd>K</kbd> แทนคลิกซ้าย/ขวาได้<br><b>ระดับความยาก</b> เลือกตอนเริ่มเกม · ดาร์กโซล = ตายแล้วทอง/EXP ตกที่จุดตาย ต้องไปเก็บคืน</div>
 </div>
 <script src="js/core.js"></script>
 <script src="js/gameicons.js"></script>
@@ -374,6 +494,7 @@ body:has(#title:not(.hidden)) #hud,body:has(#title:not(.hidden)) #quest{display:
 <script src="js/world.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/charspec.js"></script>
 <script src="js/net.js"></script>
 <script src="js/tests.js"></script>
 <script src="js/main.js"></script>

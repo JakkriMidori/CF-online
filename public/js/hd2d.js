@@ -105,14 +105,14 @@ const HD=(()=>{
   // fog = หมอกระยะไกล (ขอบบนจอ) · wisp = หมอกลอย · dark = ความมืดรอบแสง · ray = แสงส่องเฉียง
   const ATM={
     town:{fog:'226,214,182',fa:.26,wisp:'255,246,220',wa:.10,dark:'rgba(40,30,60,.14)',ray:.10,rayC:'255,238,190'},
-    cave:{fog:'92,92,62',fa:.55,wisp:'190,184,140',wa:.30,dark:'rgba(22,18,10,.46)',ray:.11,rayC:'255,226,150'},
-    stone:{fog:'92,92,62',fa:.55,wisp:'190,184,140',wa:.30,dark:'rgba(22,18,10,.46)',ray:.11,rayC:'255,226,150'},
-    crystal:{fog:'70,70,120',fa:.55,wisp:'150,160,255',wa:.28,dark:'rgba(10,8,30,.50)',ray:.08,rayC:'190,200,255'},
-    lava:{fog:'110,40,16',fa:.55,wisp:'255,140,70',wa:.22,dark:'rgba(20,6,4,.50)',ray:.06,rayC:'255,150,80'},
+    cave:{fog:'92,92,62',fa:.38,wisp:'190,184,140',wa:.2,dark:'rgba(22,18,10,.46)',ray:.11,rayC:'255,226,150'},
+    stone:{fog:'92,92,62',fa:.38,wisp:'190,184,140',wa:.2,dark:'rgba(22,18,10,.46)',ray:.11,rayC:'255,226,150'},
+    crystal:{fog:'70,70,120',fa:.4,wisp:'150,160,255',wa:.28,dark:'rgba(10,8,30,.50)',ray:.08,rayC:'190,200,255'},
+    lava:{fog:'110,40,16',fa:.4,wisp:'255,140,70',wa:.22,dark:'rgba(20,6,4,.50)',ray:.06,rayC:'255,150,80'},
     lavaboss:{fog:'110,40,16',fa:.55,wisp:'255,140,70',wa:.22,dark:'rgba(20,6,4,.50)',ray:.06,rayC:'255,150,80'},
     ice:{fog:'170,205,232',fa:.42,wisp:'235,248,255',wa:.18,dark:'rgba(20,34,60,.30)',ray:.13,rayC:'225,245,255'},
     frost:{fog:'170,205,232',fa:.42,wisp:'235,248,255',wa:.18,dark:'rgba(20,34,60,.30)',ray:.13,rayC:'225,245,255'},
-    tower:{fog:'80,120,104',fa:.55,wisp:'170,240,210',wa:.28,dark:'rgba(8,18,16,.46)',ray:.10,rayC:'200,255,225'},
+    tower:{fog:'80,120,104',fa:.4,wisp:'170,240,210',wa:.28,dark:'rgba(8,18,16,.46)',ray:.10,rayC:'200,255,225'},
     sanctum:{fog:'150,190,190',fa:.5,wisp:'220,250,250',wa:.30,dark:'rgba(10,24,30,.32)',ray:.14,rayC:'220,250,255'},
     cathedral:{fog:'190,210,230',fa:.5,wisp:'240,248,255',wa:.28,dark:'rgba(20,24,40,.28)',ray:.16,rayC:'240,248,255'},
     arena:{fog:'226,206,170',fa:.34,wisp:'255,240,210',wa:.14,dark:'rgba(40,24,20,.24)',ray:.14,rayC:'255,236,190'}};
@@ -126,11 +126,11 @@ const HD=(()=>{
       for(let y=oy;y<135;y+=L.sz)for(let x=ox;x<240;x+=L.sz)WX.drawImage(wc,x,y,L.sz,L.sz);}
     const m=WX.createLinearGradient(0,0,0,135);m.addColorStop(0,'rgba(0,0,0,.9)');m.addColorStop(.45,'rgba(0,0,0,.55)');m.addColorStop(.8,'rgba(0,0,0,.12)');m.addColorStop(1,'rgba(0,0,0,.05)');
     WX.globalCompositeOperation='destination-in';WX.fillStyle=m;WX.fillRect(0,0,240,135);
-    ctx.save();ctx.globalAlpha=a.wa;ctx.globalCompositeOperation='screen';ctx.imageSmoothingEnabled=true;ctx.drawImage(wC,0,0,W,H);ctx.restore();
+    ctx.save();ctx.globalAlpha=a.wa*.7;ctx.globalCompositeOperation='screen';ctx.imageSmoothingEnabled=true;ctx.drawImage(wC,0,0,W,H);ctx.restore();
   }
   // แสงส่องเฉียงจากด้านบน (วาดบนจอใหญ่ 960×540)
   function rays(D,bio){const a=atm(bio);if(!a.ray)return;const t=G.t*.004;D.save();D.globalCompositeOperation='screen';
-    for(let k=0;k<5;k++){const x0=((k*250+Math.sin(t+k*1.7)*50)%1350)-200,w=60+((k*37)%70),al=a.ray*(.6+.4*Math.sin(t*1.3+k*2.1));
+    for(let k=0;k<5;k++){const x0=((k*250+Math.sin(t+k*1.7)*50)%1350)-200,w=60+((k*37)%70),al=a.ray*.55*(.6+.4*Math.sin(t*1.3+k*2.1));
       const gr=D.createLinearGradient(x0,0,x0+220,540);gr.addColorStop(0,`rgba(${a.rayC},${al})`);gr.addColorStop(.7,`rgba(${a.rayC},${al*.35})`);gr.addColorStop(1,`rgba(${a.rayC},0)`);
       D.fillStyle=gr;D.beginPath();D.moveTo(x0,0);D.lineTo(x0+w,0);D.lineTo(x0+w+260,540);D.lineTo(x0+150,540);D.closePath();D.fill();}D.restore();}
   // เสาหิน/ผนังกลางห้อง: ยกขึ้นเป็นกล่อง 3 มิติ (หน้าผนังตั้งตรง + ฝาบน) เรียงความลึกกับตัวละคร
@@ -346,6 +346,6 @@ const HDD=(()=>{
   function push(list,cx){if(typeof FX!=='undefined'&&!FX.on)return;for(const d of gen())if(d.x>cx-60&&d.x<cx+W+60)list.push({x:d.x,y:d.y-3,f:()=>{
     g.drawImage(sprite(d.k,d.bio,d.v),d.x-24,d.y-35,48,40);
     if(d.k==='crystal'&&(G.t+d.x*3|0)%120<2)EP.push({x:d.x+rnd(-6,6),y:d.y-rnd(4,14),vx:0,vy:-.25,l:40,c:(COL[d.bio]||COL.cave)[1]});}});}
-  function lights(ls){if(typeof FX!=='undefined'&&!FX.on)return;for(const d of gen())if(d.k==='crystal')ls.push({x:d.x,y:d.y-8,r:38+Math.sin(G.t*.05+d.x)*3,c:(COL[d.bio]||COL.cave)[0]+'3a'});}
+  function lights(ls){if(typeof FX!=='undefined'&&!FX.on)return;for(const d of gen())if(d.k==='crystal')ls.push({x:d.x,y:d.y-8,r:38+Math.sin(G.t*.05+d.x)*3,c:(COL[d.bio]||COL.cave)[0]+'22'});}
   return{gen,push,lights,reset(){zk=null;}};
 })();

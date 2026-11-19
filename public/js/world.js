@@ -18,7 +18,7 @@ function mkFoe(kind,pos,extra={}){const d=FOES[kind];return Object.assign({kind,
 function makeCave(){
   return{id:'cave',grid:CAVE_MAP.map(r=>r.split('')),spawn:T(3,12),rubbleOpen:false,
     levelAt:tx=>tx>=20?ZONE_INFO.inner.lv:ZONE_INFO.outer.lv,regionAt:tx=>tx>=20?'inner':'outer',biomeAt:tx=>tx>=20?'crystal':'cave',
-    props:[{k:'exitup',...T(2,10,8,12),hw:6,inter:'town'},{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town'},{k:'exitdoor',...T(27,3,8,14),hw:7,inter:'town'},
+    props:[{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town'},   // v0.2.1: ทางออกเหลือประตูเดียว
       {k:'cheese',...T(16,3,8,15),hw:9},{k:'cheese',...T(17,3,10,15),hw:9},{k:'barrel',...T(2,14,8,12),hw:6},{k:'barrel',...T(17,14,8,12),hw:6},{k:'barrel',...T(18,14,6,12),hw:6},
       {k:'crystal',...T(22,13,8,12),hw:5},{k:'crystal',...T(27,5,8,12),hw:5},{k:'crystal',...T(28,12,4,12),hw:5},
       {k:'chest',...T(5,14,8,12),hw:7,inter:'chest',content:{base:'a_leather',rar:'normal',mat2:'sk_orb'}},
@@ -71,16 +71,37 @@ const CHUNKS=[
  ["..........",".LLL..LLL.",".L.E...ML.",".L......L.","..........","..........","..........","....##....",".E..##..C.","....##....","..M.......",".........."],
  ["...M......","..........",".##....##.",".##.E..##.","..........","..........","..........","LLL....LLL","LLL.M..LLL","..........","..E....C..",".........."],
  ["..........","..M..LL...",".....LL.E.","..........","LL........","..........","..........","........LL","..E.......","...##.....",".C.##..M..",".........."]];
+CHUNKS.push(
+ ["..........",".#......#.","...E..M...","..........","..LL..LL..","..........","..........","..LL..LL..","..........","...M..E...",".#..C...#.",".........."],
+ ["..##..##..","..........","E...LL...M","....LL....","..........","..........","..........","..#....#..","..#.E..#..","..........","M...C.....","..##..##.."]);
 const BOSS_CHUNK=["....................","..LL............LL..","..LL............LL..","....................","....................","....................","....................","....................","..LL............LL..","..LL............LL..","....................","...................."];
+/* ===== v0.2.0: กับดักซ่อน (หลุม / หนาม / สัญญาณเตือน) =====
+   - หลุม: ไม่อยู่บนทางเดินหลัก (แถว 8-9) มีรอยร้าวจาง ๆ ให้สังเกต · ชั้น 1 ร่วงลงชั้น 2 · ชั้น 2 กลับจุดเริ่ม
+   - หนาม: มองไม่เห็นจนกว่าจะเหยียบ ลด HP 10% (ไม่ตาย) · สัญญาณเตือน: เรียกศัตรูที่ซ่อนอยู่มาสู้ทันที
+   - ไม่วางใกล้ประตู/บันได/จุดเกิด (ห่างอย่างน้อย 4 ช่อง) */
+const TRAP={near:64,pitDmg:.08,spikeDmg:.10,spikeCD:90};
+function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/6);
+  const far=(x,y)=>props.every(o=>Math.hypot(o.x-(x*16+8),o.y-(y*16+8))>(o.inter?TRAP.near:24))&&items.every(i=>Math.hypot(i.x-(x*16+8),i.y-(y*16+8))>20)&&Math.hypot(x*16-16,y*16-9*16)>TRAP.near*1.5;
+  for(let k=0,tries=0;k<n&&tries<400;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<4))continue;
+    const r=rand(),type=r<.45&&y!==8&&y!==9?'pit':r<.82?'spike':'alarm';out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
+  return out;}
+function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge;}
+// ย้ายศัตรูที่ซ่อนอยู่/ไม่ใช่บอส ให้ห่างประตู ทางออก บันได และจุดเกิด (แก้ปัญหามอนดักหน้าประตู)
+function keepFromDoors(z){const doors=(z.props||[]).filter(o=>/exit|stairs|portal|gate|bossroom|door/.test(o.k||'')||o.inter==='town'||o.inter==='stairs'),sp=z.spawn,R=TRAP.near;
+  const bad=(x,y)=>doors.some(o=>Math.hypot(o.x-x,o.y-y)<R)||(sp&&Math.hypot(sp.x-x,sp.y-y)<R*1.3);
+  for(const e of z.foes){if(!e.hidden||!bad(e.x,e.y))continue;
+    for(let t=0;t<80;t++){const tx=rint(1,z.grid[0].length-2),ty=rint(3,z.grid.length-2),x=tx*16+8,y=ty*16+8;
+      if(z.grid[ty][tx]!=='.'||bad(x,y))continue;e.x=x;e.y=y;e.home={x,y};break;}}}
 function makeDungeon(floor,theme){
   const th=theme||'lava',ice=th==='ice',stone=th==='stone',lava=th==='lava',tower=th==='tower',puddles={},id=th+floor,info=ZONE_INFO[id],grid=[];
-  for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
-  for(let x=1;x<29;x++)grid[2][x]=x%6===3?'T':'^';
-  const parts=floor===3&&lava?[pick(CHUNKS),BOSS_CHUNK]:[pick(CHUNKS),pick(CHUNKS),pick(CHUNKS)];
+  const NCH=5,COLS=NCH*10+2;   // v0.2.0: ดันเจียนกว้างขึ้น 5 ห้องต่อชั้น (เดิม 3)
+  for(let y=0;y<17;y++)grid.push(Array(COLS).fill('#'));
+  for(let x=1;x<COLS-1;x++)grid[2][x]=x%6===3?'T':'^';
+  const parts=[];{const bag=CHUNKS.slice();for(let i=0;i<NCH;i++){if(!bag.length)bag.push(...CHUNKS);parts.push(bag.splice(rint(0,bag.length-1),1)[0]);}}
   const props=[],items=[],foes=[];let cx=0;
   const lavaTiles=[];
   for(const ch of parts){const w=ch[0].length;
-    for(let r=0;r<12;r++)for(let c=0;c<w;c++){const tx=cx+c,ty=3+r;if(tx<1||tx>28)continue;let s=ch[r][c];
+    for(let r=0;r<12;r++)for(let c=0;c<w;c++){const tx=cx+c,ty=3+r;if(tx<1||tx>COLS-2)continue;let s=ch[r][c];
       if(r===5||r===6)s=s==='L'||s==='#'?'.':s;   // guaranteed corridor
       grid[ty][tx]=s==='#'||(s==='L'&&stone)?'#':s==='L'&&lava?'L':s==='L'&&tower?'P':'.';
       if(s==='L'&&tower)puddles[tx+','+ty]=pick(['poison','poison','burn','mana','power']);   // แอ่งน้ำยาสี
@@ -89,17 +110,23 @@ function makeDungeon(floor,theme){
       if(s==='M')items.push({it:pick(tower?['mercury','mercury','ore','thunder','fire']:stone?['ore','ore','wood','hide','thunder']:['lavaore','lavaore','fire','ore','hide']),...T(tx,ty)});
       if(s==='C')props.push({k:'chest',...T(tx,ty,8,12),hw:7,inter:'chest',content:{loot:tower?'tower':stone?'stonecave':ice?'icecave':'lavarat',skill:.25}});}
     cx+=w;}
-  for(let x=1;x<29;x++)grid[15][x]='.';
+  for(let x=1;x<COLS-1;x++)grid[15][x]='.';
   if(floor===2&&lava)props.push({k:'chest',...T(2,15,8,12),hw:7,inter:'chest',content:{mat:'sc_god',mat2:'divine'},hidden:1});
   for(let y=3;y<=9;y++)for(let x=1;x<=3;x++)grid[y][x]='.';   // clear path from spawn to the exit door
   for(let i=lavaTiles.length-1;i>=0;i--){const l=lavaTiles[i];if(l.x<64&&l.y<10*16)lavaTiles.splice(i,1);}props.push({k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town'});
-  if(floor<3)props.push({k:'stairs',...T(28,9,8,10),hw:6,inter:'stairs'});
+  if(floor<3)props.push({k:'stairs',...T(COLS-2,9,8,10),hw:6,inter:'stairs'});
   if(floor===3&&lava){foes.length=0;foes.push(mkFoe('lavaking',T(22,9,8,6)),mkFoe('shade',T(14,6,8,8)),mkFoe('shade',T(14,12,8,8)));
     props.push({k:'portal',...T(27,9,8,10),hw:6,inter:'portal',locked:1});}
-  return{id,grid,spawn:T(1,9),levelAt:()=>info.lv,regionAt:()=>id,biomeAt:()=>tower?'tower':stone?'cave':ice?'ice':'lava',props,items,npcs:[],foes,lavaTiles,puddles,floor,theme:th};
+  const traps=makeTraps(grid,props,items,floor);
+  return{id,grid,traps,spawn:T(1,9),levelAt:()=>info.lv,regionAt:()=>id,biomeAt:()=>tower?'tower':stone?'cave':ice?'ice':'lava',props,items,npcs:[],foes,lavaTiles,puddles,floor,theme:th};
 }
 /* ห้องบอสแยก — เข้าแล้วออกไม่ได้ (ประตูออก/พอร์ทัลล็อก) จนกว่าจะชนะ หรือตาย */
 const BOSS_ROOMS={golem:{id:'golemroom',biome:'crystal',theme:'stone'},lavaking:{id:'lava3',biome:'lava',theme:'lava'},seraph:{id:'sanctum',biome:'sanctum',theme:'ice'},homunculus:{id:'towerroom',biome:'tower',theme:'tower'}};
+/* v0.2.0: บอสเกิดใหม่ตามเวลา (นับเวลาจริง เก็บในเซฟ) — ระหว่างรอ ห้องบอสว่าง ประตูเปิด และมีตัวนับถอยหลัง */
+const BOSS_RESPAWN={min:5};
+const bossLeft=k=>{const t=((G.flags||{}).bossCD||{})[k]||0;return Math.max(0,t-Date.now());};
+const fmtLeft=ms=>{const s=Math.ceil(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+function setBossCD(k){G.flags.bossCD=G.flags.bossCD||{};G.flags.bossCD[k]=Date.now()+BOSS_RESPAWN.min*60000;}
 function makeBossRoom(kind){
   const R=BOSS_ROOMS[kind],grid=[];for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
   for(let x=1;x<29;x++)grid[2][x]=x%6===3?'T':'^';
@@ -107,11 +134,13 @@ function makeBossRoom(kind){
   for(const [x,y] of [[7,5],[7,13],[14,5],[14,13],[21,4],[21,14]])grid[y][x]='#';
   const need='🔒 ผนึกบอส — ต้องปราบ '+FOES[kind].n+' ก่อนจึงจะออกได้';
   const props=[{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town',locked:1,need},{k:'portal',...T(27,9,8,10),hw:6,inter:'portal',locked:1,need}];
-  return{id:R.id,grid,spawn:T(2,9),levelAt:()=>ZONE_INFO[R.id].lv,regionAt:()=>R.id,biomeAt:()=>R.biome,props,items:[],npcs:[],foes:[mkFoe(kind,T(22,9,8,6),{cool:100})],lavaTiles:[],floor:3,theme:R.theme,bossRoom:kind,cleared:0};
+  const wait=bossLeft(kind)>0;if(wait)for(const pr of props)pr.locked=0;
+  return{id:R.id,grid,spawn:T(2,9),levelAt:()=>ZONE_INFO[R.id].lv,regionAt:()=>R.id,biomeAt:()=>R.biome,props,items:[],npcs:[],foes:wait?[]:[mkFoe(kind,T(22,9,8,6),{cool:100})],lavaTiles:[],floor:3,theme:R.theme,bossRoom:kind,cleared:wait?1:0,bossWait:wait?kind:null};
 }
 function makeSanctum(){return makeBossRoom('seraph');}
-function enterBossRoom(kind){loadZone(makeBossRoom(kind));G.shake=6;SFX.hit(true);toast(`⚔️ ${ZONE_INFO[BOSS_ROOMS[kind].id].n} — ประตูถูกผนึก! ชนะหรือตายเท่านั้น`,3500);}
+function enterBossRoom(kind){if(bossLeft(kind)>0){loadZone(makeBossRoom(kind));toast(`⏳ ${FOES[kind].n} ยังไม่เกิดใหม่ — อีก ${fmtLeft(bossLeft(kind))}`,3000);return;}loadZone(makeBossRoom(kind));G.shake=6;SFX.hit(true);toast(`⚔️ ${ZONE_INFO[BOSS_ROOMS[kind].id].n} — ประตูถูกผนึก! ชนะหรือตายเท่านั้น`,3500);}
 function bossConfirm(o,kind,go){
+  if(bossLeft(kind)>0){toast(`⏳ ${FOES[kind].n} จะเกิดใหม่ในอีก ${fmtLeft(bossLeft(kind))} — เข้าไปได้แต่ห้องยังว่าง`,3200);go();return;}
   if(o.confirm&&G.t-o.confirm<900){o.confirm=0;go();return;}
   say([['','⚠️ ด้านหน้าคือห้องบอส: '+FOES[kind].n+' — เข้าแล้วจะออกไม่ได้ และหนีไม่ได้ จนกว่าจะชนะหรือตาย'],['','กด E อีกครั้งภายใน 15 วินาทีเพื่อเข้า (ตอนนี้เลเวล '+G.level+')']],()=>{o.confirm=G.t;});
 }
@@ -119,15 +148,16 @@ let CAVE=null;
 const CHEST_SKILLS=['sk_orb','sk_poisondart','sk_rising','sk_slashwave','sk_rushkick','sk_thunderclap'];  // dungeon random chests roll from this list
 const CAM={x:0,y:0,rx:0,ry:0,snap:1,zone:null};
 function loadZone(z,spawn){Z=z;const sp=spawn||z.spawn;P.x=sp.x;P.y=sp.y;{const bs=G.bloodstain;if(bs&&bs.zone===z.id&&blocked(bs.x,bs.y)){bs.x=z.spawn.x+24;bs.y=z.spawn.y;}}Z.cols=Z.grid[0].length;Z.rows=Z.grid.length;CAM.snap=1;Z.torches=[];Z.grid[2].forEach((c,i)=>{if(c==='T')Z.torches.push({x:i*16+8,y:2*16+8});});
-  for(const f of Z.foes)if(f.alive)Ency.see(f.kind,foeLevel(FOES[f.kind],Z.levelAt(Math.floor(f.x/16))));
+  if(!Z.safe){for(const f of Z.foes)f.hidden=hideFoe(f)?1:0;keepFromDoors(Z);}   // v0.2.0: มอนทั่วไปซ่อนอยู่ (แบบ RPG Maker)
+  for(const f of Z.foes)if(f.alive&&!f.hidden)Ency.see(f.kind,foeLevel(FOES[f.kind],Z.levelAt(Math.floor(f.x/16))));
   if(z.id==='town'&&!z.folk)z.folk=makeFolk();
   buildBg();G.visited=G.visited||{};G.visited[Z.regionAt(Math.floor(P.x/16))]=1;}
 const World={
   serialize(){const c=CAVE;return{rubble:c.rubbleOpen,items:c.items.map(i=>!!i.taken),chests:c.props.map(p=>!!p.opened),
-    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite})),zone:Z&&(Z.id==='town'||Z.bossRoom)?'town':'cave',pos:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
+    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:Z&&(Z.id==='town'||Z.bossRoom)?'town':'cave',pos:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
   restore(d){CAVE=makeCave();TOWN=makeTown();if(d){CAVE.rubbleOpen=d.rubble;if(d.rubble){CAVE.grid[8][19]='.';CAVE.grid[9][19]='.';}
     d.items.forEach((t,i)=>{if(CAVE.items[i])CAVE.items[i].taken=t;});d.chests.forEach((o,i)=>{if(CAVE.props[i])CAVE.props[i].opened=o;});
-    d.foes.forEach((f,i)=>{if(CAVE.foes[i]){CAVE.foes[i].alive=f.alive;CAVE.foes[i].elite=f.elite;}});G.visited=d.visited||{};}
+    d.foes.forEach((f,i)=>{const e=CAVE.foes[i];if(e){e.alive=f.alive;e.elite=f.elite;e.respawn=f.respawn||0;if(!e.alive&&e.respawnable&&!e.respawn)e.respawn=CONFIG.respawnFrames;}});G.visited=d.visited||{};}
     if(d&&d.zone==='town'){loadZone(TOWN,d.pos);if(blocked(P.x,P.y)||P.x>=TOWN_COLS*16||P.y>=TOWN_ROWS*16){P.x=TOWN.spawn.x;P.y=TOWN.spawn.y;}}else if(d)loadZone(CAVE,d.pos);else loadZone(TOWN);}
 };
 
@@ -213,6 +243,7 @@ function interact(n){
       for(let i=0;i<30;i++)EP.push({x:19*16+8+rnd(-6,6),y:9*16+rnd(-14,6),vx:rnd(-2,2),vy:rnd(-2.5,-.5),l:40,c:'#7a6a5c',grav:1});}
   }
   else if(n.type==='gate'){
+    if(!hasLavaKey()){toast('🔒 ประตูเหมืองลาวาถูกล็อก — ต้องชนะคาเงะ นักดาบเงา แล้วเก็บกุญแจที่เขาทำตก',3200);SFX.ui&&SFX.ui('error');return;}
     if(o.confirm&&G.t-o.confirm<900){o.confirm=0;enterDungeon(1);return;}
     say([['','ประตูเหมืองลาวาร้าง — ศัตรูเลเวล 11-13 อันตรายมาก! ห้องในเหมืองประกอบแบบสุ่มทุกครั้งที่เข้า'],['','กด E ที่ประตูอีกครั้งภายใน 15 วินาทีเพื่อเข้า (ตอนนี้เลเวล '+G.level+')']],()=>{o.confirm=G.t;});
   }
@@ -245,6 +276,25 @@ function enterDungeon(floor,theme){
   if(floor>=3){enterBossRoom(THEME_BOSS[th]);return;}
   const zid=th+floor;loadZone(makeDungeon(floor,th));G.shake=4;toast(`${ZONE_INFO[zid].n} — ศัตรู Lv.${enemyLevel(ZONE_INFO[zid].lv,G.level)} โดยประมาณ`,3000);
 }
+const ENC={rad:15};
+// กุญแจลงเหมืองลาวา: ได้จากคาเงะเท่านั้น (เซฟเก่าที่ชนะคาเงะไปแล้วเข้าได้เลย)
+const hasLavaKey=()=>Inv.has('key_lava')||!!G.flags.kageDown&&!G.flags.keyEra||!!G.flags.lavaKeyUsed;
+function encounter(e){Ency.see(e.kind,foeLevel(FOES[e.kind],Z.levelAt(Math.floor(e.x/16))));e.x=P.x+(P.face||1)*20;e.y=P.y;G.encBang=40;SFX.ui&&SFX.ui('error');startBattle(e);}
+function checkTraps(){const tx=Math.floor(P.x/16),ty=Math.floor((P.y-2)/16),S=StatSync.get();
+  for(const t of Z.traps){if(t.cd>0)t.cd--;if(t.tx!==tx||t.ty!==ty||t.cd>0)continue;
+    if(t.type==='spike'){t.seen=1;t.cd=TRAP.spikeCD;const dm=Math.round(S.maxHP*TRAP.spikeDmg);G.hp=Math.max(1,G.hp-dm);G.shake=5;SFX.hit(false);EP.push({x:P.x,y:P.y-14,vx:0,vy:-.4,l:40,c:'#ff6a5a'});toast(`🗡️ กับดักหนาม! -${dm} HP`,1800);return false;}
+    if(t.type==='alarm'){t.seen=1;t.cd=99999;const pool=Z.foes.filter(f=>f.alive&&f.hidden);toast('🔔 เหยียบแผ่นสัญญาณ — ศัตรูได้ยินเสียง!',2200);if(pool.length){encounter(pick(pool));return true;}return false;}
+    if(t.type==='pit'){t.seen=1;t.cd=99999;const dm=Math.round(S.maxHP*TRAP.pitDmg);G.hp=Math.max(1,G.hp-dm);G.shake=8;SFX.hit(true);
+      if(Z.floor===1&&!Z.bossRoom){const th=Z.theme||'lava';enterDungeon(2,th);setTimeout(()=>toast(`🕳️ ตกหลุม! ร่วงลงมาชั้น 2 (-${dm} HP)`,3000),60);}
+      else{loadZone(Z);setTimeout(()=>toast(`🕳️ ตกหลุมลึก! ปีนกลับขึ้นมาที่จุดเริ่ม (-${dm} HP)`,3000),60);}return true;}}
+  return false;}
+// วาดกับดัก: หลุมที่ยังไม่ตกมีรอยร้าวจาง ๆ · หลุม/หนาม/แผ่นสัญญาณที่เจอแล้วแสดงชัด
+function drawTrap(t){const x=t.tx*16+8,y=t.ty*16+9;g.save();
+  if(t.type==='pit'){if(t.seen){g.fillStyle='#050304';g.beginPath();g.ellipse(x,y,7.5,5,0,0,7);g.fill();g.strokeStyle='rgba(120,100,80,.8)';g.lineWidth=1;g.beginPath();g.ellipse(x,y-.5,7.8,5.2,0,Math.PI,0);g.stroke();}
+    else{g.strokeStyle='rgba(20,14,10,.42)';g.lineWidth=.7;g.beginPath();g.moveTo(x-6,y-1);g.lineTo(x-2,y+1);g.lineTo(x+1,y-2);g.lineTo(x+6,y+1);g.moveTo(x-2,y+1);g.lineTo(x-3,y+4);g.moveTo(x+1,y-2);g.lineTo(x+2,y-4);g.stroke();}}
+  else if(t.seen&&t.type==='spike'){g.fillStyle='rgba(30,26,30,.6)';g.fillRect(x-7,y-4,14,8);for(let i=0;i<4;i++)for(let j=0;j<2;j++){const sx=x-5+i*3.4,sy=y-1+j*3.5;g.fillStyle='#b8bcc8';g.beginPath();g.moveTo(sx-1.2,sy);g.lineTo(sx,sy-3.5);g.lineTo(sx+1.2,sy);g.fill();g.fillStyle='#5a5e6a';g.fillRect(sx,sy-3,1,3);}}
+  else if(t.seen&&t.type==='alarm'){g.fillStyle='#5a4a3a';g.fillRect(x-6,y-3,12,6);g.fillStyle='#c8a050';g.fillRect(x-4,y-2,8,4);}
+  g.restore();}
 const FOLK_NAMES=['ป้าสมศรี','ลุงทอง','น้องฝน','พี่ชาย','ลุงแดง','น้าหนู','เด็กชายเก่ง','ยายมะลิ','พ่อค้าจ่อย','ช่างไม้บุญ','น้องมิ้นท์','ลุงสิงห์'];
 const FOLK_LINES=['อากาศดีจังเลยวันนี้ ถ้ำชีสเขาว่าอันตรายนะ ระวังตัวด้วย','ได้ยินว่ามีสังเวียนกลางเมือง ใครอยากประลองก็ไปได้เลย','ข้าเห็นราชันย์ลาวาในฝันเมื่อคืน… ขนลุกเลย','โบโรตีเหล็กเก่งที่สุดในเมืองนี้แล้วนะ','น้ำพุกลางเมืองดื่มแล้วหายเหนื่อยเลย','ว่ากันว่ามีดวงตาใหญ่ลอยอยู่ในถ้ำน้ำแข็งทางตะวันตก…','กลับมาเป็นหรือเปล่า? ครั้งก่อนคนที่ลงถ้ำไม่เคยกลับมา','ขอให้โชคดีนะนักผจญภัย','สะพานข้ามคลองสวยดีใช่ไหมล่ะ','หนูในถ้ำเริ่มเยอะขึ้นแล้วนะช่วงนี้'];
 function makeFolk(){
@@ -275,10 +325,10 @@ function updExplore(){
       else if(t==='power'&&!StatSync.hasMod('P','elixir')){StatSync.addMod('P',{id:'elixir',n:'ยาพลัง',kind:'buff',stat:'ap',op:'mul',v:1.15,ttl:1800});StatSync.addMod('P',{id:'elixir2',n:'ยาพลังเวท',kind:'buff',stat:'mpow',op:'mul',v:1.15,ttl:1800});toast('✨ แอ่งยาพลัง — พลังโจมตี +15% (30 วิ)',2000);}
       UI.hud&&UI.hud();}}
   updFolk();
-  if(tap('KeyI'))return UI.open('equip');if(tap('KeyC'))return UI.open('char');if(tap('KeyK'))return UI.open('skills');
-  if(tap('KeyQ'))return UI.open('quests');if(tap('KeyM'))return UI.open('map');if(tap('KeyB'))return UI.open('ency');
-  if(tap('KeyN')){G.miniOff=!G.miniOff;toast(G.miniOff?'ซ่อนแผนที่เล็กแล้ว (N เพื่อแสดง)':'แสดงแผนที่เล็กแล้ว');}
-  let dx=(down(...KR)?1:0)-(down(...KL)?1:0),dy=(down(...KD)?1:0)-(down(...KU)?1:0);
+  if(tap(KB.equip))return UI.open('equip');if(tap(KB.char))return UI.open('char');if(tap(KB.skills))return UI.open('skills');
+  if(tap(KB.quests))return UI.open('quests');if(tap(KB.map))return UI.open('map');if(tap(KB.ency))return UI.open('ency');
+  if(tap(KB.mini)){G.miniOff=!G.miniOff;toast(G.miniOff?'ซ่อนแผนที่เล็กแล้ว ('+kbName('mini')+' เพื่อแสดง)':'แสดงแผนที่เล็กแล้ว');}
+  let dx=(down(...kb('right'))?1:0)-(down(...kb('left'))?1:0),dy=(down(...kb('down'))?1:0)-(down(...kb('up'))?1:0);
   if(dx&&dy){dx*=.707;dy*=.707;}const S=StatSync.get(),sp=1.3*S.spd;P.moving=!!(dx||dy);if(dx)P.face=dx>0?1:-1;if(P.moving)P.dir4=Math.abs(dy)>Math.abs(dx)?(dy>0?'down':'up'):(dx>0?'right':'left');
   // ถ้าผู้เล่นซ้อนอยู่ในวัตถุ/NPC อยู่แล้ว (ติด) ให้เดินออกได้ — ชนแค่กำแพง/น้ำ จนกว่าจะหลุด
   const stuck=blocked(P.x,P.y);
@@ -288,8 +338,9 @@ function updExplore(){
   // regen out of combat
   Mana.regen(G,S,false);if(G.t%60===0)G.hp=Math.min(S.maxHP,G.hp+Math.round(S.maxHP*.01));
   for(const e of Z.foes){
-    if(!e.alive){if(e.respawnable&&e.respawn>0&&--e.respawn===0){e.alive=true;e.x=e.home.x;e.y=e.home.y;e.elite=rand()<ELITE.chance;e.cool=120;}continue;}
+    if(!e.alive){if(e.respawnable&&e.respawn>0&&--e.respawn===0){e.alive=true;e.x=e.home.x;e.y=e.home.y;e.elite=rand()<ELITE.chance;e.cool=120;e.hidden=hideFoe(e)?1:0;}continue;}
     if(e.cool>0)e.cool--;const dist=Math.hypot(e.x-P.x,e.y-P.y),d=FOES[e.kind];
+    if(e.hidden){if(e.cool<=0&&dist<ENC.rad){encounter(e);return;}continue;}   // ซ่อนอยู่: ไม่เดิน ไม่แสดง · เดินเข้าใกล้ = เข้าไฟต์
     if(d.kind==='mon'&&!d.boss){
       if(dist<64&&e.cool<=0){e.vx=(P.x-e.x)/dist*.75;e.vy=(P.y-e.y)/dist*.75;}
       else if(--e.t<=0){e.t=rint(40,120);const a=rand()*6.28;if(rand()<.35){e.vx=e.vy=0;}else{e.vx=Math.cos(a)*.45;e.vy=Math.sin(a)*.45;}}
@@ -305,9 +356,10 @@ function updExplore(){
     if(e.challenge)continue;   // นักดวลรอให้ผู้เล่นมาท้าเอง
     if(e.cool<=0&&dist<rad){startBattle(e);return;}
   }
+  if(Z.traps&&checkTraps())return;
   if(G.t%30===0)LootManager.cleanup(Z);   // event-style sweep, not per-item tick
   NEAR=findNear();
-  if(tap('KeyE','Enter','PadA')&&NEAR)interact(NEAR);
+  if(tap(KB.interact,'Enter','PadA')&&NEAR)interact(NEAR);
 }
 function drawProp(o){
   if(AS.prop(g,o))return;   // มีภาพจาก AI → ใช้ภาพ
@@ -410,7 +462,9 @@ const OW_SC=.8;
 function palLook(pal,id){const h=hash((id||'').length*7+((pal.h||'').charCodeAt(2)||0),(pal.c||'').charCodeAt(3)||0),HS=Object.keys(HAIR_STYLES).filter(k=>k!=='bald'),st=HS[(h*HS.length)|0];
   return{hair:pal.h,skin:pal.s,eyec:pal.e,body:pal.c,trim:pal.b,pants:pal.p,boots:pal.f,hstyle:st||'short',sex:h>.5?'f':'m',gloves:null,sleeve:null};}
 function owPose(t,moving,ph){const Pz=poseIdle(t);if(moving){Pz.ff=[3+4*Math.sin(ph),-Math.max(0,Math.cos(ph))*2.5];Pz.bf=[-2-4*Math.sin(ph),-Math.max(0,-Math.cos(ph))*2.5];Pz.hip=-14-Math.abs(Math.sin(ph))*.6;Pz.fh=[3-3*Math.sin(ph),3];Pz.bh=[1+3*Math.sin(ph),4];}return Pz;}
-function drawWalker(x,y,face,K,moving,ph,seed,tint,sheet,dir){if(sheet&&AS.walker(g,sheet,x,y,dir||(face<0?'left':'right'),moving,ph,tint))return;shadow(g,x,y,6);if(RIG_HD.on&&(dir==='up'||dir==='down')){drawRigFB(g,Math.round(x),Math.round(y),OW_SC,dir,ph,moving,K,tint,G.t+(seed||0));return;}   // มุมหน้า/หลัง
+const SHEATH=new WeakMap();function sheathed(K){let k=SHEATH.get(K);if(!k){k=Object.assign({},K,{sheathe:1});SHEATH.set(K,k);}return k;}
+function drawWalker(x,y,face,K,moving,ph,seed,tint,sheet,dir){if(sheet&&AS.walker(g,sheet,x,y,dir||(face<0?'left':'right'),moving,ph,tint))return;shadow(g,x,y,6);if(Z&&Z.safe&&K&&K.weapon)K=sheathed(K);   // อยู่ในเมือง: เก็บอาวุธไว้ที่หลังเสมอ
+  if(RIG_HD.on&&(dir==='up'||dir==='down')){drawRigFB(g,Math.round(x),Math.round(y),OW_SC,dir,ph,moving,K,tint,G.t+(seed||0));return;}   // มุมหน้า/หลัง
   drawRig(g,Math.round(x),Math.round(y),OW_SC,face<0?-1:1,owPose(G.t+(seed||0),moving,ph),K,tint);}
 function drawExplore(){
   {const mxc=Math.max(0,Z.cols*16-W),myc=Z.rows>17?Math.max(0,Z.rows*16-H):0,tx=clamp(P.x-W/2,0,mxc),ty=clamp(P.y-H/2+14,0,myc);
@@ -429,7 +483,8 @@ function drawExplore(){
     g.fillStyle=`rgba(255,60,40,${.35+p*.2})`;g.fillRect(x-1,y-14-p*2,2,12);if(G.t%6===0)EP.push({x:x+rnd(-5,5),y:y-2,vx:0,vy:-.4,l:30,c:'#ff4a3a'});}});
   for(const n of Z.folk||[])list.push({x:n.x,y:n.y,f:()=>{n._K=n._K||palLook(n.pal,n.id);drawWalker(n.x,n.y,n.face,n._K,n.mv,G.t*.22,n.x|0,null,'folk_'+((parseInt(String(n.id).replace(/\D/g,''))||0)%4+1),n.mv?(Math.abs(n.vy||0)>Math.abs(n.vx||0)?(n.vy>0?'down':'up'):(n.face<0?'left':'right')):'down');}});
   for(const n of Z.npcs)list.push({x:n.x,y:n.y,f:()=>{n.face=P.x<n.x?-1:1;n._K=n._K||palLook(PAL[n.pal],n.id);drawWalker(n.x,n.y,n.face,n._K,0,0,n.x|0,null,'npc_'+n.id,Math.abs(P.y-n.y)>Math.abs(P.x-n.x)?(P.y>n.y?'down':'up'):(n.face<0?'left':'right'));}});
-  for(const e of Z.foes)if(e.alive)list.push({x:e.x,y:e.y,f:()=>{const d=FOES[e.kind];
+  for(const t of Z.traps||[])if(t.seen||t.type==='pit')list.push({x:t.tx*16+8,y:t.ty*16+1,f:()=>drawTrap(t)});
+  for(const e of Z.foes)if(e.alive&&!e.hidden)list.push({x:e.x,y:e.y,f:()=>{const d=FOES[e.kind];
     if(e.elite&&G.t%4===0)EP.push({x:e.x+rnd(-6,6),y:e.y-rnd(2,12),vx:0,vy:-.3,l:16,c:'#ffd23a'});
     const mh=(SPR[d.map]||GOLEM).length,mt=e.cool>0&&G.t%8<4?'#ffffff':null;
     if(AS.has('mon_'+e.kind)){shadow(g,e.x,e.y,d.boss?16:7);AS.mon(g,e.kind,e.x,e.y+Math.round(Math.sin(G.t*.08+e.x)*1)-(d.hover?4:0),d.boss?mh*2.2:Math.max(16,mh*1.8),e.face<0,mt);}
@@ -458,10 +513,13 @@ function drawExplore(){
   {const bio=fxBiome(false);lighting(ls,HD.dark(bio));HD.atmos(g,bio,cx,cy);}
 }
 function drawExploreUI(){
+  {const bk=Z.bossRoom||(Z.floor===2?THEME_BOSS[Z.theme||'lava']:null),left=bk?bossLeft(bk):0;   // ตัวนับถอยหลังบอสเกิดใหม่
+    if(left>0){const st=Z.bossRoom?null:Z.props.find(o=>o.k==='stairs');const txt=`⏳ ${FOES[bk].n} เกิดใหม่ใน ${fmtLeft(left)}`;
+      if(st){const q=PJ.pt(st.x,st.y);outlineText(txt,clamp(q.x*S,150,810),(q.y-30*q.s)*S,13,'#ffd9a0');}else outlineText(txt,480,96,16,'#ffd9a0');}}
   for(const n of Z.npcs){const has=(n.id==='smith'&&G.q.main1.step<2)||(n.id==='girl'&&!G.flags.girlGave);if(!has)continue;
     const q=PJ.pt(n.x,n.y),bx=q.x*S,by=(q.y+(-24+Math.sin(G.t*.08)*1.5)*q.s)*S;D.fillStyle='#f4ead8';rrect(bx-14,by-10,28,18,6);D.fill();
     D.beginPath();D.moveTo(bx-4,by+8);D.lineTo(bx,by+14);D.lineTo(bx+4,by+8);D.fill();D.fillStyle='#2a1a20';D.font='800 16px Sarabun,sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(n.id==='smith'?'!':'…',bx,by);}
-  for(const e of Z.foes)if(e.alive){const d=FOES[e.kind],lv=foeLevel(d,Z.levelAt(Math.floor(e.x/16))),dy=d.boss?48:d.kind==='rig'?24:14;
+  for(const e of Z.foes)if(e.alive&&!e.hidden){const d=FOES[e.kind],lv=foeLevel(d,Z.levelAt(Math.floor(e.x/16))),dy=d.boss?48:d.kind==='rig'?24:14;
     const col=lv>=G.level+3?'#ff5a4a':lv>=G.level+1?'#ffb03a':'#d8f0ff';
     outlineText(`${e.elite?'★ ':''}Lv.${lv}${d.boss?' 👑':''}`,PJ.pt(e.x,e.y).x*S,(PJ.pt(e.x,e.y).y-dy*PJ.pt(e.x,e.y).s)*S,12,e.elite?'#ffd23a':col);}
   (Z.ground||[]).filter(gi=>!gi.picked&&Math.hypot(gi.x-P.x,gi.y-P.y)<LOOT_CONFIG.ground.nameRange&&!(NEAR&&NEAR.o===gi)).sort((a,b)=>Math.hypot(a.x-P.x,a.y-P.y)-Math.hypot(b.x-P.x,b.y-P.y)).slice(0,3).forEach((gi,i)=>{
@@ -476,7 +534,7 @@ function drawMinimap(){
   const dot=(x,y,c,r=2.5)=>{D.fillStyle=c;D.beginPath();D.arc(mx+x/16*sc,my+y/16*sc,r,0,7);D.fill();};
   for(const o of Z.props){if(o.k==='chest'&&!o.opened)dot(o.x,o.y,'#ffd23a',1.8);if(['gate','stairs','portal'].includes(o.k))dot(o.x,o.y,'#5ae0ff',2.5);if(o.k==='bossdoor')dot(o.x,o.y,'#ff4a4a',2.8);if(o.k==='exitdoor'||o.k==='exitup')dot(o.x,o.y,'#5aff7a',2.5);if(o.k==='anvil')dot(o.x,o.y,'#ff9a3a',2);}if(G.bloodstain&&G.bloodstain.zone===Z.id&&G.t%30<20)dot(G.bloodstain.x,G.bloodstain.y,'#ff2a2a',3);
   for(const n of Z.npcs)dot(n.x,n.y,'#6aff8a');
-  for(const e of Z.foes)if(e.alive)dot(e.x,e.y,FOES[e.kind].boss?'#ff4af0':e.elite?'#ffd23a':'#ff4a4a',FOES[e.kind].boss?3.5:2.2);
+  for(const e of Z.foes)if(e.alive&&!e.hidden)dot(e.x,e.y,FOES[e.kind].boss?'#ff4af0':e.elite?'#ffd23a':'#ff4a4a',FOES[e.kind].boss?3.5:2.2);
   for(const gi of Z.ground||[])if(!gi.picked&&gi.owner==='P1')dot(gi.x,gi.y,RARC[gi.drop.rar],1.6);
   dot(P.x,P.y,'#fff',3);D.globalAlpha=1;
   outlineText((ZONE_INFO[Z.regionAt(Math.floor(P.x/16))]||{n:''}).n,mx+Z.cols*sc/2,my-9,11,'#ffe3a0');

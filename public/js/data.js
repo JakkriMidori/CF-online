@@ -375,7 +375,7 @@ const MATS={
   sc_flame:{n:'คัมภีร์สูตร: ดาบถ่านแดง',ic:'📘',scroll:'flame'},sc_gaunt:{n:'คัมภีร์สูตร: สนับมือฟ้าคำราม',ic:'📘',scroll:'gaunt'},
   sc_hammer:{n:'คัมภีร์สูตร: ค้อนชีสหินผา',ic:'📘',scroll:'hammer'},sc_runes:{n:'คัมภีร์สูตร: รูนทั้ง 4',ic:'📘',scroll:['rune_str','rune_crit','rune_vit','rune_fire']},
   sc_reset:{n:'คัมภีร์สูตร: ล้างค่าพลัง',ic:'📘',scroll:'reset'},sc_dragon:{n:'คัมภีร์สูตร: เกราะเกล็ดมังกรแดง',ic:'📙',scroll:'dragon'},
-  sc_firepan:{n:'คัมภีร์สูตร: กระทะเพลิงมรดกพ่อ',ic:'📙',scroll:'firepan'},sc_kage:{n:'คัมภีร์สูตร: ดาบเงาจันทร์มืด',ic:'📙',scroll:'kage'},
+  sc_firepan:{n:'คัมภีร์สูตร: กระทะเพลิงมรดกพ่อ',ic:'📙',scroll:'firepan'},sc_kage:{n:'คัมภีร์สูตร: ดาบเงาจันทร์มืด',ic:'📙',scroll:'kage'},key_lava:{n:'กุญแจเหมืองลาวา',ic:'🗝️',key:1,desc:'ไขประตูเหมืองลาวาร้างในถ้ำชีส ได้จากคาเงะ นักดาบเงา'},
   sc_golem:{n:'คัมภีร์สูตร: ชุดศิลาโกเลม',ic:'📙',scroll:['golemarmor','golemgloves','golempants']},sc_magma:{n:'คัมภีร์สูตร: เกราะแมกมาเดือด',ic:'📙',scroll:'magma'},
   sc_god:{n:'คัมภีร์สูตรโบราณ: ดาบหัวใจภูเขาไฟ',ic:'📕',scroll:'god'}
 };
@@ -454,7 +454,7 @@ const FOES={
   duelist:{n:'bbqy legendary',kind:'rig',fixedLv:100,look:'DUELIST',wpn:'sword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,
     attr:{str:30,agi:40,int:20,vit:20,luk:50},skills:['bluejudge','orb','slashwave'],base:{hp:5000,atk:234,def:60,mdef:60},res:{lightning:.2,shadow:-.2},statusRes:{stun:.5,bleed:.5,shock:.4},xp:2200,loot:'duelist',meterStart:0},
   kage:{n:'คาเงะ นักดาบเงา',kind:'rig',look:'KAGE',wpn:'kageblade',hw:14,h:100,el:'shadow',miniboss:1,
-    attr:{str:20,agi:40,int:10,vit:12,luk:30},skills:['moonfall','slashwave'],base:{hp:520,atk:60,def:16,mdef:10,critRate:.08},res:{shadow:.5,fire:-.2},statusRes:{stun:.3},xp:180,loot:'kage',meterStart:40},
+    attr:{str:15,agi:30,int:10,vit:10,luk:20},skills:['moonfall','slashwave'],base:{hp:400,atk:44,def:12,mdef:8,critRate:.04},res:{shadow:.5,fire:-.2},statusRes:{stun:.15},xp:180,loot:'kage',meterStart:15},   // v0.2.1: อ่อนลง (HP 520→400 ATK 60→44 ความเร็ว/คริ/เกจเริ่มลดลง)
   shade:{n:'เงาสาวก',kind:'rig',look:'SHADE',wpn:'kageblade',hw:14,h:100,el:'shadow',
     attr:{str:14,agi:30,int:10,vit:10,luk:20},skills:['venomslash'],base:{hp:300,atk:55,def:12,mdef:6},res:{shadow:.5,lightning:-.25},xp:70,loot:'shade',meterStart:0},
   golem:{n:'โกเลมหิน',kind:'mon',map:'GOLEM',pal:'golem',sc:6,hw:40,h:96,spd:.8,range:44,cd:[32,70],boss:1,fixedLv:35,armor:1,el:'phys',
@@ -551,9 +551,7 @@ const LOOT_TABLES={
   shade:{guaranteed:[{gold:[20,40]}],entries:[
     {mat:'cloth',w:25},{mat:'mp_m',w:12},{mat:'potion',w:10},{gear:'any',w:25,rar:'any'},{set:'shadow',w:12,rar:'any'},
     {book:'common',w:6,rar:['rare']},{book:'rare',w:5,rar:['legendary']},{book:'ultimate',w:2,rar:['god']},{mat:'divine',w:2,rar:['god']}]},
-  kage:{guaranteed:[{gold:[60,90]},{mat:'cloth',q:3},{mat:'sc_kage',q:1}],entries:[
-    {base:'a_shadow',w:10,rar:'any',unique:1},{set:'shadow',w:20,rar:'any'},{gear:'any',w:20,rar:'any'},{mat:'mp_m',w:10},
-    {book:'rare',w:12,rar:['rare','legendary']},{book:'ultimate',w:5,rar:['legendary','god']},{mat:'divine',w:3,rar:['god']}]},
+  kage:{guaranteed:[{mat:'key_lava',q:1}],entries:[]},   // v0.2.1: คาเงะดรอปแค่กุญแจลงเหมืองลาวา
   golem:{guaranteed:[{gold:[150,200]},{mat:'core',q:2},{mat:'sc_golem',q:1},{mat:'bossfrag',q:1}],entries:[
     {base:'h_horns',w:10,rar:'any',unique:1},{base:'a_golem',w:8,rar:'any',unique:1},{gear:'any',w:25,rar:'any'},{mat:'mp_l',w:10},
     {book:'rare',w:12,rar:['rare','legendary']},{book:'ultimate',w:6,rar:['legendary','god']},{mat:'divine',w:4,rar:['god']}]},
