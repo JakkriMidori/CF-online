@@ -52,7 +52,10 @@ const UI={
     this.quest();
   },
   quest(){const q=Object.keys(QUESTS).filter(id=>G.q[id]&&G.q[id].active&&!G.q[id].done);
-    $('#quest').innerHTML=q.slice(0,2).map(id=>`<div class="t">◆ ${QUESTS[id].n}</div><div class="o">◇ ${QUESTS[id].steps[Math.min(G.q[id].step,QUESTS[id].steps.length-1)]}${id==='hunt'?` (${G.q.hunt.count}/3)`:''}</div>`).join('')||'<div class="o dim">ไม่มีเควสต์ค้าง</div>';},
+    const gq=(typeof GUILD_QUESTS!=='undefined'?GUILD_QUESTS:[]).filter(x=>G.guildQuests&&G.guildQuests[x.id]&&G.guildQuests[x.id].active);
+    const lines=q.slice(0,2).map(id=>`<div class="t">◆ ${QUESTS[id].n}</div><div class="o">◇ ${QUESTS[id].steps[Math.min(G.q[id].step,QUESTS[id].steps.length-1)]}${id==='hunt'?` (${G.q.hunt.count}/3)`:''}</div>`)
+      .concat(gq.slice(0,2).map(x=>{const st=G.guildQuests[x.id];return`<div class="t" style="color:#ffd23a">⚔️ [กิลด์] ${x.n}</div><div class="o">${st.count>=x.req?'✅ ครบแล้ว ส่งได้ที่กิลด์':`◇ ปราบ ${st.count}/${x.req}`}</div>`;}));
+    $('#quest').innerHTML=lines.join('')||'<div class="o dim">ไม่มีเควสต์ค้าง</div>';},
   levelUp(n){SFX.level();toast(`⬆️ เลเวลอัป! Lv.${G.level} — ได้รับ ${n*CONFIG.levelPoints} แต้มค่าพลัง (กด C เพื่อแจก)`,3500);this.hud();},
 
   /* ---- talent selection (character creation) ---- */
@@ -226,7 +229,7 @@ const UI={
     const sockets=K.slots.map((id,i)=>{const s=id&&SKILLS[id],tier=TIERS[i],lockd=i===2&&K.bound,up=id&&i===2&&Skills.upgradeInfo(id).can;
       const state=!id?(i===2&&!K.bound?'ว่าง — รอผนึก':'ว่าง'):lockd?'ผนึกถาวร':'ติดตั้งแล้ว';
       return`<button class="rune r-${tier}${T.sel===i?' sel':''}${id?'':' empty'}${lockd?' locked':''}" data-ssock="${i}">
-        <span class="gem"><span class="gi">${s?s.ic:'◇'}</span>${lockd?'<span class="lk" title="ผนึกถาวร">🔒</span>':''}${up?'<span class="upb" title="อัปเกรดได้">⬆</span>':''}</span>
+        <span class="gem"><span class="gi">${s?sIco(s,32):ico('gem',24)}</span>${lockd?'<span class="lk" title="ผนึกถาวร">🔒</span>':''}${up?'<span class="upb" title="อัปเกรดได้">⬆</span>':''}</span>
         <small class="rt">ช่อง ${i+1} · ${TIERN[tier]}</small><b>${s?s.n:'—'}</b><small>${s?'Lv.'+Skills.level(id)+' · ':''}${state}</small></button>`;}).join('');
     let panel='<p class="dim">คลิกซ็อกเก็ตเพื่อเลือกสกิลที่ใส่ได้</p>';
     if(T.sel!==null){const i=T.sel,tier=TIERS[i],cur=K.slots[i];
@@ -282,7 +285,7 @@ const UI={
       return`<button class="btn sm ${on?'':'ghost'}" data-boost="${id}" ${busy||(id&&cnt<=0)?'disabled':''}>${id?mIco(id,14)+' ':''}${lbl}${id?` (${cnt})`:''}</button>`;
     }).join('')+`</div></div>`;
     let prev;
-    if(busy)prev=`<div class="cres forging"><div class="anvil">⚒️</div><div class="big">กำลังตีเหล็ก...</div></div>`;
+    if(busy)prev=`<div class="cres forging"><div class="anvil">${ico('craft',36)}</div><div class="big">กำลังตีเหล็ก...</div></div>`;
     else if(C.phase==='success'){const x=C.res;prev=`<div class="cres win"><div class="big good">✨ ตีเหล็กสำเร็จ!</div><small class="dim">โอกาส ${pct(x.chance)} · สุ่มได้ ${x.roll.toFixed(3)}</small>${x.item?itemTip(x.item):`<div class="big">${mIco(x.mat,14)} ${MATS[x.mat].n} ×${x.q}</div>`}</div>`;}
     else if(C.phase==='fail'){const x=C.res;prev=`<div class="cres lose"><div class="big bad">💥 ตีเหล็กล้มเหลว</div><small class="dim">โอกาส ${pct(x.chance)} · สุ่มได้ ${x.roll.toFixed(3)}</small>
       <div>วัตถุดิบที่เสียไป: ${Object.entries(x.lost).map(([k,q])=>mIco(k,14)+' '+MATS[k].n+' ×'+q).join(', ')}</div><div class="dim">ไม่ได้อุปกรณ์</div></div>`;}
@@ -492,7 +495,7 @@ const UI={
     return`<h2>🛡️ อัศวินโรแลนด์ (ยามประตูใต้) — เมือง Collawarrie</h2>
       <div class="qb" style="margin-bottom:10px"><b>โรแลนด์:</b> "จะเดินทางไปไหนท่านผู้กล้า? เมืองหลวงบนเกาะเหนือถูกผนึกไว้แล้ว แต่หอคอยคริสตัล 5 ชั้น (Lv.50–95) กำลังส่องแสงอยู่ที่นั่น!"</div>
       <div class="tal" style="grid-template-columns:1fr 1fr">
-        <button class="talc" data-owworld="town" autofocus><div class="ti">🚶</div><b>ออกเดินทางสู่แผนที่โลก (Overworld)</b><small class="good">เดินข้ามเมือง · เกาะใต้ ↔ เกาะกลาง ↔ เกาะเหนือ</small><p>ออกไปเดินบนถนน สะพานข้ามทะเล ไปบ้านของเรา (ME) จุดพักแรม และหอคอยคริสตัลจอมเวทบนเกาะเหนือ</p></button>
+        <button class="talc" data-owworld="town" autofocus><div class="ti">🚶</div><b>ออกเดินทางสู่แผนที่โลก (Overworld)</b><small class="good">เดินข้ามเมือง · เกาะใต้ ↔ เกาะกลาง ↔ เกาะเหนือ</small><p>ออกไปเดินบนถนน สะพานข้ามทะเล ไปจุดพักแรม และหอคอยคริสตัลบนเกาะทั้งสาม</p></button>
         <div class="talc dim"><div class="ti">🔒</div><b>เมืองหลวงออเรีย — ถูกผนึก</b><small class="bad">ไม่สามารถเข้าได้</small><p>ม่านพลังปิดกั้นทางเข้าเมืองหลวงไว้ เปลี่ยนปลายทางฝั่งเกาะเหนือเป็นหอคอยคริสตัลจอมเวทแทน</p></div>
       </div>
       <div style="text-align:right;margin-top:10px"><button class="btn ghost" data-close="1">ยังก่อน — อยู่ในเมืองต่อ</button></div>`;},
@@ -510,6 +513,20 @@ const UI={
       <button class="talc" data-open="room"><div class="ti">🌐</div><b>ห้องออนไลน์ (เชิญเพื่อน)</b><p>สร้างห้อง ส่งรหัสให้เพื่อน แล้วสู้กันคนละเครื่อง</p>
         <div class="sk">ต้องให้เพื่อนเปิดเกมนี้อยู่พร้อมกัน</div></button></div>
     <div style="text-align:right;margin-top:10px"><button class="btn" data-close="1">ออก</button></div>`;},
+  scr_colosseum(){
+    const cur=Guild.rank(),ci=GUILD_RANKS.findIndex(r=>r.id===cur);
+    const cards=GUILD_RANKS.map((r,i)=>{
+      if(i===0)return`<div class="talc" style="border-color:${r.col}"><div class="ti" style="color:${r.col}">F</div><b>แรงค์ F · ${r.n}</b><small class="good">✓ แรงค์เริ่มต้น</small><p>ระดับพื้นฐานหลังสมัครกิลด์นักผจญภัย</p></div>`;
+      const done=ci>=i||(r.promoQuest&&Guild.questDone(r.promoQuest)),prevOk=ci===i-1,lvOk=G.level>=r.lvReq,open=prevOk&&lvOk&&r.id==='G',soon=prevOk&&lvOk&&r.id!=='G';
+      const st=done?'<small class="good">✓ ผ่านบททดสอบแล้ว</small>':!prevOk?`<small class="bad">🔒 ต้องอยู่แรงค์ ${GUILD_RANKS[i-1].id} ก่อน</small>`:!lvOk?`<small class="bad">🔒 ต้องการ Lv.${r.lvReq}+ (ตอนนี้ Lv.${G.level})</small>`:open?'<small class="good">⚔️ พร้อมท้าทาย · Lv.35 (3 คู่ต่อสู้) · ห้ามใช้ยา</small>':'<small class="dim">🚧 ด่านทดสอบแรงค์นี้เตรียมเปิดเร็วๆ นี้</small>';
+      if(open)return`<button class="talc" data-colenter="${r.id}" style="border-color:${r.col}"><div class="ti" style="color:${r.col}">${r.id}</div><b>บททดสอบเลื่อนขั้น → Rank ${r.id}</b>${st}<p>ผู้ท้าทาย 3 คน (Lv.35): เอเกล / วาลิน / เซเรส · เลือกลำดับสู้เองได้ · ห้ามใช้ยาฟื้นพลังและยามานา</p></button>`;
+      return`<div class="talc dim" style="opacity:${done?.82:.6}"><div class="ti" style="color:${r.col}">${r.id}</div><b>บททดสอบ Rank ${r.id} (${r.n})</b>${st}<p>เกณฑ์เลเวล: Lv.${r.lvReq}+${soon?' · ผ่านเกณฑ์เลเวลแล้ว':''}</p></div>`;
+    }).join('');
+    const trainCard=`<button class="talc" data-coltrain="1" style="border-color:#ffd23a"><div class="ti">🎯</div><b>โรงฝึกซ้อมโคลอสเซียม (Training Ground)</b><small class="good">✓ เปิดตลอดเวลา · ไม่จำกัดแรงค์</small><p>ซ้อมคอมโบ ทดสอบสกิล และวัดดาเมจกับ <b>หุ่นซ้อมอมตะ</b> ที่ยืนนิ่งเฉยๆ (กดออกฝึกได้ทันทีตลอดเวลา)</p></button>`;
+    return`<h2>🏛️ โคลอสเซียมทดสอบแรงค์นักผจญภัย</h2>
+      <p class="dim">แรงค์ปัจจุบัน: <b style="color:${Guild.info(cur).col}">Rank ${cur} (${Guild.info(cur).n})</b> · Lv.${G.level} · เงื่อนไขเลื่อนขั้น: F → G (Lv.30) → D (Lv.60) → C (Lv.90) → B (Lv.120) → A (Lv.150) → S (Lv.180)<br>กติกา: <b>ห้ามใช้ยาฮีลหรือยามานา</b> · ชนะคู่ต่อสู้ทีละคนจนครบเพื่อปลดล็อกสิทธิ์เลื่อนแรงค์ที่กิลด์</p>
+      <div class="tal" style="grid-template-columns:1fr 1fr">${trainCard}${cards}</div>
+      <div style="text-align:right;margin-top:10px"><button class="btn ghost" data-close="1">ออกจากโคลอสเซียม</button></div>`;},
   vsResult(w,wins,net){this.cur='vsres';G.mode='menu';ov.classList.remove('hidden');SFX.loot('legendary');
     const again=net==='host'?'<button class="btn" data-net="again">⚔️ แก้มืออีกครั้ง</button>':net==='guest'?'<span class="dim">รอเจ้าของห้องเริ่มยกใหม่… </span>':'';
     // ผู้ชนะได้รางวัลสุ่ม 1 ชิ้น ด้วยอัตราเดียวกับร้านรีไอเทม (ฝั่งใครฝั่งมัน)
@@ -532,7 +549,16 @@ const UI={
       <div class="tal" style="grid-template-columns:1fr 1fr"><button class="talc" data-net="host"><div class="ti">➕</div><b>สร้างห้อง</b><p>ได้รหัส 4 ตัวไปส่งให้เพื่อน</p></button>
       <div class="talc"><div class="ti">🔑</div><b>เข้าห้องของเพื่อน</b><p><input id="roomCode" maxlength="4" placeholder="รหัส 4 ตัว" style="width:7em;text-transform:uppercase;font:inherit;font-size:1.3em;letter-spacing:.2em;text-align:center"></p><button class="btn" data-net="join">เข้าห้อง</button></div></div>
       <div style="text-align:right;margin-top:10px"><button class="btn" data-open="arena">กลับ</button></div>`;},
-  scr_quests(){return`<h2>${ico('scroll',22)} สมุดเควสต์</h2>`+Object.entries(QUESTS).map(([id,q])=>{const s=G.q[id];if(!s.active&&!s.done)return`<div class="qb dim">❔ ยังไม่ได้รับเควสต์</div>`;
+  scr_quests(){
+    const ci=GUILD_RANKS.findIndex(r=>r.id===Guild.rank());
+    const gqHtml=`<h3>⚔️ กระดานภารกิจกิลด์นักผจญภัย (แรงค์ ${Guild.rank()})</h3>`+(typeof GUILD_QUESTS!=='undefined'?GUILD_QUESTS:[]).map(q=>{
+      const st=(G.guildQuests&&G.guildQuests[q.id])||{active:0,count:0,done:0};
+      const ri=GUILD_RANKS.findIndex(r=>r.id===q.rankReq),rkOk=ci>=ri;
+      const rw=`${q.reward.xp||0} XP · ${q.reward.gold||0} ทอง `+Object.keys(q.reward.mats||{}).map(k=>`${mIco(k,13)}${MATS[k].n}×${q.reward.mats[k]}`).join(' ');
+      const act=!rkOk?`<button class="btn sm" disabled>🔒 ต้อง Rank ${q.rankReq}+</button>`:st.active?(st.count>=q.req?`<button class="btn sm" data-gqclaim="${q.id}">🎁 ส่งเควสต์รับรางวัล</button>`:`<span class="dim">กำลังทำ: ${st.count}/${q.req}</span>`):`<button class="btn sm" data-gqacc="${q.id}">📜 รับภารกิจ</button>`;
+      return`<div class="qb" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b>[Rank ${q.rankReq}+] ${q.n}</b>${st.done?` <small class="good">(สำเร็จ ${st.done} ครั้ง)</small>`:''}<div>${q.desc}</div><small class="dim">รางวัล: ${rw}</small></div><div>${act}</div></div>`;
+    }).join('');
+    return`<h2>${ico('scroll',22)} กระดานกิลด์ & สมุดเควสต์</h2>`+gqHtml+`<h3>📖 เควสต์เนื้อเรื่อง & เควสต์รอง</h3>`+Object.entries(QUESTS).map(([id,q])=>{const s=G.q[id];if(!s.active&&!s.done)return`<div class="qb dim">❔ ยังไม่ได้รับเควสต์</div>`;
     return`<div class="qb"><b>${s.done?'✅':'◆'} [${q.type}] ${q.n}</b>`+q.steps.map((t,i)=>`<div class="${i<s.step?'done':i===s.step?'':'dim'}">${i<s.step?'☑':'☐'} ${t}${id==='hunt'?` (${s.count}/3)`:''}</div>`).join('')+
     `<small class="dim">รางวัล: ${q.reward.xp||0} XP ${q.reward.gold?q.reward.gold+' ทอง ':''}${Object.keys(q.reward.mats||{}).map(k=>mIco(k,14)+MATS[k].n).join(' ')}</small></div>`;}).join('');},
 
@@ -541,9 +567,10 @@ const UI={
   scr_continentsMap(){
     const locs=(typeof OW_LOCATIONS!=='undefined'?OW_LOCATIONS:[]).filter(l=>l.kind!=='dungeon');
     const V=Object.assign({town:1,ow_town:1},G.visited||{});
-    const coords={ow_home:[16,53],ow_town:[28,80],ow_port:[47,63],ow_outpost:[66,54.5],ow_spire:[51,30],ow_city:[42,27]};
+    const coords={ow_spire:[16,53],ow_spire_s:[35,54],ow_town:[28,80],ow_port:[47,63],ow_outpost:[66,54.5],ow_spire_m:[70,47],ow_spire_w:[52,30],ow_spire_n:[67,29],ow_city:[40,27]};
+    const spireLockedSvg='<svg viewBox="0 0 32 32"><path d="M12 28l1-15h6l1 15z" fill="#524d58" stroke="#1e1228" stroke-width="1.5"/><path d="M9 14l4-9 3 4 3-5 4 10z" fill="#6d4890" stroke="#241234" stroke-width="1.2"/><circle cx="16" cy="20" r="6" fill="rgba(220,40,60,.25)" stroke="#ff6b7a" stroke-width="1.3"/><rect x="14" y="18" width="4" height="4" fill="#ff7080"/></svg>';
     const icons={
-      ow_home:'<svg viewBox="0 0 32 32"><path d="M5 17L16 7l11 10v10H5z" fill="#f7ebd2" stroke="#23170b" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 18L16 6l13 12" fill="none" stroke="#b9482e" stroke-width="3" stroke-linecap="round"/><rect x="13" y="18" width="6" height="9" fill="#5e3a20"/><rect x="8" y="16" width="4" height="4" fill="#ffd978"/></svg>',
+      ow_spire_w:spireLockedSvg,ow_spire_s:spireLockedSvg,ow_spire_m:spireLockedSvg,ow_spire_n:spireLockedSvg,
       ow_town:WM_ICONS.town,
       ow_port:'<svg viewBox="0 0 32 32"><path d="M16 5v18M11 11h10M7 18c0 5 4 9 9 9s9-4 9-9" fill="none" stroke="#7fe4ff" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="5" r="2.2" fill="#ffe082"/></svg>',
       ow_outpost:'<svg viewBox="0 0 32 32"><path d="M4 26L14 9l10 17z" fill="#d9a45b" stroke="#23170b" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 26l3-8 3 8z" fill="#523018"/><path d="M24 26c-2-3 0-6 2-8 2 2 4 5 2 8z" fill="#ff8a32"/></svg>',
@@ -552,7 +579,7 @@ const UI={
     };
     let hx=28,hy=80,curId='ow_town';
     if(Z&&Z.id==='overworld'){hx=clamp(P.x/(OW_COLS*16)*100,8,92);hy=clamp(P.y/(OW_ROWS*16)*100,10,90);curId='ow_town';}
-    else if(Z&&Z.theme==='spire'){hx=51;hy=30;curId='ow_spire';}
+    else if(Z&&Z.theme==='spire'){hx=16;hy=53;curId='ow_spire';}
     const sel=locs.find(l=>l.id===this.mapSel)||null;
     const Q=mapQuestInfo(),topQ=Q.top;
     const nodes=locs.map(l=>{
@@ -566,15 +593,13 @@ const UI={
     let drawer='';
     if(sel){
       const actBtn=sel.locked
-        ?'<button class="btn sm" disabled>🔒 เมืองหลวงถูกผนึกไว้ — ยังไม่สามารถเข้าได้</button>'
+        ?`<button class="btn sm" disabled>🔒 ${sel.kind==='city'?'เมืองหลวงถูกผนึกไว้ — ยังไม่สามารถเข้าได้':'หอคอยนี้ถูกผนึกไว้ — ยังไม่สามารถเข้าได้'}</button>`
         :sel.kind==='town'
         ?`<button class="btn sm" data-owgo="ow_town">🏰 เข้าเมือง Collawarrie</button>`
-        :sel.kind==='home'
-        ?`<button class="btn sm" data-owgo="ow_home">🏠 วาร์ปไปหน้าบ้าน (Overworld)</button>`
-        :sel.kind==='spire'&&(Z&&Z.id==='overworld'||V.spire1)
-        ?`<button class="btn sm" data-owgo="ow_spire">🔮 เข้าหอคอยคริสตัล (Lv.50–95)</button>`
+        :sel.kind==='spire'&&typeof Guild!=='undefined'&&!Guild.canEnterSpire()
+        ?`<button class="btn sm" disabled>🔒 หอคอยคริสตัลปิดผนึก — ต้องมีแรงค์กิลด์สูงกว่า Rank F (อย่างน้อย Rank G)</button>`
         :sel.kind==='spire'
-        ?'<button class="btn sm" disabled>🔒 เดินข้ามสะพานทะเลไปถึงหอคอยบนเกาะเหนือก่อน</button>'
+        ?`<button class="btn sm" data-owgo="ow_spire">🔮 เข้าหอคอยคริสตัล (Lv.50–95)</button>`
         :'';
       drawer=`<div class="wm-drawer">
         <div class="wm-dhead"><div><h3>${sel.icon} ${sel.n}</h3><small>${sel.lv}</small></div><button class="wm-dclose" data-mapclose="1" aria-label="ปิดรายละเอียด">✕</button></div>
@@ -627,12 +652,8 @@ const UI={
           <path d="M548 136l16-24 16 24zM576 144l18-28 18 28zM614 150l15-22 15 22z"/>
           <path d="M584 128l10-12 10 12z" fill="#f3faff" stroke="none"/>
         </g>
-        <!-- สะพานไม้ยาวข้าม 3 เกาะ & เส้นทางเดิน -->
-        <path d="M451 340 L634 294" stroke="#8a5e32" stroke-width="6.5" stroke-linecap="round"/>
-        <path d="M451 340 L634 294" stroke="#ebd09e" stroke-width="2.2" stroke-dasharray="4 4"/>
-        <path d="M634 294 L610 198" stroke="#8a5e32" stroke-width="6.5" stroke-linecap="round"/>
-        <path d="M634 294 L610 198" stroke="#ebd09e" stroke-width="2.2" stroke-dasharray="4 4"/>
-        <path d="M154 286 Q200 375 269 432 Q365 398 451 340 M610 198 Q545 178 470 162" fill="none" stroke="rgba(255,244,205,.76)" stroke-width="2.5" stroke-dasharray="6 5"/>
+        <!-- เส้นทางเดินบนเกาะใต้ (สะพานข้ามเกาะถูกตัดออกทั้งหมด) -->
+        <path d="M154 286 Q200 375 269 432 Q365 398 451 340" fill="none" stroke="rgba(255,244,205,.76)" stroke-width="2.5" stroke-dasharray="6 5"/>
         <!-- เข็มทิศทองมุมขวาล่าง -->
         <g transform="translate(868,452)">
           <circle cx="0" cy="0" r="30" fill="rgba(22,34,42,.55)" stroke="#d4aa5a" stroke-width="1.6"/>
@@ -778,6 +799,10 @@ pn.addEventListener('click',e=>{
   if(d.title){if(Z&&Z.bossRoom&&!Z.cleared){toast('🔒 ออกจากห้องบอสไม่ได้ — ชนะหรือตายก่อน');return;}UI.close();if(!(Z&&Z.bossRoom&&!Z.cleared))Save.save();G.mode='title';StatSync.reset();$('#title').classList.remove('hidden');renderTitle();return;}
   if(d.load){UI.close();loadNow();return;}
   if(d.open){UI.open(d.open);return;}
+  if(d.colenter){UI.close();enterColosseum(d.colenter);return;}
+  if(d.coltrain){UI.close();enterTrainingGround();return;}
+  if(d.gqacc){Guild.acceptQuest(d.gqacc);UI.rerender();return;}
+  if(d.gqclaim){Guild.claimQuest(d.gqclaim);UI.rerender();return;}
   if(d.cg){UI.close();interact({type:d.cg,o:{}});return;}
   if(d.net){const a=d.net;if(a==='host')Net.host();else if(a==='join')Net.join(($('#roomCode')||{}).value);else if(a==='start'||a==='again')Net.beginHost();else if(a==='leave'){Net.leave();UI.open('arena');}return;}
   if(d.diff&&UI.cur==='talent'){UI.diffSel=d.diff;UI.rerender();return;}
@@ -1123,39 +1148,57 @@ function portrait(f,x,y,w,h,flip){
 }
 function statusIcons(f,x,y,right){
   const good=[],bad=[];
+  const sg=(k,fb,fc)=>({gi:(typeof STATUS_GI!=='undefined'&&STATUS_GI[k]&&STATUS_GI[k][0])||null,col:(typeof STATUS_GI!=='undefined'&&STATUS_GI[k]&&STATUS_GI[k][1])||fc,ic:fb});
   for(const m of f.mods||[]){
-    const item={ic:m.kind==='debuff'?'▼':'▲',lbl:`${m.n||m.id} ${(m.ttl/60).toFixed(1)}วิ`,pct:clamp(m.ttl/Math.max(1,m.max||m.ttl),0,1)};
+    const dk=m.kind==='debuff'?'modDebuff':'modBuff';
+    const item=Object.assign(sg(dk,m.kind==='debuff'?'▼':'▲',m.kind==='debuff'?'#ff7a7a':'#5affb0'),{lbl:`${m.n||m.id} ${(m.ttl/60).toFixed(1)}วิ`,pct:clamp(m.ttl/Math.max(1,m.max||m.ttl),0,1)});
     (m.kind==='debuff'?bad:good).push(item);
   }
-  if(f.kingAuraT>0)good.push({ic:'👑',lbl:`ออร่าราชา ${(f.kingAuraT/60).toFixed(1)}วิ`,pct:clamp(f.kingAuraT/360,0,1)});
-  if(f.parryBuffT>0)good.push({ic:'⚔',lbl:`True DMG ${(f.parryBuffT/60).toFixed(1)}วิ`,pct:clamp(f.parryBuffT/180,0,1)});
-  if(f.armorBuff>0)good.push({ic:'🛡',lbl:`เกราะแข็ง ${(f.armorBuff/60).toFixed(1)}วิ`,pct:clamp(f.armorBuff/240,0,1)});
-  if(f.buffT>0)good.push({ic:'✨',lbl:`เสริมพลัง ${(f.buffT/60).toFixed(1)}วิ`,pct:clamp(f.buffT/240,0,1)});
-  if(f.stunImm>0&&!(f.st8&&f.st8.stun))good.push({ic:'🔰',lbl:`ต้านมึน ${(f.stunImm/60).toFixed(1)}วิ`,pct:clamp(f.stunImm/180,0,1)});
+  if(f.kingAuraT>0)good.push(Object.assign(sg('kingAura','👑','#ffd23a'),{lbl:`ออร่าราชา ${(f.kingAuraT/60).toFixed(1)}วิ`,pct:clamp(f.kingAuraT/360,0,1)}));
+  if(f.parryBuffT>0)good.push(Object.assign(sg('parryBuff','⚔','#d8f8ff'),{lbl:`True DMG ${(f.parryBuffT/60).toFixed(1)}วิ`,pct:clamp(f.parryBuffT/180,0,1)}));
+  if(f.armorBuff>0)good.push(Object.assign(sg('armorBuff','🛡','#9fd0ff'),{lbl:`เกราะแข็ง ${(f.armorBuff/60).toFixed(1)}วิ`,pct:clamp(f.armorBuff/240,0,1)}));
+  const iwDefM=f.mods&&f.mods.find(m=>m.id==='ironwall_def'&&m.ttl>0),iwMdefM=f.mods&&f.mods.find(m=>m.id==='ironwall_mdef'&&m.ttl>0);
+  if(iwDefM)good.push(Object.assign(sg('armorBuff','🛡','#7ad8ff'),{lbl:`+${iwDefM.v} DEF${iwMdefM?'/M.DEF':''} ${(iwDefM.ttl/60).toFixed(1)}วิ`,pct:clamp(iwDefM.ttl/(iwDefM.max||720),0,1)}));
+  if(f.buffT>0)good.push(Object.assign(sg('buff','✨','#a8ffca'),{lbl:`เสริมพลัง ${(f.buffT/60).toFixed(1)}วิ`,pct:clamp(f.buffT/240,0,1)}));
+  if(f.vanishT>0)good.push(Object.assign(sg('vanish','💨','#bff0ff'),{lbl:`หายตัว ${(f.vanishT/60).toFixed(1)}วิ`,pct:clamp(f.vanishT/180,0,1)}));
+  if(f.fireShieldT>0)good.push(Object.assign(sg('fireShield','🔥','#ff8a3a'),{lbl:`เกราะเพลิง ${(f.fireShieldT/60).toFixed(1)}วิ`,pct:clamp(f.fireShieldT/600,0,1)}));
+  if(f.stunImm>0&&!(f.st8&&f.st8.stun))good.push(Object.assign(sg('stunImm','🔰','#7af0c0'),{lbl:`ต้านมึน ${(f.stunImm/60).toFixed(1)}วิ`,pct:clamp(f.stunImm/180,0,1)}));
+  if((f.reviveN||0)>0&&f.invuln>0)good.push(Object.assign(sg('armorBuff','🛡️','#ff9aff'),{lbl:`อมตะ ${(f.invuln/60).toFixed(1)}วิ`,pct:clamp(f.invuln/180,0,1)}));
+  if(f.rootT>0)bad.push(Object.assign(sg('freeze','⛓️','#8ef2ff'),{lbl:`แช่ขยับไม่ได้ ${(f.rootT/60).toFixed(1)}วิ`,pct:clamp(f.rootT/240,0,1)}));
 
   for(const s of Status.list(f)){
-    bad.push({ic:STI[s.k],lbl:`${STN[s.k]}${s.stacks>1?'×'+s.stacks:''} ${(s.t/60).toFixed(1)}วิ`,pct:clamp(s.t/CONFIG.statusDur,0,1)});
+    const extra=s.k==='freeze'?` ${s.hits||0}/5`:s.stacks>1?'×'+s.stacks:'';
+    bad.push(Object.assign(sg(s.k,STI[s.k],STC[s.k]),{lbl:`${STN[s.k]}${extra} ${(s.t/60).toFixed(1)}วิ`,pct:clamp(s.t/(s.k==='freeze'?480:CONFIG.statusDur),0,1)}));
   }
-  if(f.rootT>0)bad.push({ic:'⛓',lbl:`ล็อคขา ${(f.rootT/60).toFixed(1)}วิ`,pct:clamp(f.rootT/180,0,1)});
-  if(f.penalty>0)bad.push({ic:'⚠',lbl:`เสียหลัก ${(f.penalty/60).toFixed(1)}วิ`,pct:clamp(f.penalty/120,0,1)});
-  if(f.guardBroken>0)bad.push({ic:'💔',lbl:`การ์ดแตก ${(f.guardBroken/60).toFixed(1)}วิ`,pct:clamp(f.guardBroken/CONFIG.guard.breakT,0,1)});
+  if(f.rootT>0)bad.push(Object.assign(sg('root','⛓','#ffd23a'),{lbl:`ล็อคขา ${(f.rootT/60).toFixed(1)}วิ`,pct:clamp(f.rootT/180,0,1)}));
+  if(f.penalty>0)bad.push(Object.assign(sg('penalty','⚠','#ff9a5a'),{lbl:`เสียหลัก ${(f.penalty/60).toFixed(1)}วิ`,pct:clamp(f.penalty/120,0,1)}));
+  if(f.guardBroken>0)bad.push(Object.assign(sg('guardBroken','💔','#ff5a5a'),{lbl:`การ์ดแตก ${(f.guardBroken/60).toFixed(1)}วิ`,pct:clamp(f.guardBroken/CONFIG.guard.breakT,0,1)}));
 
   const drawTier=(arr,ry,isBad)=>{
     if(!arr.length)return ry;
-    const brd=isBad?'#ff4a4a':'#3ae872',bg=isBad?'rgba(66,12,16,.90)':'rgba(12,54,26,.90)',bar=isBad?'#ff6a6a':'#4eff86',tc=isBad?'#ffe0e0':'#dcffe6';
-    D.save();D.font='600 10px Sarabun,sans-serif';D.textBaseline='middle';
+    const brd=isBad?'#ff5252':'#40eb7a',bgTop=isBad?'rgba(74,14,22,.94)':'rgba(12,58,30,.94)',bgBot=isBad?'rgba(32,6,12,.94)':'rgba(6,28,16,.94)',bar=isBad?'#ff7878':'#5aff90',tc=isBad?'#ffe4e4':'#dcffe8';
+    D.save();D.font='700 10px Sarabun,sans-serif';D.textBaseline='middle';
     let cx=x;
     for(const it of arr){
-      const txt=it.ic+' '+it.lbl,bw=Math.max(48,Math.ceil(D.measureText(txt).width)+12);
-      const bx=right?cx-bw:cx;
-      D.fillStyle=bg;rrect(bx,ry,bw,21,4);D.fill();
-      D.strokeStyle=brd;D.lineWidth=1.5;D.stroke();
-      D.fillStyle=tc;D.textAlign='left';D.fillText(txt,bx+6,ry+10);
-      D.fillStyle=bar;D.fillRect(bx+1.5,ry+18.5,(bw-3)*it.pct,1.8);
-      cx=right?bx-4:bx+bw+4;
+      const im=it.gi&&typeof giImg==='function'?giImg(it.gi,it.col||tc):null,hasImg=im&&im.complete&&im.naturalWidth;
+      const lblW=Math.ceil(D.measureText(it.lbl).width),icoW=hasImg?18:Math.ceil(D.measureText(it.ic+' ').width);
+      const bw=Math.max(60,icoW+lblW+14),bx=right?cx-bw:cx;
+      const gr=D.createLinearGradient(0,ry,0,ry+23);gr.addColorStop(0,bgTop);gr.addColorStop(1,bgBot);
+      D.fillStyle=gr;rrect(bx,ry,bw,23,5);D.fill();
+      D.strokeStyle=it.col||brd;D.lineWidth=1.4;D.stroke();
+      if(hasImg){
+        D.fillStyle='rgba(4,8,18,.78)';rrect(bx+3,ry+3,16,16,3);D.fill();
+        D.drawImage(im,bx+4,ry+4,14,14);
+        D.fillStyle=tc;D.textAlign='left';D.fillText(it.lbl,bx+23,ry+11);
+      }else{
+        D.fillStyle=it.col||tc;D.textAlign='left';D.fillText(it.ic,bx+6,ry+11);
+        D.fillStyle=tc;D.fillText(it.lbl,bx+6+D.measureText(it.ic+' ').width,ry+11);
+      }
+      D.fillStyle=it.col||bar;D.fillRect(bx+2,ry+20,(bw-4)*it.pct,2);
+      cx=right?bx-5:bx+bw+5;
     }
     D.restore();
-    return ry+25;
+    return ry+27;
   };
   let ny=y;
   ny=drawTier(good,ny,false);
@@ -1234,9 +1277,13 @@ function drawBattleUI(){
    D.strokeStyle=v>=1?'#ffd98a':'rgba(122,216,255,.65)';D.lineWidth=1.3;rrect(gx,gy,gw,14,4);D.stroke();
    const gg=D.createLinearGradient(gx,0,gx+gw,0);gg.addColorStop(0,'#2eb8ff');gg.addColorStop(.55,'#ffe066');gg.addColorStop(1,'#ff942a');D.fillStyle=v>=1&&G.t%20<10?'#fff6b8':gg;rrect(gx+1.5,gy+1.5,(gw-3)*v,11,3);D.fill();
    outlineText('เกจสุดยอด '+Math.floor(G.ult||0)+'/100'+(v>=1?'  [L] พร้อม!':''),gx+gw/2,gy+7,10.5,'#fff');
-   const np=Mana.potionIds.reduce((a,k)=>a+(G.mats[k]||0),0),PF=BT.vs?BT.p:BT,f=PF.flask||0;
-   outlineText(`❤️ ขวดยา ${'◆'.repeat(f)}${'◇'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,gx+gw*.25,gy-12,11,f?'#8aff9a':'#7888a8');   // v0.2.0 ขวดยา 3 ครั้ง/ไฟต์
-   const mu=PF.mana||0;outlineText(`🧪 ยามานา ×${np} ${'◆'.repeat(mu)+'◇'.repeat(Math.max(0,FLASK.uses-mu))} [R]${G.potCD>0?' · '+(G.potCD/60).toFixed(1)+' วิ':''}`,gx+gw*.73,gy-12,11,G.potCD>0||mu===0?'#8898b8':'#8ee4ff');}
+   if(typeof Z!=='undefined'&&Z&&Z.noPotion){
+     outlineText('🚫 โคลอสเซียม Rank '+(Z.colosseum||'G')+': ห้ามใช้ยาฟื้นพลัง / ยามานา',gx+gw*.55,gy-12,11,'#ff8a7a');
+   }else{
+     const np=Mana.potionIds.reduce((a,k)=>a+(G.mats[k]||0),0),PF=BT.vs?BT.p:BT,f=PF.flask||0;
+     outlineText(`❤️ ขวดยา ${'◆'.repeat(f)}${'◇'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,gx+gw*.25,gy-12,11,f?'#8aff9a':'#7888a8');   // v0.2.0 ขวดยา 3 ครั้ง/ไฟต์
+     const mu=PF.mana||0;outlineText(`🧪 ยามานา ×${np} ${'◆'.repeat(mu)+'◇'.repeat(Math.max(0,FLASK.uses-mu))} [R]${G.potCD>0?' · '+(G.potCD/60).toFixed(1)+' วิ':''}`,gx+gw*.73,gy-12,11,G.potCD>0||mu===0?'#8898b8':'#8ee4ff');
+   }}
   // combo route
   // (คำแนะนำคอมโบกลางจอถูกนำออก)
   if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd23a');
@@ -1249,6 +1296,22 @@ function drawBattleUI(){
     if(p.state==='attack'){const el=p.phase==='startup'?p.pt:p.phase==='active'?m.s+p.pt:m.s+m.a+p.pt;D.fillStyle='#fff';D.fillRect(X+el*k-1.5,Y-5,3,20);}
     D.globalAlpha=1;outlineText(m.n,480,Y+26,15,'#fff');}
   if(b.small)outlineText(b.small.t,bsx(p.x)*S,bsy(p.y-p.h-26)*S,15,'#9fe6ff');
+  if(b.def&&b.def.immortal){
+    const c=b.coach||{},tm=Math.floor((c.t||0)/330)%5;
+    const tips=[
+      '🎓 ครูฝึกแกรนท์ — การเคลื่อนไหว: [A/D] เดิน · [W] กระโดด · [S] ย่อ · [Space] พุ่งหลบ (อมตะชั่วคราว)',
+      '⚔️ คอมโบ: กด [J → J → J] ตามจังหวะแถบเหลืองทอง (HIT) ทำคอมโบครบชุด ฟื้น Stamina + เกจสุดยอด!',
+      '🥊 โจมตี & กัน: [→+J] ฟันหนัก · [K] เตะ · [↓+K] กวาดขาล้ม · [E] ป้องกัน (ถูกจังหวะ = ปัดป้อง True DMG)',
+      '✨ สกิล & ยา: [1-3] กดใช้สกิล · เกจเต็ม 100 กด [4/L] ท่าสุดยอด · [Q] ยา HP · [R] ยามานา',
+      '🚪 ซ้อมจนคล่องแล้วกดปุ่ม [🚪 ออกฝึก] มุมขวาล่าง เพื่อเรียนรู้เรื่องอุปกรณ์ อาวุธ และระดับเทพต่อ!'
+    ];
+    D.save();D.fillStyle='rgba(8,18,44,.86)';rrect(155,70,650,48,7);D.fill();
+    D.strokeStyle='rgba(255,217,138,.78)';D.lineWidth=1.5;rrect(155,70,650,48,7);D.stroke();
+    outlineText(tips[tm],480,86,12.5,'#ffe694');
+    const chk=(ok,lb)=>(ok?'✓ ':'○ ')+lb;
+    outlineText(`${chk(c.jCombo,'คอมโบ')} · ${chk(c.heavy,'ตีหนัก')} · ${chk(c.kick,'เตะ')} · ${chk(c.dodge,'พุ่งหลบ')} · ${chk(c.guard,'กัน/ปัดป้อง')} · ${chk(c.skill,'สกิล')}`,480,105,11,'#a8ecff');
+    D.restore();
+  }
   if(b.flash){const f=b.flash.f,lft=f.x<BW/2;D.save();D.beginPath();D.moveTo(0,190);D.lineTo(960,150);D.lineTo(960,300);D.lineTo(0,340);D.closePath();
     const gr=D.createLinearGradient(0,0,960,0);gr.addColorStop(0,'rgba(10,8,20,.95)');gr.addColorStop(.5,ELC[b.flash.m.el]||'#ffd23a');gr.addColorStop(1,'rgba(10,8,20,.95)');D.fillStyle=gr;D.fill();D.clip();
     for(let i=0;i<24;i++){const y=150+hash(i,3)*190,xo=((G.t*30+hash(i,7)*960)%1200)-120;D.fillStyle='rgba(255,255,255,.35)';D.fillRect(lft?960-xo:xo,y,80,2);}

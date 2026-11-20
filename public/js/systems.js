@@ -153,7 +153,7 @@ const Mana={
   cost(id,S){const s=SKILLS[id];if(s&&s.mpPct)return Math.max(1,Math.round(((S&&S.maxMP)||0)*s.mpPct));if(!s||!s.mp)return 0;return Math.max(0,Math.round(s.mp*(1-Math.min(CONFIG.mana.costCap,(S&&S.mpCost)||0))));},
   potionIds:['mp_s','mp_m','mp_l','mp_x'],
   /* restores MP from a mana potion; shared 10 s cooldown; never exceeds Max MP */
-  drink(o,S,id){const m=MATS[id];if(!m||!m.manaPotion)return{ok:false,err:'ไม่ใช่ยามานา'};if(!Inv.has(id))return{ok:false,err:'ไม่มี'+m.n};
+  drink(o,S,id){const m=MATS[id];if(typeof Z!=='undefined'&&Z&&Z.noPotion)return{ok:false,err:'🚫 สนามทดสอบแรงค์ไม่อนุญาตให้ใช้ยา!'};if(!m||!m.manaPotion)return{ok:false,err:'ไม่ใช่ยามานา'};if(!Inv.has(id))return{ok:false,err:'ไม่มี'+m.n};
     if((G.potCD||0)>0)return{ok:false,err:`ยามานาคูลดาวน์ ${Math.ceil(G.potCD/60)} วิ`};if(o.mp>=S.maxMP)return{ok:false,err:'MP เต็มแล้ว'};
     const before=o.mp;o.mp=Math.min(S.maxMP,o.mp+m.manaPotion);Inv.take(id);G.potCD=CONFIG.potionCD;return{ok:true,gained:o.mp-before};},
   bestPotion(o,S){const miss=S.maxMP-o.mp,have=this.potionIds.filter(k=>Inv.has(k));if(!have.length)return null;return have.find(k=>MATS[k].manaPotion>=miss)||have[have.length-1];}
@@ -168,12 +168,12 @@ const Ult={
 };
 /* ---------------- StatusEffect ---------------- */
 const Status={
-  init(f){f.st8={poison:null,bleed:null,burn:null,shock:null,stun:null,blind:null,chaos:null};f.stunImm=0;},
+  init(f){f.st8={poison:null,bleed:null,burn:null,shock:null,stun:null,blind:null,chaos:null,freeze:null};f.stunImm=0;},
   /* โอกาสติดสถานะสุดท้าย = 100% + โบนัสโอกาสติดของผู้ใช้ (Hexweaver +25%) − ค่าต้านของเป้าหมาย (จำกัด 0–100%) */
   chance(src,f,type){const R=Math.min(1,((f.statusRes||{})[type]||0)+((f.S&&f.S.statusRes)||0)),bonus=(src&&src.S&&src.S.statusChance)||0;return clamp(1+bonus-R,0,1);},
   /* returns 'ok' | 'capped' | 'resist' | 'immune' | 'stunned' */
   apply(f,type,stacks=1,src=null,durSec=0){
-    const s=f.st8,SS=src&&src.S,Dur=Math.round((durSec>0?durSec*60:CONFIG.statusDur)+(SS&&SS.talent==='hexweaver'?(SS.statusChance||0)*100*CONFIG.statusChanceDur*60:0)),   // เฉพาะ Hexweaver: +0.05 วิ ต่อโอกาสติดสถานะ 1%
+    const s=f.st8,SS=src&&src.S,baseFr=durSec>0?durSec*60:(type==='freeze'?480:CONFIG.statusDur),Dur=Math.round(baseFr+(SS&&SS.talent==='hexweaver'?(SS.statusChance||0)*100*CONFIG.statusChanceDur*60:0)),   // เฉพาะ Hexweaver: +0.05 วิ ต่อโอกาสติดสถานะ 1% · freeze เริ่มต้น 8 วิ (480 เฟรม)
       R=Math.min(1,((f.statusRes||{})[type]||0)+((f.S&&f.S.statusRes)||0));
     if(R>=1||(type==='burn'&&f.S&&f.S.immuneBurn)||f.statusImm>0)return'immune';   // Iron Wall: กันสถานะทุกชนิด
     const chance=Status.chance(src,f,type);                 // คำนวณใหม่ทุกครั้งที่ติดสถานะ
@@ -191,6 +191,7 @@ const Status={
       this.apply(f,'stun',1,src);return'ok';}
     if(type==='blind'){s.blind=s.blind?Object.assign(s.blind,{t:T(s.blind)}):{t:Dur,tk:0};return'ok';}   // ตาบอด: โจมตีไม่โดน
     if(type==='chaos'){if(s.chaos)return'capped';s.chaos={t:240,tk:0};return'ok';}   /* โกลาหล: 4 วิ ติดซ้ำไม่ได้ขณะยังมีผล */
+    if(type==='freeze'){if(s.freeze){s.freeze.t=Math.max(s.freeze.t,Dur);return'ok';}s.freeze={t:Dur,hits:0,tk:0};return'ok';}   /* แช่แข็ง: 3 วิ · ครบ 5 ฮิตจะน้ำแข็งแตก 2× */
     if(type==='stun'){if(s.stun)return'stunned';if(f.stunImm>0)return'immune';s.stun={t:Dur,tk:0};Status.onStun&&Status.onStun(f);return'ok';}
     return'ok';
   },
@@ -203,7 +204,7 @@ const Status={
       if(o.t<=0){s[k]=null;if(k==='stun'){f.stunImm=f.stunImmuneAfter||CONFIG.stunImmuneAfter;Status.onStunEnd&&Status.onStunEnd(f);}}}
   },
   cleanse(f){for(const k in f.st8)f.st8[k]=null;},
-  list(f){return Object.keys(f.st8).filter(k=>f.st8[k]).map(k=>({k,stacks:f.st8[k].stacks||0,t:f.st8[k].t}));}
+  list(f){return Object.keys(f.st8).filter(k=>f.st8[k]).map(k=>({k,stacks:f.st8[k].stacks||0,hits:f.st8[k].hits||0,t:f.st8[k].t}));}
 };
 
 /* ---------------- Items / Equipment / Inventory ---------------- */
@@ -308,7 +309,7 @@ const Inv={
     if(m.use==='reset'){let n=0;for(const k in G.alloc){n+=G.alloc[k];G.alloc[k]=0;}G.points+=n;this.take(id);return{ok:true,msg:`คืนแต้มค่าพลัง ${n} แต้ม`};}
     if(m.use==='learn'){const r=Skills.learn(m.skillBook);if(!r.ok)return{ok:false,msg:r.err+' (ไม่เสียตำรา)'};this.take(id);return{ok:true,msg:`📖 เรียนสกิล ${SKILLS[m.skillBook].ic} ${SKILLS[m.skillBook].n} แล้ว — จัดช่องได้ที่หน้าสกิล (K)`};}
     if(m.use==='sealbreak')return{ok:false,msg:'ตราทำลายผนึกใช้ได้ที่หน้าสกิล (K) เท่านั้น'};
-    if(m.use==='potion'){const S=Stats.player();G.hp=Math.min(S.maxHP,G.hp+Math.round(S.maxHP*.4));this.take(id);return{ok:true,msg:'ฟื้น HP 40%'};}
+    if(m.use==='potion'){if(typeof Z!=='undefined'&&Z&&Z.noPotion)return{ok:false,msg:'🚫 สนามทดสอบแรงค์ไม่อนุญาตให้ใช้ยา!'};const S=Stats.player();G.hp=Math.min(S.maxHP,G.hp+Math.round(S.maxHP*.4));this.take(id);return{ok:true,msg:'ฟื้น HP 40%'};}
     if(m.use==='talent'){if(typeof UI!=='undefined'){UI.talentSwitch=true;UI.open('talent');return{ok:true,msg:'✨ เลือกพรสวรรค์ใหม่ได้เลย'};}return{ok:false,msg:'เปิดหน้าเลือกพรสวรรค์ไม่ได้'};}
     if(m.use==='exit'){if(typeof Z==='undefined'||!Z||Z.safe)return{ok:false,msg:'ใช้คัมภีร์ทางออกได้เฉพาะในดันเจี้ยนเท่านั้น'};if(Z.bossRoom&&!Z.cleared)return{ok:false,msg:'🔒 ห้องบอสถูกผนึก — ต้องปราบบอสก่อนจึงจะใช้คัมภีร์ทางออกได้'};
       if(typeof P!=='undefined'&&P&&P.castExit>0)return{ok:false,msg:'กำลังร่ายคัมภีร์ทางออกอยู่แล้ว'};
@@ -508,11 +509,11 @@ const Skills={
   move(id,wt,slot){
     if(SKILLS[id].type==='passive')return null;
     const lvl=this.level(id),key=id+'|'+wt+'|'+slot+'|'+lvl;if(this.cache[key])return this.cache[key];
-    const s=SKILLS[id],fr=SKILL_FRAMES[s.anim]||[10,4,18],a=s.anim==='rush'?(s.multi||3)*4+4:s.rain?(s.multi||3)*7:fr[1];
+    const s=SKILLS[id],fr=SKILL_FRAMES[s.anim]||[10,4,18],a=s.active||(s.anim==='rush'?(s.multi||3)*4+4:s.rain?(s.multi||3)*7:fr[1]);
     const el=s.el==='weapon'?(WEAPONS[wt]||WEAPONS.fist).el:(s.el||'phys');
-    const m=M(s.n,fr[0],a,fr[2],(s.coef||0)*10*this.scale(id).coef,s.reach||0,3,22,{anim:s.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
+    const m=M(s.n,s.startup||fr[0],a,fr[2],(s.coef||0)*10*this.scale(id).coef,s.reach||0,3,22,{anim:s.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
       type:s.type,el,skillId:id,hy:s.hy||62,hh:s.hh||60});
-    for(const k of ['multi','proj','beam','launch','rise','inv','lunge','kicks','status','statusDur','armorBreak','unblockable','jackpotPen','jackpot','lifesteal','ignoreDef','lastCrit','strike','buff','hpCost','rain','kd','low','dragon','kingAura','holdParry','rootDur','pillars'])if(s[k]!==undefined)m[k]=s[k];
+    for(const k of ['multi','proj','beam','beamCol','spiritBeam','launch','rise','inv','lunge','kicks','status','statusDur','armorBreak','unblockable','jackpotPen','jackpot','alwaysCrit','defPen','lifesteal','ignoreDef','lastCrit','strike','buff','hpCost','rain','kd','low','dragon','kingAura','holdParry','rootDur','pillars','frostnova','instantShatter','windblade','blink','slashFx'])if(s[k]!==undefined)m[k]=s[k];
     if(s.tier==='ultimate')m.super=2;
     return this.cache[key]=m;
   }
@@ -533,7 +534,7 @@ const Ency={
   kill(kind){const e=G.ency[kind]||(G.ency[kind]={seen:1,kills:0,maxLv:0});e.kills++;}
 };
 const Quest={
-  init(){G.q={main1:{step:0,done:0,active:1},hunt:{step:0,count:0,done:0,active:0},pan:{step:0,done:0,active:0},lava:{step:0,done:0,active:0}};},
+  init(){G.q={main1:{step:0,done:0,active:1},hunt:{step:0,count:0,done:0,active:0},pan:{step:0,done:0,active:0},lava:{step:0,done:0,active:0}};G.guildQuests={};},
   activate(id){if(!G.q[id].active){G.q[id].active=1;toast(`📜 รับเควสต์: ${QUESTS[id].n}`);}},
   advance(id,step){const q=G.q[id];if(q.done||!q.active)return;if(step<=q.step)return;q.step=step;
     if(step>=QUESTS[id].steps.length)this.complete(id);else toast(`เควสต์อัปเดต: ${QUESTS[id].steps[step]}`);UI.quest();},
@@ -561,6 +562,36 @@ const Guild={
     toast(`🎖️ เลื่อนแรงค์กิลด์เป็น Rank ${r.next.id} — ${r.next.n}!`,3500);
     Save.save();UI.hud&&UI.hud();
     return{ok:true,next:r.next};
+  },
+  canEnterSpire(){return this.registered()&&GUILD_RANKS.findIndex(r=>r.id===this.rank())>0;},
+  acceptQuest(id){
+    const q=GUILD_QUESTS.find(x=>x.id===id);if(!q)return{ok:false,err:'ไม่พบเควสต์'};
+    const ci=GUILD_RANKS.findIndex(r=>r.id===this.rank()),ri=GUILD_RANKS.findIndex(r=>r.id===q.rankReq);
+    if(ci<ri)return{ok:false,err:`ต้องอยู่แรงค์ ${q.rankReq} ขึ้นไป`};
+    G.guildQuests=G.guildQuests||{};
+    const st=G.guildQuests[id]||(G.guildQuests[id]={active:0,count:0,done:0});
+    if(st.active)return{ok:false,err:'รับเควสต์นี้แล้ว'};
+    st.active=1;st.count=0;SFX.pick&&SFX.pick();
+    toast(`📜 รับภารกิจกิลด์: ${q.n}`,2600);UI.quest();Save.save();return{ok:true};
+  },
+  onKill(kind){
+    if(!G.guildQuests)return;let chg=0;
+    for(const q of GUILD_QUESTS){
+      const st=G.guildQuests[q.id];if(!st||!st.active||st.count>=q.req)continue;
+      if(q.targets.includes(kind)){st.count++;chg=1;
+        if(st.count>=q.req)toast(`✅ ภารกิจกิลด์ "${q.n}" ครบแล้ว! ส่งได้ที่กระดานกิลด์`,3400);
+        else toast(`⚔️ ${q.n}: ${st.count}/${q.req}`,1800);}
+    }
+    if(chg)UI.quest();
+  },
+  claimQuest(id){
+    const q=GUILD_QUESTS.find(x=>x.id===id);if(!q||!G.guildQuests||!G.guildQuests[id])return{ok:false};
+    const st=G.guildQuests[id];if(!st.active||st.count<q.req)return{ok:false,err:'ยังไม่ครบเงื่อนไข'};
+    st.active=0;st.count=0;st.done=(st.done||0)+1;
+    const r=q.reward;if(r.gold)G.gold+=r.gold;for(const k in r.mats||{})Inv.add(k,r.mats[k]);
+    const ups=r.xp?Prog.gainXP(r.xp):0;SFX.level();
+    toast(`🎖️ ส่งภารกิจกิลด์สำเร็จ: ${q.n} (+${r.xp||0} XP · +${r.gold||0} ทอง)`,3800);
+    if(ups)UI.levelUp(ups);UI.quest();UI.hud();Save.save();return{ok:true};
   }
 };
 
@@ -568,13 +599,13 @@ const Guild={
 const SAVE_KEY='caveforge_save',SAVE_VER=2;
 const Save={
   data(){return{v:SAVE_VER,savedAt:Date.now(),talent:G.talent,level:G.level,xp:G.xp,points:G.points,alloc:G.alloc,hp:G.hp,mp:G.mp,bag:G.bag,mats:G.mats,gold:G.gold,eq:G.eq,
-    known:[...G.known],found:[...G.found],skills:Skills.toSave(),mastery:G.mastery,ency:G.ency,q:G.q,flags:G.flags,uid:G.uid,stats:G.stats,ult:G.ult||0,pity:G.pity||{},shopCD:G.shopCD||{},diff:G.diff||'normal',bloodstain:G.bloodstain||null,look:G.look||null,guildRank:G.guildRank||'F',guildPromo:G.guildPromo||{},world:World.serialize()};},
+    known:[...G.known],found:[...G.found],skills:Skills.toSave(),mastery:G.mastery,ency:G.ency,q:G.q,flags:G.flags,uid:G.uid,stats:G.stats,ult:G.ult||0,pity:G.pity||{},shopCD:G.shopCD||{},diff:G.diff||'normal',bloodstain:G.bloodstain||null,look:G.look||null,guildRank:G.guildRank||'F',guildPromo:G.guildPromo||{},guildQuests:G.guildQuests||{},world:World.serialize()};},
   save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(this.data()));return true;}catch(e){return false;}},
   exists(){try{return!!localStorage.getItem(SAVE_KEY);}catch(e){return false;}},
   apply(d){
     if(!d||!d.v)return false;if(d.v<2)return false; // v1 (old demo) had no compatible progression data
     Object.assign(G,{talent:d.talent,level:d.level,xp:d.xp,points:d.points,alloc:d.alloc,hp:d.hp,mp:d.mp,bag:d.bag,mats:d.mats,gold:d.gold,eq:d.eq,
-      known:new Set(d.known),found:new Set(d.found||[]),mastery:d.mastery||{},ency:d.ency||{},q:d.q,flags:d.flags||{},uid:d.uid,stats:Object.assign(G.stats,d.stats||{}),ult:d.ult||0,pity:d.pity||{},shopCD:d.shopCD||{},diff:CONFIG.diffLock||(DIFFICULTY[d.diff]?d.diff:'normal'),bloodstain:d.bloodstain||null,look:d.look||null,guildRank:d.guildRank||'F',guildPromo:d.guildPromo||{}});
+      known:new Set(d.known),found:new Set(d.found||[]),mastery:d.mastery||{},ency:d.ency||{},q:d.q,flags:d.flags||{},uid:d.uid,stats:Object.assign(G.stats,d.stats||{}),ult:d.ult||0,pity:d.pity||{},shopCD:d.shopCD||{},diff:CONFIG.diffLock||(DIFFICULTY[d.diff]?d.diff:'normal'),bloodstain:d.bloodstain||null,look:d.look||null,guildRank:d.guildRank||'F',guildPromo:d.guildPromo||{},guildQuests:d.guildQuests||{}});
     Skills.fromSave(d.skills||{});
     for(const it of G.bag||[]){it.lv=it.lv||1;it.exp=it.exp||0;const ts=(RARITY[it.rar]||RARITY.normal).sockets;it.sockets=Array.isArray(it.sockets)?it.sockets.slice(0,ts):[];while(it.sockets.length<ts)it.sockets.push(null);}
     for(const s of SLOTS)if(!(s in G.eq))G.eq[s]=null;  // forward-compat for new slots

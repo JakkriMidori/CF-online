@@ -6,11 +6,14 @@
 const OW_COLS = 72, OW_ROWS = 48;
 
 const OW_LOCATIONS = [
-  { id:'ow_home',    k:'ow_home',    kind:'home',    tx:9,  ty:27, icon:'🏠', tag:'ME', n:'บ้านของเรา (ME)',           lv:'จุดเริ่มต้น · พักผ่อน',     island:'south', dest:'home',    desc:'บ้านไม้แสนอบอุ่นริมแหลมตะวันตก พักฟื้น HP และ MP เต็ม 100%' },
-  { id:'ow_town',    k:'ow_town',    kind:'town',    tx:20, ty:40, icon:'🏰', tag:'1',  n:'เมือง Collawarrie',         lv:'เมืองหลัก · เขตปลอดภัย',    island:'south', dest:'town',    desc:'เมืองท่ากลางหุบเขา ร้านค้า ตีเหล็ก ลานประลอง และประตูสู่ดันเจี้ยนทั้งหมด' },
-  { id:'ow_port',    k:'ow_port',    kind:'port',    tx:34, ty:31, icon:'⚓', tag:'⚓', n:'ท่าเรือเกาะใต้',            lv:'ทางข้ามเกาะ',               island:'south', dest:'port',    desc:'ท่าเรือริมฝั่งตะวันออก มีสะพานไม้ยาวเชื่อมข้ามทะเลไปยังเกาะกลางและเกาะเหนือ' },
-  { id:'ow_outpost', k:'ow_outpost', kind:'outpost', tx:50, ty:26, icon:'⛺', tag:'2',  n:'จุดพักแรมเกาะกลาง',        lv:'จุดพักกลางทาง · ฟื้นพลัง',  island:'mid',   dest:'outpost', desc:'ค่ายพักนักเดินทางบนเกาะหินแดง เชื่อมสะพานระหว่างเกาะใต้และเกาะเหนือ' },
-  { id:'ow_spire',   k:'ow_spire',   kind:'spire',   tx:36, ty:14, icon:'🔮', tag:'T',  n:'หอคอยคริสตัลจอมเวท',       lv:'Lv.50–95 · 5 ชั้น (มีปริศนา)', island:'north', dest:'spire',   desc:'หอคอยอเมทิสต์ 5 ชั้น บนเกาะเหนือ (แทนทางเข้าเมืองหลวงเดิม) มีห้องทั่วไป · หัวหน้า · บอส ต้องแก้ปริศนาคริสตัลเพื่อขึ้นชั้นถัดไป' },
+  { id:'ow_spire',   k:'ow_spire',   kind:'spire',   tx:9,  ty:27, icon:'🔮', tag:'T',  n:'หอคอยคริสตัลจอมเวท',       lv:'Lv.50–95 · 5 ชั้น (Rank G+)', island:'south', dest:'spire',   desc:'หอคอยอเมทิสต์ 5 ชั้น ทางทิศตะวันตกของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) มีห้องทั่วไป · หัวหน้า · บอส ต้องแก้ปริศนาคริสตัลเพื่อขึ้นชั้นถัดไป' },
+  { id:'ow_spire_s', k:'ow_spire_s', kind:'spire_locked', tx:27, ty:28, icon:'🔒', tag:'T2', n:'หอคอยคริสตัลทุ่งเหนือ (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'south', dest:'spire_s', locked:1, desc:'หอคอยคริสตัลบนทุ่งหญ้าทางตอนเหนือของเกาะใต้ ยังถูกผนึกและไม่สามารถเข้าไปได้' },
+  { id:'ow_town',    k:'ow_town',    kind:'town',    tx:20, ty:40, icon:'🏰', tag:'1',  n:'เมือง Collawarrie',         lv:'เมืองหลัก · เขตปลอดภัย',    island:'south', dest:'town',    desc:'เมืองท่ากลางหุบเขา ร้านค้า ตีเหล็ก กิลด์นักผจญภัย ลานประลอง และประตูสู่ดันเจี้ยนทั้งหมด' },
+  { id:'ow_port',    k:'ow_port',    kind:'port',    tx:34, ty:31, icon:'⚓', tag:'⚓', n:'ท่าเรือเกาะใต้',            lv:'สะพานถูกตัด · ข้ามไม่ได้',   island:'south', dest:'port',    desc:'ท่าเรือริมฝั่งตะวันออก สะพานข้ามเกาะถูกตัดขาดทั้งหมด ไม่สามารถข้ามไปยังเกาะกลางและเกาะเหนือได้' },
+  { id:'ow_outpost', k:'ow_outpost', kind:'outpost', tx:50, ty:26, icon:'⛺', tag:'2',  n:'จุดพักแรมเกาะกลาง',        lv:'🔒 ข้ามทะเลไม่ได้',         island:'mid',   dest:'outpost', desc:'ค่ายพักนักเดินทางบนเกาะหินแดง ปัจจุบันสะพานถูกตัดขาด ไม่สามารถเดินทางข้ามมาได้' },
+  { id:'ow_spire_m', k:'ow_spire_m', kind:'spire_locked', tx:53, ty:24, icon:'🔒', tag:'T3', n:'หอคอยคริสตัลภูเขาไฟ (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'mid', dest:'spire_m', locked:1, desc:'หอคอยคริสตัลที่ตั้งตระหง่านเหนือเกาะหินแดงกลางทะเล ยังถูกผนึกแน่นหนา' },
+  { id:'ow_spire_w', k:'ow_spire_w', kind:'spire_locked', tx:36, ty:14, icon:'🔒', tag:'T1', n:'หอคอยคริสตัลตะวันตก (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'north', dest:'spire_w', locked:1, desc:'หอคอยคริสตัลโบราณบนเกาะเหนือ (สลับที่กับหอคอยคริสตัลจอมเวท) ถูกผนึกด้วยม่านพลัง ไม่สามารถเข้าได้' },
+  { id:'ow_spire_n', k:'ow_spire_n', kind:'spire_locked', tx:54, ty:13, icon:'🔒', tag:'T4', n:'หอคอยคริสตัลเหมันต์ (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'north', dest:'spire_n', locked:1, desc:'หอคอยคริสตัลท่ามกลางยอดเขาหิมะทางตะวันออกของเกาะเหนือ ยังถูกผนึกและไม่สามารถเข้าได้' },
   { id:'ow_city',    k:'ow_city',    kind:'city',    tx:29, ty:14, icon:'🔒', tag:'C',  n:'เมืองหลวงออเรีย (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้',    island:'north', dest:'city',    locked:1, desc:'ประตูเมืองหลวงบนเกาะเหนือถูกม่านพลังผนึกไว้แน่นหนา ยังไม่สามารถเดินทางเข้าไปได้' }
 ];
 
@@ -79,23 +82,18 @@ const OW = {
     ell(54, 13, 10.5, 6.6, 'N');
     ell(49, 9, 8.5, 4.5, 'N');
 
-    // สะพานไม้กว้าง 2 ช่อง เชื่อม 3 เกาะเข้าด้วยกัน
-    for (let x = 34; x <= 47; x++) { paint(x, 29, 'B'); paint(x, 30, 'B'); }
-    for (let y = 17; y <= 23; y++) { paint(47, y, 'B'); paint(48, y, 'B'); }
-
-    // ถนนดินเชื่อมระหว่างเมือง / บ้าน / ท่าเรือ / จุดพักแรม (ไม่มีทางเข้าดันเจี้ยนบนแผนที่)
-    road(9, 27, 14, 34);    // บ้านของเรา -> ทางแยกตะวันตก
+    // ตัดสะพานข้ามทะเลออกทั้งหมด — ข้ามระหว่างเกาะไม่ได้
+    road(9, 27, 14, 34);    // หอคอยคริสตัลจอมเวท -> ทางแยกตะวันตก
     road(14, 34, 20, 40);   // ทางแยกตะวันตก -> เมือง Collawarrie
     road(20, 40, 29, 37);   // เมือง Collawarrie -> ท้องทุ่งตะวันออก
     road(29, 37, 34, 31);   // ท้องทุ่งตะวันออก -> ท่าเรือเกาะใต้
-    road(14, 34, 25, 31);   // ทางลัดสายเหนือของเกาะใต้ -> ท่าเรือเกาะใต้
-    road(25, 31, 34, 31);
-    road(34, 31, 35, 30);   // ท่าเรือ -> สะพานข้ามเกาะกลาง
-    road(47, 29, 50, 26);   // สะพาน -> จุดพักแรมเกาะกลาง
-    road(50, 26, 48, 23);   // จุดพักแรม -> สะพานไปเกาะเหนือ
-    road(47, 17, 41, 15);   // ขึ้นฝั่งเกาะเหนือ -> หอคอยคริสตัล
+    road(14, 34, 27, 28);   // ทางลัดสายเหนือ -> หอคอยทุ่งเหนือ
+    road(27, 28, 34, 31);   // หอคอยทุ่งเหนือ -> ท่าเรือเกาะใต้
+    road(50, 26, 53, 24);   // จุดพักแรม -> หอคอยเกาะกลาง
     road(41, 15, 36, 14);
-    road(36, 14, 29, 14);   // หอคอย -> ประตูเมืองหลวงที่ถูกผนึก
+    road(36, 14, 29, 14);   // หอคอยตะวันตก -> ประตูเมืองหลวงที่ถูกผนึก
+    road(41, 15, 48, 14);   // เกาะเหนือ -> หอคอยคริสตัลเหมันต์
+    road(48, 14, 54, 13);
 
     // ทิวเขาและป่าไม้ประดับฉาก
     const mtns = [
@@ -149,7 +147,7 @@ const OW = {
     fill(23, 14, 27, 18, 'W');
     const water = [];
     for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) if (gr[y][x] === 'W') water.push({ x, y });
-    const H = (tx, ty, rf = '#2a5aa8') => ({ k: 'house', ...T(tx, ty, 8, 14), hw: 26, roof: rf });
+    const H = (tx, ty, rf = '#2a5aa8') => ({ k: 'house', ...T(tx, ty, 8, 14), hw: 45, hh: 24, roof: rf });
     const props = [
       Object.assign(H(7, 7, '#2a5aa8'), { sign: 'store', inter: 'in_store' }),
       Object.assign(H(28, 7, '#4c3f78'), { sign: 'alchemy', inter: 'in_alchemy' }),
@@ -286,35 +284,34 @@ const OW = {
       }
       return true;
     }
-    if (k === 'ow_spire') {
+    if (k.startsWith('ow_spire')) {
+      const sealed = !!(o.loc && o.loc.locked);
       const p = .5 + Math.sin(G.t * .08) * .35;
       shadow(g, x, y, 22);
       // เนินหินและฐานผลึกอเมทิสต์
-      g.fillStyle = '#4e5c42'; g.beginPath(); g.ellipse(x, y - 2, 20, 7, 0, 0, 7); g.fill();
-      g.fillStyle = '#5c545e'; g.fillRect(x - 10, y - 42, 20, 40);
-      g.fillStyle = '#423a46'; g.fillRect(x + 2, y - 42, 8, 40);
-      // ทางเดินเวียนเกลียวพันรอบหอคอย (ตามภาพต้นแบบ)
-      g.strokeStyle = '#8b808e'; g.lineWidth = 2.6;
+      g.fillStyle = sealed ? '#454846' : '#4e5c42'; g.beginPath(); g.ellipse(x, y - 2, 20, 7, 0, 0, 7); g.fill();
+      g.fillStyle = sealed ? '#46414b' : '#5c545e'; g.fillRect(x - 10, y - 42, 20, 40);
+      g.fillStyle = sealed ? '#2e2a34' : '#423a46'; g.fillRect(x + 2, y - 42, 8, 40);
+      // ทางเดินเวียนเกลียวพันรอบหอคอย
+      g.strokeStyle = sealed ? '#66606d' : '#8b808e'; g.lineWidth = 2.6;
       for (const yy of [-10, -22, -33]) { g.beginPath(); g.moveTo(x - 13, yy + 3 + y); g.quadraticCurveTo(x, yy + y, x + 13, yy - 3 + y); g.stroke(); }
-      // ประตูหิน + มงกุฎคริสตัลม่วงเรืองแสงบนยอดและฐาน
-      g.fillStyle = '#1e102c'; g.fillRect(x - 4, y - 10, 8, 9); g.fillStyle = '#7af0d8'; g.fillRect(x - 1, y - 8, 2, 5);
+      // ประตูหิน + มงกุฎคริสตัลบนยอดและฐาน
+      g.fillStyle = '#1e102c'; g.fillRect(x - 4, y - 10, 8, 9);
+      g.fillStyle = sealed ? '#ff5a6a' : '#7af0d8'; g.fillRect(x - 1, y - 8, 2, 5);
       for (const [cx2, cy2, w2, h2] of [[-11, -11, 4, 8], [-6, -13, 4, 10], [6, -13, 4, 9], [11, -11, 4, 7]]) {
-        g.fillStyle = '#a838e8'; g.beginPath(); g.moveTo(x + cx2 - w2 / 2, y + cy2 + h2); g.lineTo(x + cx2, y + cy2); g.lineTo(x + cx2 + w2 / 2, y + cy2 + h2); g.fill();
+        g.fillStyle = sealed ? '#5b3a78' : '#a838e8'; g.beginPath(); g.moveTo(x + cx2 - w2 / 2, y + cy2 + h2); g.lineTo(x + cx2, y + cy2); g.lineTo(x + cx2 + w2 / 2, y + cy2 + h2); g.fill();
       }
-      for (const [cx2, cy2, w2, h2, col] of [[-8, -48, 5, 11, '#9a28d8'], [-3, -55, 6, 16, '#c858ff'], [2, -57, 6, 18, '#f0a8ff'], [8, -51, 5, 13, '#b842f0']]) {
+      for (const [cx2, cy2, w2, h2, col] of [[-8, -48, 5, 11, sealed ? '#523470' : '#9a28d8'], [-3, -55, 6, 16, sealed ? '#68428c' : '#c858ff'], [2, -57, 6, 18, sealed ? '#7e54a4' : '#f0a8ff'], [8, -51, 5, 13, sealed ? '#5e3b80' : '#b842f0']]) {
         g.fillStyle = col; g.beginPath(); g.moveTo(x + cx2 - w2 / 2, y + cy2 + h2); g.lineTo(x + cx2, y + cy2); g.lineTo(x + cx2 + w2 / 2, y + cy2 + h2); g.fill();
       }
-      g.fillStyle = `rgba(218,120,255,${p * .45})`; g.beginPath(); g.arc(x, y - 47, 13, 0, 7); g.fill();
-      if (G.t % 10 === 0) EP.push({ x: x + rnd(-10, 10), y: y - rnd(12, 54), vx: rnd(-.06, .06), vy: -.25, l: 24, c: '#e49aff' });
-      return true;
-    }
-    if (k === 'ow_home') {
-      shadow(g, x, y, 12);
-      g.fillStyle = '#d4b88c'; g.fillRect(x - 8, y - 9, 16, 9);
-      g.fillStyle = '#a84a2a'; g.beginPath(); g.moveTo(x - 10, y - 9); g.lineTo(x, y - 16); g.lineTo(x + 10, y - 9); g.closePath(); g.fill();
-      g.fillStyle = '#ffe28a'; g.fillRect(x + 2, y - 6, 3, 3);
-      g.fillStyle = '#5c3c24'; g.fillRect(x - 4, y - 5, 4, 5);
-      if (G.t % 18 === 0) EP.push({ x: x - 5, y: y - 16, vx: .1, vy: -.25, l: 36, c: 'rgba(240,240,245,.4)' });
+      if (sealed) {
+        g.strokeStyle = 'rgba(255,90,106,.75)'; g.lineWidth = 1.4; g.beginPath(); g.ellipse(x, y - 8, 15, 7, 0, 0, 7); g.stroke();
+        g.fillStyle = '#d84040'; g.fillRect(x - 3, y - 22, 6, 5);
+        g.strokeStyle = '#ffd27a'; g.lineWidth = 1.1; g.beginPath(); g.arc(x, y - 22, 2.2, Math.PI, 0); g.stroke();
+      } else {
+        g.fillStyle = `rgba(218,120,255,${p * .45})`; g.beginPath(); g.arc(x, y - 47, 13, 0, 7); g.fill();
+        if (G.t % 10 === 0) EP.push({ x: x + rnd(-10, 10), y: y - rnd(12, 54), vx: rnd(-.06, .06), vy: -.25, l: 24, c: '#e49aff' });
+      }
       return true;
     }
     if (k === 'ow_outpost') {
@@ -401,9 +398,10 @@ const OW = {
     if (type === 'ow_town') { loadZone(TOWN, TOWN.southGateSpawn || TOWN.spawn); toast('🏰 เข้าสู่เมือง Collawarrie'); Save.save(); return true; }
     if (type === 'ow_city') { OW.enterCity(); return true; }
     if (type === 'ow_spire') { if (typeof enterSpire === 'function') enterSpire(1); return true; }
-    if (type === 'ow_home') {
-      const S = StatSync.get(); G.hp = S.maxHP; G.mp = S.maxMP; SFX.level();
-      say([['🏠 บ้านของเรา (ME)', 'กลับถึงบ้านแล้ว... พักผ่อนจน HP และ MP ฟื้นเต็ม 100%!']], () => Save.save());
+    if (type === 'ow_spire_w' || type === 'ow_spire_s' || type === 'ow_spire_m' || type === 'ow_spire_n') {
+      const loc = OW_LOCATIONS.find(l => l.id === type);
+      toast(`🔒 ${(loc && loc.n) || 'หอคอยคริสตัล'} — ม่านพลังผนึกอยู่ ยังไม่สามารถเข้าได้ในขณะนี้`, 2800);
+      SFX.ui && SFX.ui('error');
       return true;
     }
     if (type === 'ow_outpost') {

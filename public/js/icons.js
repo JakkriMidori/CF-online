@@ -118,16 +118,25 @@ const _icoc=(name,col,size)=>`<span class="iic" style="color:${col}">${ico(name,
 function bIco(id,size=18){const e=BASE_ICO[id]||[TYPE_ICO[(typeof BASES!=='undefined'&&BASES[id]&&BASES[id].type)]||'gem','#d8dde6'];return _icoc(e[0],e[1],size);}
 function mIco(id,size=16){const e=MAT_ICO[id]||(/^sc_/.test(id)?['recipe','#f3c969']:/^sk_/.test(id)?['book','#c9a0ff']:['gem','#d8dde6']);return _icoc(e[0],e[1],size);}
 
-// ---- ไอคอนสกิล (สีตามธาตุ) ----
+// ---- ไอคอนสกิลและสถานะ (สีตามธาตุ / ชนิด) ----
 const EL_COL={weapon:'#ffe08a',phys:'#e6ecf6',fire:'#ff8a3a',lightning:'#8fe4ff',poison:'#8ae06a',shadow:'#c08aff',ice:'#bff0ff'};
+const STATUS_GI={
+  poison:['skull-crossed-bones','#8aff5a'],bleed:['blood','#ff4a5a'],burn:['flame','#ff8a3a'],shock:['heavy-lightning','#9fe6ff'],
+  stun:['star-swirl','#ffe27a'],blind:['ninja-mask','#b08aff'],chaos:['portal','#ff5ad8'],freeze:['ice-crystal','#8ef2ff'],
+  kingAura:['crown','#ffd23a'],parryBuff:['crossed-swords','#d8f8ff'],armorBuff:['shield','#9fd0ff'],buff:['sparkles','#a8ffca'],
+  stunImm:['spiked-halo','#7af0c0'],root:['chains','#ffd23a'],penalty:['hazard-sign','#ff9a5a'],guardBroken:['broken-shield','#ff5a5a'],
+  vanish:['ninja-mask','#bff0ff'],fireShield:['flame','#ff8a3a'],
+  modBuff:['star-formation','#5affb0'],modDebuff:['hazard-sign','#ff7a7a']
+};
 const _skId=new Map();
 function skId(s){if(typeof s==='string')return s;if(_skId.has(s))return _skId.get(s);const k=Object.keys(SKILLS).find(k=>SKILLS[k]===s)||'';_skId.set(s,k);return k;}
 function sIco(s,size=18){const id=skId(s),sk=SKILLS[id]||{},gn=typeof SKILL_GI!=='undefined'&&SKILL_GI[id];
   return gn&&GI[gn]?`<span class="iic" style="color:${EL_COL[sk.el]||'#e6ecf6'}"><svg class="ico gi" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">${GI[gn]}</svg></span>`:(sk.ic||'');}
-// ภาพไอคอนสำหรับวาดบน canvas (แคช)
+// ภาพไอคอนสำหรับวาดบน canvas (แคช + ขอบมืดคมชัด)
 const _giImg={};
-function giImg(name,col){const k=name+col;if(_giImg[k])return _giImg[k];const im=new Image();
-  im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="96" height="96"><g filter="none">${(GI[name]||'').replace(/currentColor/g,col)}</g></svg>`);return _giImg[k]=im;}
+function giImg(name,col){if(!GI[name])return null;const k=name+col;if(_giImg[k])return _giImg[k];const im=new Image();
+  const body=(GI[name]||'').replace(/currentColor/g,col).replace(/<path /g,'<path stroke="#060913" stroke-width="26" stroke-linejoin="round" paint-order="stroke" ');
+  im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="96" height="96"><g>${body}</g></svg>`);return _giImg[k]=im;}
 function skImg(id){const gn=typeof SKILL_GI!=='undefined'&&SKILL_GI[id];return gn?giImg(gn,EL_COL[(SKILLS[id]||{}).el]||'#e6ecf6'):null;}
 
 // ---- เปลี่ยน emoji ในหน้าต่าง/ข้อความ เป็นไอคอนเกม อัตโนมัติ (ไม่ต้องแก้ข้อความทุกจุด) ----

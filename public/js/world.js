@@ -51,20 +51,21 @@ function makeTownGrid(){
   for(const x of[10,23,36])fill(x,23,x+1,24,'B');                   // สะพานไม้
   fill(40,4,44,6,'W');                                            // สระน้ำมุมขวาบน
   fill(42,16,42,16,':');                                          // ทางเดินเข้ากิลด์นักผจญภัย
+  fill(38,22,45,22,':');fill(42,19,42,22,':');                     // ทางเดินเชื่อมหน้าโคลอสเซียมฝั่งตรงข้ามกิลด์
   return gr;
 }
 function makeTown(){
   const grid=makeTownGrid(),water=[];
   for(let y=0;y<grid.length;y++)for(let x=0;x<grid[0].length;x++)if(grid[y][x]==='W')water.push({x,y});
-  const roofs=['#a8382a','#2a5aa8','#3a8a4a','#8a5a2a','#7a3a8a','#2a8a8a'];let ri=0;const H=(tx,ty)=>({k:'house',...T(tx,ty,8,14),hw:26,roof:roofs[ri++%roofs.length]});
+  const roofs=['#a8382a','#2a5aa8','#3a8a4a','#8a5a2a','#7a3a8a','#2a8a8a'];let ri=0;const H=(tx,ty)=>({k:'house',...T(tx,ty,8,14),hw:45,hh:24,roof:roofs[ri++%roofs.length]});
   return{id:'town',grid,cols:TOWN_COLS,rows:TOWN_ROWS,water,spawn:T(23,21,16,8),gate:T(36,5,16,8),southGateSpawn:T(23,TOWN_ROWS-4,16,8),safe:1,levelAt:()=>1,regionAt:()=>'town',biomeAt:()=>'town',
     props:[H(5,7),Object.assign(H(17,7),{sign:'alchemy',inter:'in_alchemy'}),Object.assign(H(30,7),{sign:'store',inter:'in_store'}),H(5,15),Object.assign(H(17,15),{sign:'smith',inter:'in_smithy'}),
       Object.assign(H(42,15),{roof:'#9c2e28',sign:'guild',inter:'in_guild'}),
-      H(17,22),H(42,22),H(5,28),H(17,28),H(30,28),H(42,28),
-      {k:'fountain',...T(31,13,8,14),hw:14,inter:'fountain'},
-      {k:'citygate',...T(36,3,16,1),hw:18,inter:'citygate'},{k:'southgate',...T(23,TOWN_ROWS-2,16,14),hw:18,inter:'southgate'},{k:'duelpost',...T(38,10,8,14),hw:8,inter:'duel'},{k:'arena',...T(23,17,16,16),hw:10,inter:'arena'},
-      ...[[3,3],[14,3],[20,3],[27,3],[33,3],[41,3],[46,4],[2,12],[46,12],[2,26],[46,26],[13,26],[27,26],[34,26],[20,12],[14,20],[39,20]].map(([x,y])=>({k:'tree',...T(x,y,10,14),hw:6})),
-      ...[[21,6],[26,6],[21,13],[26,13],[21,20],[26,20],[8,13],[13,13],[35,4],[38,4],[44,3],[39,14],[45,14]].map(([x,y])=>({k:'lamp',...T(x,y,8,4),hw:3}))],
+      H(17,22),{k:'colosseum',...T(42,21,8,14),hw:48,hh:24,inter:'colosseum'},H(5,28),H(17,28),H(30,28),H(42,28),
+      {k:'fountain',...T(31,13,8,14),hw:16,hh:12,inter:'fountain'},
+      {k:'citygate',...T(36,3,16,1),hw:18,inter:'citygate'},{k:'southgate',...T(23,TOWN_ROWS-2,16,14),hw:18,inter:'southgate'},{k:'duelpost',...T(38,10,8,14),hw:10,hh:14,inter:'duel'},{k:'arena',...T(23,17,16,16),hw:10,inter:'arena'},
+      ...[[3,3],[14,3],[20,3],[27,3],[33,3],[41,3],[46,4],[2,12],[46,12],[2,26],[46,26],[13,26],[27,26],[34,26],[20,12],[14,20],[39,20]].map(([x,y])=>({k:'tree',...T(x,y,10,14),hw:9,hh:10})),
+      ...[[21,6],[26,6],[21,13],[26,13],[21,20],[26,20],[8,13],[13,13],[35,4],[38,4],[44,3],[38,14],[46,14]].map(([x,y])=>({k:'lamp',...T(x,y,8,4),hw:3}))],
     items:[],npcs:[{id:'girl',name:'ไลร่า',...T(28,12),pal:'girl',face:-1,hw:5},
       {id:'guard',name:'กาเรธ',...T(35,5,8,8),pal:'kage',face:1,hw:5},{id:'southguard',name:'โรแลนด์',...T(22,TOWN_ROWS-3,8,6),pal:'kage',face:1,hw:5}],foes:[Object.assign(mkFoe('duelist',T(38,13,8,6)),{challenge:1,alive:!G.flags.duelWon})],ground:[]};
 }
@@ -89,7 +90,7 @@ function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=gr
   for(let k=0,tries=0;k<n&&tries<1500;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<3))continue;
     const r=rand(),type=r<.45&&y!==8&&y!==9?'pit':r<.82?'spike':'alarm';out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
   return out;}
-function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge;}
+function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge&&!d.passive&&!d.immortal;}
 // ย้ายศัตรูที่ซ่อนอยู่/ไม่ใช่บอส ให้ห่างประตู ทางออก บันได และจุดเกิด (แก้ปัญหามอนดักหน้าประตู)
 function keepFromDoors(z){const doors=(z.props||[]).filter(o=>/exit|stairs|portal|gate|bossroom|door/.test(o.k||'')||o.inter==='town'||o.inter==='stairs'),sp=z.spawn,R=TRAP.near;
   const bad=(x,y)=>doors.some(o=>Math.hypot(o.x-x,o.y-y)<R)||(sp&&Math.hypot(sp.x-x,sp.y-y)<R*1.3);
@@ -149,7 +150,8 @@ function bossConfirm(o,kind,go){
   say([['','⚠️ ด้านหน้าคือห้องบอส: '+FOES[kind].n+' — เข้าแล้วจะออกไม่ได้ และหนีไม่ได้ จนกว่าจะชนะหรือตาย'],['','กด E อีกครั้งภายใน 15 วินาทีเพื่อเข้า (ตอนนี้เลเวล '+G.level+')']],()=>{o.confirm=G.t;});
 }
 let CAVE=null;
-const CHEST_SKILLS=['sk_orb','sk_poisondart','sk_rising','sk_slashwave','sk_rushkick','sk_thunderclap'];  // dungeon random chests roll from this list
+const CHEST_SKILLS=['sk_orb','sk_poisondart','sk_rising','sk_slashwave','sk_slashcut','sk_rushkick','sk_thunderclap','sk_frostnova','sk_windblade','sk_windvanish','sk_fireshield','sk_blink'];
+const RARE_COLO_SKILLS=['sk_frostnova','sk_windblade','sk_windvanish','sk_fireshield','sk_blink'];  // dungeon random chests roll from this list
 const CAM={x:0,y:0,rx:0,ry:0,snap:1,zone:null};
 function loadZone(z,spawn){if(typeof Cutscene!=='undefined'&&Cutscene.active&&!Cutscene._internal)Cutscene.abort();Z=z;const sp=spawn||z.spawn;P.x=sp.x;P.y=sp.y;{const bs=G.bloodstain;if(bs&&bs.zone===z.id&&blocked(bs.x,bs.y)){bs.x=z.spawn.x+24;bs.y=z.spawn.y;}}Z.cols=Z.grid[0].length;Z.rows=Z.grid.length;CAM.snap=1;Z.torches=[];if(Z.id!=='overworld'){Z.grid[2].forEach((c,i)=>{if(c==='T')Z.torches.push({x:i*16+8,y:2*16+8});});if(Z.id==='town')for(let i=3;i<Z.cols-2;i+=8)if(i<35||i>38)Z.torches.push({x:i*16+8,y:44});}
   if(!Z.safe&&Z.id!=='overworld'){for(const f of Z.foes)f.hidden=hideFoe(f)?1:0;keepFromDoors(Z);}   // v0.2.0: มอนทั่วไปซ่อนอยู่ (แบบ RPG Maker)
@@ -231,10 +233,67 @@ function makeInterior(kind,retZone,retPos){
   return{id:kind,title:INDOOR_TITLES[kind]||kind,interior:1,carpet:INDOOR_CARPETS[kind]||'#8e2c26',retZone,retPos,grid:gr,cols:C,rows:R,
     spawn:T(15,13,0,4),safe:1,levelAt:()=>1,regionAt:()=>kind,biomeAt:()=>'interior',props,items:[],npcs,folk,foes:[],ground:[],torches};
 }
+function interiorDoorPos(kind){
+  const p=TOWN&&TOWN.props&&TOWN.props.find(o=>o.inter===kind);
+  return p?{x:p.x,y:p.y+14}:(TOWN?{x:TOWN.spawn.x,y:TOWN.spawn.y}:{x:376,y:344});
+}
 function enterInterior(kind){
-  const rz=Z||TOWN,rp={x:P.x,y:P.y+6};
+  const rz=Z&&Z.id==='town'?Z:(TOWN||Z);
+  const fromTownNormal=Z&&Z.id==='town'&&!(typeof Cutscene!=='undefined'&&Cutscene._internal);
+  const rp=fromTownNormal?{x:P.x,y:P.y+6}:interiorDoorPos(kind);
   loadZone(makeInterior(kind,rz,rp));
   toast(Z.title,2200);
+}
+function makeColosseumZone(rankId='G',retZone,retPos){
+  const C=30,R=17,gr=Array.from({length:R},(_,y)=>Array.from({length:C},(_,x)=>(x<6||x>23||y<3||y>13)?'#':'.'));
+  for(let y=5;y<=11;y++)for(let x=9;x<=20;x++)if((x-15)*(x-15)/36+(y-8)*(y-8)/12<=1)gr[y][x]=':';
+  gr[14][14]=':';gr[14][15]=':';gr[12][14]=':';gr[12][15]=':';gr[13][14]=':';gr[13][15]=':';
+  const props=[
+    {k:'exitdoor',...T(15,14,0,14),hw:12,inter:'exit_interior'},
+    {k:'banner',col:'#b82828',...T(9,3,8,10),hw:4},{k:'banner',col:'#d8a030',...T(15,3,0,10),hw:4},{k:'banner',col:'#2868b8',...T(20,3,8,10),hw:4},
+    {k:'pillar',...T(8,4,8,14),hw:6},{k:'pillar',...T(21,4,8,14),hw:6},{k:'pillar',...T(8,12,8,14),hw:6},{k:'pillar',...T(21,12,8,14),hw:6}
+  ];
+  const torches=[T(7,4),T(22,4),T(7,12),T(22,12)];
+  const foes=rankId==='G'?[
+    mkFoe('egel',T(10,5,8,8),{challenge:1,respawnable:0,elite:false,walkIn:T(11,8,8,8)}),
+    mkFoe('rankg2',T(15,4,8,8),{challenge:1,respawnable:0,elite:false,walkIn:T(15,7,8,8)}),
+    mkFoe('rankg3',T(20,5,8,8),{challenge:1,respawnable:0,elite:false,walkIn:T(19,8,8,8)})
+  ]:[];
+  return{id:'colosseum_'+rankId,title:`🏟️ โคลอสเซียม — ทดสอบเลื่อนขั้น Rank ${rankId}`,interior:1,colosseum:rankId,noPotion:1,carpet:'#8e5a2c',
+    retZone,retPos,grid:gr,cols:C,rows:R,spawn:T(15,13,0,4),safe:0,levelAt:()=>35,regionAt:()=>'colosseum_'+rankId,biomeAt:()=>'interior',
+    props,items:[],npcs:[],folk:[],foes,ground:[],torches};
+}
+function enterColosseum(rankId='G'){
+  const rz=Z||TOWN,rp={x:P.x,y:P.y+6};
+  loadZone(makeColosseumZone(rankId,rz,rp));
+  toast(`⚔️ เข้าสู่โคลอสเซียมบททดสอบ Rank ${rankId} (ห้ามใช้ยาฟื้นพลัง/ยามานา — เดินเลือกคู่ต่อสู้ได้เลย!)`,3800);
+}
+function makeTrainingZone(retZone,retPos){
+  const C=22,R=14,gr=Array.from({length:R},()=>Array(C).fill('#'));
+  for(let y=3;y<R-1;y++)for(let x=1;x<C-1;x++)gr[y][x]='.';
+  for(let x=1;x<C-1;x++)gr[2][x]=x===11?':':(x%5===2?'T':'^');
+  gr[2][11]='.';
+  const props=[{k:'exitdoor',...T(11,13,0,8),hw:14,inter:'exit_interior'}];
+  const torches=[T(5,3),T(16,3),T(5,10),T(16,10)];
+  const npcs=[{id:'trainer',name:'ครูฝึกแกรนท์',...T(8,9,0,4),pal:'kage',face:1,hw:5}];
+  const foes=[mkFoe('dummy',T(11,7,0,0),{respawnable:0,elite:false})];
+  return{id:'colosseum_train',title:'🎯 โรงฝึกซ้อมโคลอสเซียม (หุ่นซ้อมอมตะ)',interior:1,training:1,carpet:'#6c5438',
+    retZone,retPos,grid:gr,cols:C,rows:R,spawn:T(11,11,0,4),safe:0,levelAt:()=>1,regionAt:()=>'colosseum_train',biomeAt:()=>'interior',
+    props,items:[],npcs,folk:[],foes,ground:[],torches};
+}
+function enterTrainingGround(){
+  const rz=Z||TOWN,rp={x:P.x,y:P.y+6};
+  loadZone(makeTrainingZone(rz,rp));
+  if(!G.flags.trainerIntro){
+    G.flags.trainerIntro=1;
+    say([
+      ['ครูฝึกแกรนท์','ยินดีต้อนรับสู่โรงฝึกซ้อมโคลอสเซียม! เจ้าคงเป็นนักผจญภัยหน้าใหม่ที่โบโรแนะนำมาสินะ'],
+      ['ครูฝึกแกรนท์','กลางห้องนี้คือ **หุ่นซ้อมอมตะ** — ไม่มีวันพังและไม่โจมตีกลับ เหมาะสำหรับฝึกคอมโบ กดสกิล และวัดดาเมจเต็มที่'],
+      ['ครูฝึกแกรนท์','เดินเข้าไปชนหุ่นซ้อมกลางห้องเพื่อเริ่มซ้อมได้เลย ระหว่างต่อสู้ข้าจะคอยชี้แนะวิธีเล่นและคอมโบให้ พอซ้อมเสร็จกด [ออกฝึก] ได้ทุกเมื่อ!']
+    ]);
+  }else{
+    toast('🎯 เข้าสู่โรงฝึกซ้อมโคลอสเซียม — เดินเข้าหาหุ่นซ้อมเพื่อฝึกคอมโบ หรือคุยกับครูฝึกแกรนท์',3600);
+  }
 }
 /* ----- หอคอยคริสตัลจอมเวท 5 ชั้น (Lv.50 -> 60 -> 70 -> 80 -> 90+ · 3 ห้อง/ชั้น + ปริศนา) ----- */
 const SPIRE_RUNE_NAMES=['🔴 ศิลาทับทิม (แดง)','🔵 ศิลาไพลิน (ฟ้า)','🟣 ศิลาอเมทิสต์ (ม่วง)'];
@@ -249,44 +308,49 @@ const SPIRE_RIDDLES=[
 function makeSpireFloor(floor=1){
   const C=48,R=17,gr=Array.from({length:R},()=>Array(C).fill('#'));
   for(let x=1;x<C-1;x++)gr[2][x]=x%6===3?'T':'^';
-  for(let y=3;y<16;y++)for(let x=1;x<C-1;x++)gr[y][x]=(x===16||x===32)?((y===8||y===9)?':':'#'):'.';
+  for(let y=3;y<16;y++)for(let x=1;x<C-1;x++)gr[y][x]=x===16?((y===8||y===9)?':':'#'):x===32?'#':'.';   // ห้อง 3 (x=32): ประตูห้องบอสถูกล็อคจนกว่าจะแก้ปริศนาครบ 3/3
   for(const cx of[7,12,21,27,37,42]){gr[5][cx]='#';gr[12][cx]='#';}
   const baseLv=50+(floor-1)*10,zid='spire'+floor,rd=SPIRE_RIDDLES[(floor-1)%SPIRE_RIDDLES.length];
   const puzzle={seq:rd.seq.slice(),lit:[],solved:false,clue:rd.clue};
   const props=[
     {k:'exitdoor',...T(2,3,8,14),hw:7,inter:'ow_spire_exit'},
     {k:'puzzle_clue',...T(5,6,8,12),hw:8,inter:'puzzle_clue'},
+    {k:'puzzle_rune',ri:0,rc:SPIRE_RUNE_COLS[0],rn:SPIRE_RUNE_NAMES[0],...T(13,13,8,12),hw:8,inter:'puzzle_rune'},
     {k:'chest',...T(13,4,8,12),hw:7,inter:'chest',content:{loot:'spire',skill:.35}},
+    {k:'puzzle_rune',ri:1,rc:SPIRE_RUNE_COLS[1],rn:SPIRE_RUNE_NAMES[1],...T(20,5,8,12),hw:8,inter:'puzzle_rune'},
+    {k:'puzzle_rune',ri:2,rc:SPIRE_RUNE_COLS[2],rn:SPIRE_RUNE_NAMES[2],...T(28,5,8,12),hw:8,inter:'puzzle_rune'},
     {k:'chest',...T(28,13,8,12),hw:7,inter:'chest',content:{loot:'spireboss',skill:.45}},
-    {k:'puzzle_rune',ri:0,rc:SPIRE_RUNE_COLS[0],rn:SPIRE_RUNE_NAMES[0],...T(35,5,8,12),hw:8,inter:'puzzle_rune'},
-    {k:'puzzle_rune',ri:1,rc:SPIRE_RUNE_COLS[1],rn:SPIRE_RUNE_NAMES[1],...T(35,13,8,12),hw:8,inter:'puzzle_rune'},
-    {k:'puzzle_rune',ri:2,rc:SPIRE_RUNE_COLS[2],rn:SPIRE_RUNE_NAMES[2],...T(42,5,8,12),hw:8,inter:'puzzle_rune'}
+    {k:'bossdoor',...T(32,9,8,8),hw:10,locked:1,spireGate:1,inter:'spire_boss_gate'}
   ];
   if(floor<5)props.push({k:'stairs',...T(45,9,8,10),hw:7,inter:'spire_stairs'});
   else props.push({k:'portal',...T(45,9,8,10),hw:7,inter:'spire_clear'});
-  const bk='spire_b'+floor;
+  const bk='spire_b'+floor,mk=floor===1?'spire1_mob':'spiremob',lk=floor===1?'spire1_leader':'spireleader',rndPt=(x0,x1)=>{for(let tries=0;tries<24;tries++){const tx=rint(x0,x1),ty=rint(4,14);if(gr[ty][tx]==='.'&&!props.some(o=>Math.abs(o.x-(tx*16+8))<20&&Math.abs(o.y-(ty*16+8))<20))return T(tx,ty);}return T(x0,9);};
   const foes=[
-    mkFoe('spiremob',T(8,8),{room:1}),mkFoe('spiremob',T(11,11),{room:1}),mkFoe('spiremob',T(14,7),{room:1}),
-    mkFoe('spireleader',T(24,9),{room:2}),mkFoe('spiremob',T(22,6),{room:2,elite:1}),mkFoe('spiremob',T(26,12),{room:2}),
+    mkFoe(mk,rndPt(6,14),{room:1,hidden:1}),mkFoe(mk,rndPt(6,14),{room:1,hidden:1}),mkFoe(mk,rndPt(7,15),{room:1,hidden:1}),
+    mkFoe(lk,rndPt(19,29),{room:2,hidden:1}),mkFoe(mk,rndPt(18,30),{room:2,elite:1,hidden:1}),mkFoe(mk,rndPt(18,30),{room:2,hidden:1}),
     mkFoe(bk,T(40,9,8,6),{room:3,cool:100})
   ];
   return{id:zid,theme:'spire',spireFloor:floor,title:`🔮 หอคอยคริสตัล ชั้น ${floor}/5`,grid:gr,traps:[],spawn:T(2,9),
     levelAt:tx=>baseLv+(tx>=33?3:tx>=17?1:0),
-    regionAt:()=>zid,biomeAt:()=>floor===5?'sanctum':'crystal',roomAt:tx=>tx>=33?'ห้อง 3: บอส & ปริศนา':tx>=17?'ห้อง 2: ระดับหัวหน้า':'ห้อง 1: ทั่วไป',
+    regionAt:()=>zid,biomeAt:()=>floor===5?'sanctum':'crystal',roomAt:tx=>tx>=33?'ห้อง 3: ห้องบอส':tx>=17?'ห้อง 2: ระดับหัวหน้า & ปริศนา':'ห้อง 1: ทั่วไป & ปริศนา',
     props,items:[],npcs:[],foes,lavaTiles:[],puddles:{},puzzle,floor};
 }
 function enterSpire(floor=1){
+  if(typeof Guild!=='undefined'&&!Guild.canEnterSpire()){
+    toast('🔒 หอคอยคริสตัลปิดผนึก — ต้องมีแรงค์กิลด์สูงกว่า Rank F (อย่างน้อย Rank G) จึงจะเข้าได้!',3600);
+    SFX.ui&&SFX.ui('error');return false;
+  }
   const f=Math.max(1,Math.min(5,floor|0)),z=makeSpireFloor(f);
   loadZone(z,z.spawn);
-  for(const e of Z.foes)e.hidden=0;   // เห็นระดับมอน หัวหน้า และบอสแต่ละห้องชัดเจน
-  G.shake=4;
-  toast(`🔮 หอคอยคริสตัล ชั้น ${f}/5 (เริ่มต้น Lv.${50+(f-1)*10}) · ปราบบอสและแก้ปริศนาคริสตัล`,3200);
+  for(const e of Z.foes)e.hidden=FOES[e.kind]&&FOES[e.kind].boss?0:1;   // ลูกน้องซ่อนสุ่มในห้อง 1–2 แบบถ้ำเริ่มต้น, เห็นเฉพาะบอสในห้อง 3
+  G.shake=4;SFX.spire&&SFX.spire();
+  toast(`🔮 หอคอยคริสตัล ชั้น ${f}/5 (เริ่มต้น Lv.${50+(f-1)*10}) · แก้ปริศนาผลึก 3/3 เพื่อปลดล็อคห้องบอส`,3400);
   Save.save&&Save.save();
 }
 const World={
   serialize(){const c=CAVE,inInt=Z&&Z.interior,inSp=Z&&Z.theme==='spire',rz=inInt?(Z.retZone&&Z.retZone.id==='city'?'city':'town'):null,rp=inInt?(Z.retPos||TOWN.spawn):null;
     return{rubble:c.rubbleOpen,items:c.items.map(i=>!!i.taken),chests:c.props.map(p=>!!p.opened),
-    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inInt?rz:Z&&(Z.id==='town'||Z.bossRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?T(36,15,8,8):inInt?rp:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
+    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inInt?rz:Z&&(Z.id==='town'||Z.bossRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?T(9,28,8,8):inInt?rp:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
   restore(d){CAVE=makeCave();TOWN=makeTown();if(typeof OW!=='undefined'){OVERWORLD=OW.make();CITY=OW.makeCity();}if(d){CAVE.rubbleOpen=d.rubble;if(d.rubble){CAVE.grid[8][19]='.';CAVE.grid[9][19]='.';}
     d.items.forEach((t,i)=>{if(CAVE.items[i])CAVE.items[i].taken=t;});d.chests.forEach((o,i)=>{if(CAVE.props[i])CAVE.props[i].opened=o;});
     d.foes.forEach((f,i)=>{const e=CAVE.foes[i];if(e){e.alive=f.alive;e.elite=f.elite;e.respawn=f.respawn||0;if(!e.alive&&e.respawnable&&!e.respawn)e.respawn=CONFIG.respawnFrames;}});G.visited=d.visited||{};}
@@ -381,8 +445,8 @@ function buildBg(){
 }
 
 /* ----- exploration ----- */
-const hitBox=(o,x,y)=>Math.abs(o.x-x)<o.hw+4&&y>o.y-6&&y-3<o.y;
-const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','fountain','stall','board','tree','cavegate','icegate','bossdoor','stonegate','duelpost','towergate','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','pillar']);
+const hitBox=(o,x,y)=>Math.abs(o.x-x)<(o.hw||6)+4&&y>o.y-(o.hh||(o.k==='colosseum'?26:o.k==='house'?24:o.k==='fountain'?12:o.k==='counter'||o.k==='shelf'||o.k==='table'||o.k==='fireplace'||o.k==='furnace'||o.k==='cauldron'?12:o.k==='tree'||o.k==='board'||o.k==='anvil'||o.k==='rack'?10:8))&&y-3<o.y;
+const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','colosseum','fountain','stall','board','tree','cavegate','icegate','bossdoor','stonegate','duelpost','towergate','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','pillar']);
 function blocked(x,y,self,tilesOnly){
   for(const[px,py] of [[x-4,y-3],[x+4,y-3],[x-4,y],[x+4,y]]){const tx=Math.floor(px/16),ty=Math.floor(py/16);
     if(ty<0||ty>=Z.rows||tx<0||tx>=Z.cols)return true;if('#^TRLW'.includes(Z.grid[ty][tx]))return true;}
@@ -391,10 +455,10 @@ function blocked(x,y,self,tilesOnly){
   for(const o of Z.npcs)if(o!==self&&hitBox(o,x,y))return true;
   return false;
 }
-const LABEL={ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอส + แก้ปริศนา)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เข้า City — เมืองหลวงออเรีย',ow_home:'🏠 พักผ่อนที่บ้านของเรา (ME)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'ดื่มน้ำพุ (ฟื้นเต็ม)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจี้ยน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
+const LABEL={ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_w:'🔒 หอคอยคริสตัลตะวันตก (ถูกผนึก · เข้าไม่ได้)',ow_spire_s:'🔒 หอคอยคริสตัลทุ่งเหนือ (ถูกผนึก · เข้าไม่ได้)',ow_spire_m:'🔒 หอคอยคริสตัลภูเขาไฟ (ถูกผนึก · เข้าไม่ได้)',ow_spire_n:'🔒 หอคอยคริสตัลเหมันต์ (ถูกผนึก · เข้าไม่ได้)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_boss_gate:'🔒 ประตูห้องบอสหอคอย (แก้ปริศนา 3/3 เพื่อเปิด)',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอสประจำชั้น)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',colosseum:'🏟️ เข้าโคลอสเซียม (ดันเจี้ยนทดสอบแรงค์)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เมืองหลวงออเรีย (ถูกผนึก)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'ดื่มน้ำพุ (ฟื้นเต็ม)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจียน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
 let NEAR=null;
 function findNear(){
-  let best=null,bd=22;const c=(o,type)=>{const d=Math.hypot(o.x-P.x,(o.y-P.y)*1.2);if(d<bd){bd=d;best={o,type};}};
+  let best=null,bd=44;const c=(o,type)=>{const maxD=o&&o.k==='colosseum'?42:o&&o.k==='house'?36:22;const d=Math.hypot(o.x-P.x,(o.y-P.y)*1.2);if(d<maxD&&d<bd){bd=d;best={o,type};}};
   for(const o of Z.props)if(o.inter&&!o.opened)c(o,o.inter);for(const o of Z.npcs)c(o,'npc');for(const o of Z.folk||[])c(o,'folk');for(const o of Z.items)if(!o.taken)c(o,'item');
   for(const o of Z.ground||[])if(!o.picked&&o.owner==='P1')c(o,'ground');   // only the owner can interact
   const bs=G.bloodstain;if(bs&&bs.zone===Z.id)c(bs,'bloodstain');
@@ -407,6 +471,7 @@ function grantChest(o){
   if(ct.loot){
     const out=Loot.roll(ct.loot,Z.levelAt(0),false);
     if(ct.skill&&rand()<ct.skill){const k=pick(CHEST_SKILLS);out.mats[k]=(out.mats[k]||0)+1;}
+    else if(!ct.skill&&rand()<.052){const k=pick(RARE_COLO_SKILLS);out.mats[k]=(out.mats[k]||0)+1;}
     out.items.length||out.items.push(newItem(pick(BASE_BY_TYPE(pick(ALLTYPES))),'rare',Z.levelAt(0)));
     Loot.grant(out);
     for(const it of out.items)got.push(`<span style="color:${RARC[it.rar]}">${bIco(it.base,14)} ${itemName(it)}</span>`);
@@ -426,8 +491,14 @@ function interact(n){
   else if(n.type==='duel'){const f=Z.foes.find(x=>x.challenge&&x.alive);if(!f){toast('bbqy legendary พ่ายแพ้แล้ว');return;}
     say([['bbqy legendary','ข้า bbqy นักดวลไพ่ที่แข็งแกร่งที่สุดในโลก!'],['bbqy legendary','ข้าไม่สนหินเอเธอร์หรือประตูรอยแยก — ถ้าเจ้าอยากเป็นผู้กล้า จงเอาดาบ Chaos Blade ของข้าไปให้ได้ก่อน'],['','กด E อีกครั้งเพื่อท้าดวล']],()=>{startBattle(f);});}
   else if(n.type==='folk'){const sv=o.face;o.face=P.x<o.x?-1:1;o.wait=240;o.tx=null;say([[o.name,o.line||pick(FOLK_LINES)]]);}
+  else if(n.type==='colosseum'){UI.open('colosseum');}
   else if(n.type==='in_smithy'||n.type==='in_store'||n.type==='in_alchemy'||n.type==='in_guild'){enterInterior(n.type);}
-  else if(n.type==='exit_interior'){const rz=Z.retZone||TOWN,rp=Z.retPos||TOWN.spawn;loadZone(rz,rp);toast('🏛️ กลับสู่เขตเมือง');}
+  else if(n.type==='exit_interior'){
+    const rz=Z.retZone||TOWN;
+    let rp=Z.retPos||TOWN.spawn;
+    if(rz.id==='town'&&Z.id==='in_guild'&&TOWN.southGateSpawn&&Math.hypot(rp.x-TOWN.southGateSpawn.x,rp.y-TOWN.southGateSpawn.y)<48)rp=interiorDoorPos('in_guild');
+    loadZone(rz,rp);toast('🏛️ กลับสู่เขตเมือง');
+  }
   else if(n.type==='reitem'){UI.open('reitem');}
   else if(n.type==='guildmaster'){talk('guildmaster');}
   else if(n.type==='ow_spire_exit'){if(typeof OW!=='undefined')OW.enter('spire');else loadZone(TOWN,TOWN.spawn);}
@@ -440,12 +511,23 @@ function interact(n){
     if(ri===exp){
       pz.lit.push(ri);SFX.pick();
       for(let i=0;i<14;i++)EP.push({x:o.x,y:o.y-12,vx:rnd(-1.4,1.4),vy:rnd(-2,-.4),l:28,c:o.rc});
-      if(pz.lit.length>=pz.seq.length){pz.solved=true;SFX.level();toast('✨ แก้ปริศนาคริสตัลสำเร็จ! (ปราบบอสประจำชั้นด้วยเพื่อขึ้นชั้นถัดไป)',3400);}
+      if(pz.lit.length>=pz.seq.length){
+        pz.solved=true;
+        if(Z.grid&&Z.grid[8]){Z.grid[8][32]=':';Z.grid[9][32]=':';}
+        Z.props=Z.props.filter(pr=>!pr.spireGate);
+        buildBg();G.shake=5;SFX.level();
+        toast('🔓 ปริศนาผลึกครบ 3/3 แล้ว — ประตูห้องบอสเปิดออกแล้ว!',3600);
+      }
       else toast(`🔮 จุด ${o.rn} ถูกต้อง (${pz.lit.length}/${pz.seq.length})`,2000);
     }else{
       pz.lit=[];SFX.ui&&SFX.ui('error');G.shake=4;
       toast(`❌ ลำดับผิด! เสาผลึกดับลงแล้ว (${pz.clue})`,3400);
     }
+  }
+  else if(n.type==='spire_boss_gate'){
+    const litN=Z.puzzle?Z.puzzle.lit.length:0;
+    toast(`🔒 ประตูห้องบอสถูกล็อค — ต้องแก้ปริศนาเสาผลึกให้ครบก่อน (${litN}/3)`,3200);
+    SFX.ui&&SFX.ui('error');
   }
   else if(n.type==='spire_stairs'||n.type==='spire_clear'){
     const bossAlive=Z.foes.some(e=>e.alive&&FOES[e.kind]&&FOES[e.kind].boss);
@@ -582,14 +664,24 @@ function updExplore(){
   const stuck=blocked(P.x,P.y);
   if(!blocked(P.x+dx*sp,P.y,null,stuck))P.x+=dx*sp;if(!blocked(P.x,P.y+dy*sp,null,stuck))P.y+=dy*sp;
   if(P.moving){P.anim+=.2;if(G.t%12===0)EP.push({x:P.x,y:P.y,vx:rnd(-.3,.3),vy:-.2,l:20,c:Equip.look().trail||'rgba(200,180,150,.6)'});}
-  const reg=Z.regionAt(Math.floor(P.x/16));if(G.visited&&!G.visited[reg]){G.visited[reg]=1;toast(`📍 ${ZONE_INFO[reg].n} (โซน Lv.${ZONE_INFO[reg].lv})`);}
+  const reg=Z.regionAt(Math.floor(P.x/16));if(G.visited&&!G.visited[reg]&&ZONE_INFO[reg]){G.visited[reg]=1;toast(`📍 ${ZONE_INFO[reg].n} (โซน Lv.${ZONE_INFO[reg].lv})`);}
   // regen out of combat
   Mana.regen(G,S,false);if(G.t%60===0)G.hp=Math.min(S.maxHP,G.hp+Math.round(S.maxHP*.01));
   for(const e of Z.foes){
     if(!e.alive){if(e.respawnable&&e.respawn>0&&--e.respawn===0){e.alive=true;e.x=e.home.x;e.y=e.home.y;e.elite=rand()<ELITE.chance;e.cool=120;e.hidden=hideFoe(e)?1:0;}continue;}
     if(e.cool>0)e.cool--;const dist=Math.hypot(e.x-P.x,e.y-P.y),d=FOES[e.kind];
     if(e.hidden){if(e.cool<=0&&dist<ENC.rad){encounter(e);return;}continue;}   // ซ่อนอยู่: ไม่เดิน ไม่แสดง · เดินเข้าใกล้ = เข้าไฟต์
-    if(d.kind==='mon'&&!d.boss){
+    if(Z.colosseum&&e.walkIn&&!e.walkedIn){
+      const dx=e.walkIn.x-e.x,dy=e.walkIn.y-e.y,dd=Math.hypot(dx,dy);
+      if(dd>2){e.vx=dx/dd*.95;e.vy=dy/dd*.95;e.x+=e.vx;e.y+=e.vy;e.face=P.x<e.x?-1:1;}
+      else{e.vx=e.vy=0;e.walkedIn=1;e.home={x:e.x,y:e.y};}
+    }else if(Z.colosseum){
+      e.vx=e.vy=0;e.face=P.x<e.x?-1:1;
+      if(e.cool<=0&&dist<18){startBattle(e);return;}
+    }else if(d.passive){
+      e.vx=e.vy=0;e.face=1;
+      if(e.cool<=0&&dist<20){startBattle(e);return;}
+    }else if(d.kind==='mon'&&!d.boss){
       if(dist<64&&e.cool<=0){e.vx=(P.x-e.x)/dist*.75;e.vy=(P.y-e.y)/dist*.75;}
       else if(--e.t<=0){e.t=rint(40,120);const a=rand()*6.28;if(rand()<.35){e.vx=e.vy=0;}else{e.vx=Math.cos(a)*.45;e.vy=Math.sin(a)*.45;}}
       const nx=e.x+e.vx,ny=e.y+e.vy;
@@ -617,7 +709,7 @@ function drawProp(o){
   if(Z.id==='overworld'&&typeof OW!=='undefined'&&OW.drawProp(o))return;
   if(AS.prop(g,o))return;   // มีภาพจาก AI → ใช้ภาพ
   if(HDP[o.k]){HDP[o.k](o);return;}   // ฉากประกอบรายละเอียดสูง (HD-2D)
-  if(['house','fountain','stall','board','tree','lamp','citygate','southgate','cavegate','icegate','stonegate','towergate','duelpost','exitup','exitdoor','arena','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','banner','pillar'].includes(o.k))return drawTownProp(o);
+  if(['house','colosseum','fountain','stall','board','tree','lamp','citygate','southgate','cavegate','icegate','stonegate','towergate','duelpost','exitup','exitdoor','arena','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','banner','pillar'].includes(o.k))return drawTownProp(o);
   const x=o.x|0,y=o.y|0;if(o.k!=='stairs'&&o.k!=='portal')shadow(g,x,y,o.hw+2);
   if(o.k==='anvil'){g.fillStyle='#3a3036';g.fillRect(x-13,y-11,10,11);g.fillStyle='#ff7a1a';g.fillRect(x-12,y-13,8,3);
     g.fillStyle=G.t%12<6?'#ffd27a':'#ff9a3a';g.fillRect(x-11+((G.t>>3)%5),y-14,2,2);
@@ -657,9 +749,23 @@ function drawGround(gi){
 }
 function drawTownProp(o){
   const x=o.x|0,y=o.y|0;
-  if(o.k==='house'){shadow(g,x,y,30);g.fillStyle='#d8c8a8';g.fillRect(x-26,y-26,52,26);g.fillStyle='#b0a080';g.fillRect(x-26,y-4,52,4);
-    g.fillStyle=o.roof;g.beginPath();g.moveTo(x-32,y-24);g.lineTo(x,y-46);g.lineTo(x+32,y-24);g.fill();g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x-32,y-26,64,3);
-    g.fillStyle='#5a3a22';g.fillRect(x-5,y-16,10,16);g.fillStyle='#ffd27a';g.fillRect(x-20,y-20,8,7);g.fillRect(x+12,y-20,8,7);g.fillStyle='#5a3a22';g.fillRect(x-17,y-20,1,7);g.fillRect(x+15,y-20,1,7);
+  if(o.k==='colosseum'){
+    shadow(g,x,y,50);
+    // โคลอสเซียมศิลาสีทองอมครีมฝั่งตรงข้ามกิลด์นักผจญภัย
+    g.fillStyle='#b8a482';g.fillRect(x-48,y-36,96,36);
+    g.fillStyle='#8d7b5c';g.fillRect(x-50,y-6,100,6);g.fillRect(x-50,y-40,100,5);
+    g.fillStyle='#d2c09e';for(let bx=-44;bx<=40;bx+=12)g.fillRect(x+bx,y-45,7,5);
+    for(const sx of[-38,-22,22,38]){g.fillStyle='#4a3622';g.beginPath();g.ellipse(x+sx,y-22,5,8,0,Math.PI,0);g.fill();g.fillRect(x+sx-5,y-22,10,16);}
+    g.fillStyle='#241812';g.beginPath();g.ellipse(x,y-14,12,11,0,Math.PI,0);g.fill();g.fillRect(x-12,y-14,24,14);
+    g.fillStyle='#a82828';g.fillRect(x-19,y-30,5,14);g.fillRect(x+14,y-30,5,14);
+    g.fillStyle='#f0c44a';g.fillRect(x-18,y-28,3,4);g.fillRect(x+15,y-28,3,4);
+    g.fillStyle='#6a4426';g.fillRect(x-16,y-39,32,9);g.fillStyle='#ffd86a';g.fillRect(x-15,y-39,30,1);g.fillRect(x-15,y-31,30,1);
+    g.strokeStyle='#ffd86a';g.lineWidth=1.4;g.beginPath();g.moveTo(x-6,y-37);g.lineTo(x+6,y-32);g.moveTo(x+6,y-37);g.lineTo(x-6,y-32);g.stroke();
+    return;
+  }
+  if(o.k==='house'){shadow(g,x,y,46);g.fillStyle='#d8c8a8';g.fillRect(x-44,y-33,88,33);g.fillStyle='#b0a080';g.fillRect(x-46,y-5,92,5);
+    g.fillStyle=o.roof;g.beginPath();g.moveTo(x-52,y-30);g.lineTo(x,y-60);g.lineTo(x+52,y-30);g.fill();g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x-52,y-32,104,3);
+    g.fillStyle='#5a3a22';g.fillRect(x-7,y-22,14,22);g.fillStyle='#ffd27a';g.fillRect(x-34,y-27,13,9);g.fillRect(x+21,y-27,13,9);g.fillStyle='#5a3a22';g.fillRect(x-28,y-27,1,9);g.fillRect(x+27,y-27,1,9);
     if(o.sign){// ป้ายร้าน: กระดานไม้แขวน + สัญลักษณ์วาดเอง
       g.fillStyle='#3a2414';g.fillRect(x-1,y-30,2,4);g.fillStyle='#6a4426';g.fillRect(x-13,y-38,26,10);g.fillStyle='#c8a464';g.fillRect(x-13,y-38,26,1);g.fillRect(x-13,y-29,26,1);
       g.fillStyle='#ffd87a';
@@ -795,6 +901,7 @@ function palLook(pal,id){
   if(id==='alchemist')return{arch:'furcoat',sex:'f',hstyle:'long',hair:'#dcd8f0',eyec:'#48e0a8',skin:'#fce4d0',body:'#362452',coatCol:'#4a2878',furCol:'#e4dcf8',trim:'#e8c458',pants:'#261c3a',boots:'#341d48',head:'wizard',hc:'#3c2064',hc2:'#6cf0c0',orbCol:'#5cf0b8',gloves:null,sleeve:null};
   if(id==='guildmaster')return{arch:'elf_knight',elfEars:1,sex:'f',hstyle:'braid',hair:'#e8dcb8',eyec:'#c83848',skin:'#fce4d0',body:'#f4f6fa',obiCol:'#c89e38',coatCol:'#7a1e28',trim:'#e8c058',pants:'#eaeef4',boots:'#3e2422',head:'none',gloves:'#4a2026',sleeve:null};
   if(id==='guildshop')return{arch:'knight',sex:'m',hstyle:'sidebang',hair:'#4e3624',eyec:'#306c9a',skin:'#f2c098',body:'#2c4e74',armor:'#7a889e',coatCol:'#244868',trim:'#d8b050',pants:'#28303e',boots:'#3a2a20',head:'none',gloves:'#5a6270',sleeve:null};
+  if(id==='trainer')return{arch:'knight',sex:'m',hstyle:'spiky',hair:'#685a50',eyec:'#d89030',skin:'#e4b48a',body:'#8a2c24',armor:'#9ca6b8',coatCol:'#6b1e1a',trim:'#ffd25a',pants:'#2c2624',boots:'#3a241a',head:'band',hc:'#ffd25a',hc2:'#fff0a8',weapon:'sword',gloves:'#4a382e',sleeve:null};
   if(String(id).startsWith('folk')){const idx=(parseInt(String(id).replace(/\D/g,''))||0)%FOLK_PROFILES.length;return Object.assign({},FOLK_PROFILES[idx].look);}
   const h=hash((id||'').length*7+((pal.h||'').charCodeAt(2)||0),(pal.c||'').charCodeAt(3)||0),HS=Object.keys(HAIR_STYLES).filter(k=>k!=='bald'),st=HS[(h*HS.length)|0];
   return{hair:pal.h,skin:pal.s,eyec:pal.e,body:pal.c,trim:pal.b,pants:pal.p,boots:pal.f,hstyle:st||'short',sex:h>.5?'f':'m',gloves:null,sleeve:null};}
@@ -820,6 +927,28 @@ function drawExploreWpnFx(x,y,K,sheet){
   if(!K||(sheet&&sheet!=='char_player'))return;
   const Wp=K.weapon&&WEAPONS[K.weapon];
   const isChaos=K.weapon==='bbqysword'||K.wshape==='chaosblade';
+  const isLightless=K.wfxKind==='lightless';
+  if(sheet==='char_player'){
+    const wIt=typeof G!=='undefined'&&G.eq&&G.eq.weapon&&typeof itemByUid==='function'?itemByUid(G.eq.weapon):null;
+    if(!wIt||(wIt.rar!=='legendary'&&wIt.rar!=='god'))return;   // ผู้เล่น: เฉพาะอาวุธระดับตำนาน (legendary) ขึ้นไปเท่านั้นที่มีเอฟเฟกต์ที่พื้น
+  }else if(!isChaos&&!isLightless)return;   // NPC / บอสในฉาก (เช่น bbqy ดาบ Chaos Blade): คงเอฟเฟกต์ออร่าที่พื้นไว้
+  if(isLightless){
+    const ang=(G.t*.065)%6.283;g.save();
+    g.globalAlpha=.46;g.fillStyle='#060609';g.beginPath();g.ellipse(x,y,13,4.4,0,0,7);g.fill();
+    g.globalAlpha=.72;
+    for(let i=-1;i<=1;i++){const sx=x+i*4.5+Math.sin(G.t*.09+i)*1.2,sy=y-1-Math.abs(Math.cos(G.t*.11+i*2))*1.2;
+      g.fillStyle=i===0?'#ffffff':'#0c0c12';g.beginPath();g.arc(sx,sy,2.1,0,7);g.fill();
+      g.strokeStyle=i===0?'#0a0a0f':'#ffffff';g.lineWidth=.65;g.stroke();}
+    g.translate(x,y-1);g.rotate(-.22);
+    g.globalAlpha=.72;g.strokeStyle='#08080c';g.lineWidth=2.3;g.beginPath();g.ellipse(0,0,12,4,0,0,7);g.stroke();
+    g.globalAlpha=.96;g.strokeStyle='#ffffff';g.lineWidth=1.4;g.beginPath();g.ellipse(0,0,12,4,0,ang,ang+3.1);g.stroke();
+    g.globalAlpha=.85;g.strokeStyle='#14141c';g.lineWidth=1.0;g.beginPath();g.ellipse(0,0,12,4,0,ang+Math.PI,ang+Math.PI+2.4);g.stroke();
+    g.globalAlpha=.82;g.strokeStyle='#ffffff';g.lineWidth=.8;g.setLineDash([2.2,2.2]);
+    g.beginPath();g.ellipse(0,0,8.5,2.8,0,-ang,-ang+6.283);g.stroke();g.setLineDash([]);
+    g.restore();
+    if(G.t%5===0)EP.push({x:x+rnd(-10,10),y:y-rnd(1,16),vx:rnd(-.12,.12),vy:-.35,l:20,c:G.t%10?'#ffffff':'#181820'});
+    return;
+  }
   if(isChaos){
     const ang=(G.t*.065)%6.283;g.save();
     g.globalAlpha=.22;g.fillStyle='#b45cff';g.beginPath();g.ellipse(x,y,13,4.4,0,0,7);g.fill();
@@ -836,6 +965,7 @@ function drawExploreWpnFx(x,y,K,sheet){
     if(G.t%5===0)EP.push({x:x+rnd(-10,10),y:y-rnd(1,16),vx:rnd(-.12,.12),vy:-.35,l:20,c:G.t%10?'#e2b3ff':'#5ff0ff'});
     return;
   }
+  if(K.weapon==='adagger')return;   // กริชอาคมพราย: ไม่แสดงวงเวทย์/เอฟเฟคที่พื้น
   const col=K.wfx||(Wp&&Wp.el!=='phys'&&Wp.fx)||K.aura;
   if(!col)return;
   const ang=(G.t*.05)%6.283;g.save();
@@ -922,7 +1052,7 @@ function drawExplore(){
     if(AS.has('mon_'+e.kind)){shadow(g,e.x,e.y,d.boss?16:7);AS.mon(g,e.kind,e.x,e.y+Math.round(Math.sin(G.t*.08+e.x)*1)-(d.hover?4:0),d.boss?mh*2.2:Math.max(16,mh*1.8),e.face<0,mt);}
     else if(d.h<60){shadow(g,e.x,e.y,6);spr(g,SPR[d.map]||RAT,PAL[d.pal],e.x,e.y+1-(Math.abs(Math.sin(G.t*.3))*(e.vx||e.vy?1:0)|0),1,e.face<0,e.cool>0&&G.t%8<4?'rgba(255,255,255,.6)':null);}
     else if(d.kind==='rig'){const K=d.look?LOOK_BY_NAME[d.look]:(e._K=e._K||Object.assign(palLook(PAL[d.pal||(e.kind==='kage'?'kage':'shade')],e.kind),{weapon:d.wpn||'sword'}));drawWalker(e.x,e.y,e.face,K,e.vx||e.vy,G.t*.22,e.x|0,e.cool>0&&G.t%8<4?'rgba(255,255,255,.6)':null);}
-    else{shadow(g,e.x,e.y,16);spr(g,SPR[d.map]||GOLEM,PAL[d.pal],e.x,e.y+Math.round(Math.sin(G.t*.04))-(d.hover?4:0),d.map==='ANGEL'?1.6:d.boss?2:1.4,e.face<0&&!d.noFlip,null,e);}}});
+    else{shadow(g,e.x,e.y,d.passive?10:16);spr(g,SPR[d.map]||GOLEM,PAL[d.pal],e.x,e.y+(d.passive?0:Math.round(Math.sin(G.t*.04))-(d.hover?4:0)),d.map==='ANGEL'?1.6:d.map==='DUMMY'?1.5:d.boss?2:1.4,e.face<0&&!d.noFlip,null,e);}}});
   list.push({x:P.x,y:P.y,f:()=>{
     if(P.castExit>0){const pr=1-P.castExit/180,al=.35+Math.sin(G.t*.25)*.15;
       g.save();g.strokeStyle=`rgba(122,240,255,${.7+pr*.3})`;g.lineWidth=1.2;g.beginPath();g.ellipse(P.x,P.y,11+pr*4,4.5+pr*1.5,0,0,7);g.stroke();
@@ -959,9 +1089,10 @@ function drawExploreUI(){
     const q=PJ.pt(n.x,n.y),bx=q.x*S,by=(q.y+(-24+Math.sin(G.t*.08)*1.5)*q.s)*S;D.fillStyle='#f4ead8';rrect(bx-14,by-10,28,18,6);D.fill();
     D.beginPath();D.moveTo(bx-4,by+8);D.lineTo(bx,by+14);D.lineTo(bx+4,by+8);D.fill();D.fillStyle='#2a1a20';D.font='800 16px Sarabun,sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(n.id==='smith'?'!':'…',bx,by);}
   if(Z.id==='town'&&G.q.main1.step<2){const sm=Z.props.find(o=>o.inter==='in_smithy');if(sm){const q=PJ.pt(sm.x,sm.y-20),bx=q.x*S,by=(q.y+Math.sin(G.t*.08)*1.5)*S;D.fillStyle='#f4ead8';rrect(bx-14,by-10,28,18,6);D.fill();D.beginPath();D.moveTo(bx-4,by+8);D.lineTo(bx,by+14);D.lineTo(bx+4,by+8);D.fill();D.fillStyle='#b83228';D.font='800 16px Sarabun,sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText('!',bx,by);}}
-  for(const e of Z.foes)if(e.alive&&!e.hidden){const d=FOES[e.kind],lv=foeLevel(d,Z.levelAt(Math.floor(e.x/16))),dy=d.boss?48:d.kind==='rig'?24:14;
-    const col=lv>=G.level+3?'#ff5a4a':lv>=G.level+1?'#ffb03a':'#d8f0ff';
-    outlineText(`${e.elite?'★ ':''}Lv.${lv}${d.boss?' 👑':''}`,PJ.pt(e.x,e.y).x*S,(PJ.pt(e.x,e.y).y-dy*PJ.pt(e.x,e.y).s)*S,12,e.elite?'#ffd23a':col);}
+  for(const e of Z.foes)if(e.alive&&!e.hidden){const d=FOES[e.kind],lv=foeLevel(d,Z.levelAt(Math.floor(e.x/16))),dy=d.boss?48:d.kind==='rig'?24:d.immortal?26:14;
+    const col=(Z.colosseum||Z.training)?'#ffd86a':lv>=G.level+3?'#ff5a4a':lv>=G.level+1?'#ffb03a':'#d8f0ff';
+    const lbl=(Z.colosseum||d.immortal)?`${d.immortal?'🎯 ':''}Lv.${lv} ${d.n}`:`${e.elite?'★ ':''}Lv.${lv}${d.boss?' 👑':''}`;
+    outlineText(lbl,PJ.pt(e.x,e.y).x*S,(PJ.pt(e.x,e.y).y-dy*PJ.pt(e.x,e.y).s)*S,12,e.elite?'#ffd23a':col);}
   (Z.ground||[]).filter(gi=>!gi.picked&&Math.hypot(gi.x-P.x,gi.y-P.y)<LOOT_CONFIG.ground.nameRange&&!(NEAR&&NEAR.o===gi)).sort((a,b)=>Math.hypot(a.x-P.x,a.y-P.y)-Math.hypot(b.x-P.x,b.y-P.y)).slice(0,3).forEach((gi,i)=>{
     outlineText((gi.owner!=='P1'?'🔒 ':'')+LootManager.name(gi.drop),PJ.pt(gi.x,gi.y).x*S,(PJ.pt(gi.x,gi.y).y-16*PJ.pt(gi.x,gi.y).s)*S-i*14,12,gi.owner!=='P1'?'#777':RARC[gi.drop.rar]);});
   if(P.castExit>0&&G.mode==='explore'){const q=PJ.pt(P.x,P.y);pill(q.x*S,(q.y-30*q.s)*S,`📜 กำลังร่ายวาร์ป... ${Math.ceil(P.castExit/60)} วิ`,'#7af0ff');}
@@ -997,7 +1128,7 @@ function drawMinimap(){
 }
 
 /* ----- NPC dialog ----- */
-const dlgEl=$('#dialog'),dWho=dlgEl.querySelector('.who'),dTx=dlgEl.querySelector('.tx');let DLG=null;
+const dlgEl=$('#dialog'),dWho=dlgEl.querySelector('.who'),dTx=dlgEl.querySelector('.tx'),dImg=dlgEl.querySelector('#dlgImg');let DLG=null;
 function say(lines,done){DLG={lines,i:0,done};G.mode='dialog';dlgEl.classList.remove('hidden');showLine();}
 const dPt=dlgEl.querySelector('.pt');
 // หาโมเดลของผู้พูด: NPC ในฉากที่ชื่อตรงกัน · ผู้เล่น · หรือ NPC ที่กำลังคุยด้วย
@@ -1008,7 +1139,9 @@ function drawSpeaker(K){const c=dPt.getContext('2d');c.setTransform(1,0,0,1,0,0)
   dPt.style.display='';dlgEl.classList.add('hasPt');const Pz=poseIdle(0),J=rigPoints(Pz),sc=5.2;c.imageSmoothingEnabled=false;
   const gl=c.createRadialGradient(60,70,4,60,70,70);gl.addColorStop(0,'rgba(150,200,255,.35)');gl.addColorStop(1,'rgba(150,200,255,0)');c.fillStyle=gl;c.fillRect(0,0,120,160);
   try{drawRig(c,60-J.hd[0]*sc,52-J.hd[1]*sc,sc,1,Pz,K);}catch(e){dlgEl.classList.remove('hasPt');dPt.style.display='none';}}
-function showLine(){const[w,t]=DLG.lines[DLG.i];dWho.textContent=w;dWho.style.display=w?'':'none';dTx.textContent=t;drawSpeaker(speakerLook(w));SFX.talk();}
+function showLine(){const[w,t,img]=DLG.lines[DLG.i];dWho.textContent=w;dWho.style.display=w?'':'none';dTx.textContent=t;drawSpeaker(speakerLook(w));
+  if(dImg){if(img){dImg.src=img;dImg.style.display='';dImg.classList.remove('hidden');dlgEl.classList.add('hasImg');}else{dImg.src='';dImg.style.display='none';dImg.classList.add('hidden');dlgEl.classList.remove('hasImg');}}
+  SFX.talk();}
 /* ----- Cutscene เปิดเกม: เดินจากประตูเข้ากลางเมือง -> พูดกับตัวเอง -> เดินไปกิลด์ -> จอดำตัดเข้ากิลด์ -> สมัครกิลด์รับ Rank F ----- */
 const Cutscene={
   active:null,fade:0,step:0,t:0,_internal:false,
@@ -1019,7 +1152,7 @@ const Cutscene={
     this._internal=false;
     P.dir4='up';P.face=1;P.moving=false;G.mode='cutscene';
   },
-  abort(){this.active=null;this.fade=0;this.step=0;P.moving=false;DLG=null;dlgEl&&dlgEl.classList.add('hidden');},
+  abort(){this.active=null;this.fade=0;this.step=0;P.moving=false;DLG=null;dlgEl&&dlgEl.classList.add('hidden');if(dImg){dImg.src='';dImg.style.display='none';dImg.classList.add('hidden');dlgEl&&dlgEl.classList.remove('hasImg');}},
   walkTo(tx,ty,spd=1.35){
     const dx=tx-P.x,dy=ty-P.y,d=Math.hypot(dx,dy);
     if(d<=spd){P.x=tx;P.y=ty;P.moving=false;return true;}
@@ -1030,7 +1163,7 @@ const Cutscene={
   },
   skip(){
     if(!this.active)return;
-    DLG=null;dlgEl&&dlgEl.classList.add('hidden');
+    DLG=null;dlgEl&&dlgEl.classList.add('hidden');if(dImg){dImg.classList.add('hidden');dlgEl&&dlgEl.classList.remove('hasImg');}
     this._internal=true;
     if(!Z||Z.id!=='in_guild')enterInterior('in_guild');
     const desk=T(10,7,8,14);P.x=desk.x;P.y=desk.y;P.dir4='up';P.moving=false;
@@ -1105,14 +1238,35 @@ const Cutscene={
             ['อิริส','ยินดีต้อนรับสู่กิลด์นักผจญภัยคอลลาวาร์รีค่ะ! ยิ่งช่วงนี้แสงเอเธอร์สั่นคลอน เรายินดีรับนักผจญภัยหน้าใหม่เสมอค่ะ'],
             ['อิริส','กรอกข้อมูลเรียบร้อยแล้วค่ะ! ตั้งแต่วันนี้คุณเป็นสมาชิกกิลด์อย่างเป็นทางการ — ได้รับแรงค์เริ่มต้น [Rank F] ค่ะ'],
             ['อิริส','แรงค์กิลด์มีทั้งหมด 7 ขั้น ได้แก่ F → G → D → C → B → A → S เมื่อเลเวลถึงเกณฑ์และทำเควสต์เลื่อนขั้นสำเร็จ มาเลื่อนขั้นกับฉันได้เลยค่ะ'],
-            ['อิริส','ลองตรวจดูกระดานเควสต์ตรงกลางโถง และแวะหาช่างตีเหล็กโบโรที่โรงตีเหล็กในเมืองเพื่อเตรียมอาวุธด้วยนะคะ ขอให้โชคดีในการผจญภัย!']],()=>this.finish());
+            ['อิริส','แต่ดูเหมือนคุณจะยังไม่มีอาวุธติดตัวเลยนะคะ — ลองไปหา "โบโร" ที่โรงตีเหล็กในเมืองดูสิ เขาช่วยจัดเตรียมอาวุธให้คุณได้แน่ค่ะ'],
+            ['อิริส','เสร็จแล้วอย่าลืมแวะกลับมาดูกระดานเควสต์ตรงกลางโถงกิลด์ด้วยนะคะ ขอให้โชคดีในการผจญภัย!']],()=>this.finish());
         }
         break;
     }
   }
 };
-function nextLine(){if(!DLG)return;DLG.i++;if(DLG.i>=DLG.lines.length){const d=DLG.done;DLG=null;dlgEl.classList.add('hidden');G.mode=typeof Cutscene!=='undefined'&&Cutscene.active?'cutscene':'explore';d&&d();}else showLine();}
+function nextLine(){if(!DLG)return;DLG.i++;if(DLG.i>=DLG.lines.length){const d=DLG.done;DLG=null;dlgEl.classList.add('hidden');if(dImg){dImg.src='';dImg.style.display='none';dImg.classList.add('hidden');dlgEl.classList.remove('hasImg');}G.mode=typeof Cutscene!=='undefined'&&Cutscene.active?'cutscene':'explore';d&&d();}else showLine();}
 dlgEl.addEventListener('click',nextLine);
+function startTrainerLesson(isReview=false){
+  say([
+    ['ครูฝึกแกรนท์','โอ้ ซ้อมเสร็จแล้วสินะ! ท่าทางหัวไวใช้ได้เลย — ว่าแต่... **เจ้ารู้เกี่ยวกับอุปกรณ์มากแค่ไหนล่ะ?**'],
+    ['ครูฝึกแกรนท์','**อุปกรณ์ในตัวนักผจญภัยมีทั้งหมด 8 ชนิด (9 ช่องสวมใส่)**: อาวุธหลัก, หมวก, เกราะ, ถุงมือ, กางเกง, รองเท้า, แหวน 2 วง และสร้อยคอ — แต่ละชนิดช่วยเสริมพลังโจมตี พลังเวท พลังป้องกัน ค่าคริ และโบนัสชุดเซ็ต'],
+    ['ครูฝึกแกรนท์','ส่วน **อาวุธ** ก็มีหลายประเภท ทั้งดาบมือเดียว, ดาบใหญ่สองมือ, ค้อน, หอก, สนับมือ, กริช และไม้เท้าเวท — **อาวุธแต่ละชนิดมีการใช้งานและชุดคอมโบที่แตกต่างกันทั้งหมด** (ทั้งความเร็ว ระยะ และจังหวะท่าปิด)'],
+    ['ครูฝึกแกรนท์','นอกจากนี้ อุปกรณ์ยังมี **ระดับความหายาก 5 ระดับ** ตั้งแต่ ธรรมดา → หายาก → มหากาพย์ → ตำนาน และสูงสุดคือ **ระดับเทพ (God)** ยิ่งระดับสูง ยิ่งมีค่าพลังแฝงและช่องฝังรูนมาก'],
+    ['ครูฝึกแกรนท์','อ้อ! พูดถึงระดับที่หายากที่สุดที่ข้าเคยเห็นมาในชีวิตซึ่งมันหายากมากๆ ก็คือ **ระดับเทพ** — ทั้งชีวิตข้าเคยเห็นกับตาแค่เล่มเดียวเท่านั้น...','assets/img/god_sword_mystery.jpg'],
+    ['ครูฝึกแกรนท์','ดาบเล่มนั้นมีใบดาบสีดำทมิฬพร้อมแกนแสงสีทองลุกโชติช่วง — **ข้าก็ไม่รู้เหมือนกันว่าดาบเล่มนี้คือดาบอะไร เพียงแค่เคยเห็นมันผ่านตาเท่านั้น**','assets/img/god_sword_mystery.jpg'],
+    ['ครูฝึกแกรนท์','เอาล่ะ! ตอนนี้เจ้าฝึกจบครบทุกขั้นตอนแล้ว — ออกไปทำภารกิจของเจ้าได้ (ไปถ้ำชีสเพื่อจัดการคาเงะและเก็บวัตถุดิบกลับมาตีเหล็กที่โบโรเลย!)']
+  ],()=>{
+    G.flags.trainerLessonDone=1;
+    if(!isReview){SFX.level&&SFX.level();toast('✅ จบการฝึกซ้อมแล้ว! มุ่งหน้าประตูเมืองบนขวา → ถ้ำชีส เพื่อทำภารกิจ',4200);}
+    Save.save&&Save.save();
+  });
+}
+function onTrainingFinished(){
+  if(G.flags.trainerLessonDone)return false;
+  startTrainerLesson(false);
+  return true;
+}
 function talk(id){
   const q=G.q.main1,nm=((Z.npcs||[]).find(n=>n.id===id)||{}).name;
   if(id==='merchant'||id==='shopkeeper'||id==='guildshop'){UI.open('shop');return;}
@@ -1128,19 +1282,42 @@ function talk(id){
     const rankLine=nxt
       ?`แรงค์ปัจจุบันของคุณคือ [Rank ${cur.id} — ${cur.n}] ค่ะ (กิลด์มี 7 ขั้น: F → G → D → C → B → A → S) · ขั้นถัดไป Rank ${nxt.id}: ${pr.reason}`
       :`สุดยอดมากค่ะ! คุณขึ้นถึงจุดสูงสุดของกิลด์ [Rank S — ${cur.n}] แล้ว!`;
+    const extraHint=!G.flags.boroGaveWood
+      ?'ดูเหมือนคุณยังต้องการอาวุธอยู่นะคะ! รีบไปหา "โบโร" ที่โรงตีเหล็กในเมืองก่อนเลย เขาจะช่วยเตรียมอาวุธให้คุณเองค่ะ'
+      :'แวะเติมยาที่เคาน์เตอร์ของทริสตันฝั่งขวา แล้วตรวจดูกระดานเควสต์ได้ตลอดเวลา — แม้แต่คนธรรมดาก็พิสูจน์ตัวเป็นผู้กล้าได้นะคะ!';
     say([[gm,'ยินดีต้อนรับสู่กิลด์นักผจญภัยคอลลาวาร์รี! กระดานเควสต์ตรงกลางโถงรวบรวมภารกิจปราบสัตว์ประหลาดจากรอยแยกไว้ทั้งหมดแล้ว'],
       [gm,rankLine],
-      [gm,'แวะเติมยาที่เคาน์เตอร์ของทริสตันฝั่งขวา แล้วตรวจดูกระดานเควสต์ได้ตลอดเวลา — แม้แต่คนธรรมดาก็พิสูจน์ตัวเป็นผู้กล้าได้นะคะ!']]);
+      [gm,extraHint]]);
     return;
   }
   if(id==='southguard'){UI.open(Z.id==='city'?'cityexit':'southgate');return;}
   if(id==='guard'){const g=nm||'กาเรธ';say([[g,'แสงเอเธอร์บนฟ้าสั่นไหวไม่หยุด ประตูใต้รอยแยกเริ่มแง้มออกจนฝูงมอนสเตอร์ทะลักเข้าถ้ำชีส — เจ้าพร้อมจะพิสูจน์ตัวหรือยัง?'],[g,'ศัตรูที่ล้มลงจะทิ้งไอเท็มไว้บนพื้น รีบเก็บภายใน 2 นาทีล่ะ สีม่วงคือระดับตำนาน สีทองคือระดับเทพ!']]);return;}
+  if(id==='trainer'){
+    if(!G.flags.trainerLessonDone){
+      say([
+        ['ครูฝึกแกรนท์','เดินเข้าหา **หุ่นซ้อมอมตะ** กลางห้องเพื่อฝึกคอมโบและสกิลได้เลย พอฝึกเสร็จแล้วกด [ออกฝึก] ข้าจะมีเรื่องอุปกรณ์และอาวุธสำคัญจะเล่าให้ฟัง!']
+      ]);
+    }else{
+      startTrainerLesson(true);
+    }
+    return;
+  }
   if(id==='smith'){const s=nm||'โบโร';
-    if(q.step===0)say([[s,'เมื่อแสงเอเธอร์สั่น ประตูใต้รอยแยกก็ขยับ... หินเอเธอร์ทั้งแปดหายไป และความว่างเปล่าที่หิวโหยกำลังส่งสัตว์ประหลาดออกมา'],
-      [s,'คนอื่นหนีออกจากคอลลาวาร์รีไปหมดแล้ว เหลือแค่คนธรรมดาอย่างเจ้าที่ยังยืนอยู่ตรงนี้ — พิสูจน์ให้โลกเห็นด้วยดาบเหล็กจากทั่งของข้า!'],
-      [s,'ลงถ้ำชีสหาวัตถุดิบแล้วมาตีอาวุธที่โต๊ะตีเหล็กข้างข้า มีค้างคาเงาชื่อ "คาเงะ" และโกเลมหินขวางทางหินเอเธอร์ก้อนแรกอยู่'],
-      [s,'วางวัตถุดิบลงช่องบนโต๊ะ สูตรพื้นฐานข้าจดไว้ให้แล้ว ส่วนสูตรขั้นสูงหาได้จากคัมภีร์และผู้คน · ถ้ามีคริสตัลศักดิ์สิทธิ์ 💎 โอกาสสำเร็จจะเพิ่มอีก 20%'],
-      [s,'กด C ดูค่าพลัง, I ดูอุปกรณ์, K ตั้งสกิล, Q ดูเควสต์ — ออกไปนำหินเอเธอร์กลับมาเถอะ!']],()=>{Quest.advance('main1',1);});
+    if(q.step===0)say([[s,'โอ้ เจ้าคือนักผจญภัยคนใหม่ใช่ไหม? ดูท่าเจ้าต้องการอาวุธที่ดีขึ้น ข้าจะให้เจ้า... เอาอันนี้ไป!'],
+      [s,'นี่คือ "ดาบไม้ฝึกหัด (พลังโจมตี 12)" ถึงจะทำจากไม้แต่ก็สมดุลพอให้เจ้าปกป้องตัวเองได้ในถ้ำ'],
+      [s,'ข้าอยากพิสูจน์ว่าเจ้ามีความสามารถคู่ควรกับดาบฝีมือข้าไหม — จงออกไปสู้กับนักดาบเงา "คาเงะ" ในถ้ำชีส แล้วไปเก็บวัตถุดิบกลับมาตีอาวุธเหล็กที่โต๊ะตีเหล็กข้างข้า'],
+      [s,'อ้อ เดี๋ยว! ข้าคิดว่าเจ้าน่าจะยังไม่มีประสบการณ์ต่อสู้จริงจัง — เอาอย่างนี้ เจ้าไปที่ **โรงฝึกซ้อมที่โคลอสเซียม (ตรงข้ามกิลด์นักผจญภัย)** ก่อนเลย ที่นั่นมีครูฝึกกับหุ่นซ้อมคอยแนะนำคอมโบและเรื่องอุปกรณ์ให้เจ้า!'],
+      [s,'กด I สวมดาบไม้ที่ข้าให้ (C ค่าพลัง · K สกิล · Q ดูเควสต์) — พอฝึกที่โคลอสเซียมจบแล้วค่อยมุ่งหน้าไปถ้ำชีสตรงประตูเมืองบนขวา!']],()=>{
+      if(!G.flags.boroGaveWood){
+        G.flags.boroGaveWood=1;
+        const wd=Inv.addItem(newItem('w_woodsword','normal',1));
+        if(!G.eq.weapon)Equip.equip(wd);
+        SFX.pick&&SFX.pick();
+        toast(`🗡️ ได้รับ ${wd?itemName(wd):'ดาบไม้ฝึกหัด'} (ATK 12)`,3600);
+        UI.hud&&UI.hud();
+      }
+      Quest.advance('main1',1);
+    });
     else if(q.step===1)say([[s,'ยังไม่มีดาบรึ? วางไม้ 1 กับแร่เหล็ก 1 ลงช่องบนโต๊ะ จะได้ดาบเหล็กโบโรไว้รับมือฝูงสัตว์จากรอยแยก']]);
     else if(!G.flags.gotGauntScroll){G.flags.gotGauntScroll=1;Inv.add('sc_gaunt');say([[s,'ถือดาบไว้แล้วสินะ! นี่คือคัมภีร์สูตรสนับมือสายฟ้า — แม้แต่คนธรรมดาก็โค่นผู้พิทักษ์ได้ด้วยฝีมือ'],[s,'หินถล่มทางขวาของถ้ำชั้นในปิดเส้นทางสู่หินแห่งรอยแยกอยู่ ทุบมันเปิดซะ']]);}
     else if(!G.flags.golemDown)say([[s,'คาเงะเป็นผู้พิทักษ์ที่ถูกแสงหินบิดเบือน มันป้องกันเก่ง ใช้ท่ากวาดขา (↓+K) ให้เสียหลัก ส่วนโกเลมศิลา หลังทุบพื้นแกนกลางจะเปิดออก!']]);

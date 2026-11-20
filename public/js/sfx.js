@@ -8,7 +8,7 @@ const SND={
   buf:{},master:null,amb:null,ambName:'',booted:false,last:{},
   files:['swing','swing_heavy','dodge','hit','hit_big','crit','block','parry','perfect','jump','land','ko','smash','flash','fire','ice','thunder','cast','heal','status',
     'pick','loot_normal','loot_rare','loot_epic','loot_legendary','loot_god','craft','craft_ok','fail','talk','coin','door','step_grass','step_stone','win','level',
-    'ui_cursor','ui_confirm','ui_open','ui_cancel','ui_error','amb_town','amb_cave','amb_lava','amb_ice','amb_tower','bgm_town','bgm_boss'],
+    'ui_cursor','ui_confirm','ui_open','ui_cancel','ui_error','amb_town','amb_cave','amb_lava','amb_ice','amb_tower','bgm_town','bgm_boss','bgm_silva','bgm_bbqy'],
   out(){return this.master||(AC&&AC.destination);},
   boot(){if(this.booted||!AC)return;this.booted=true;this.master=AC.createGain();this.master.gain.value=this.vol;this.master.connect(AC.destination);
     for(const n of this.files)fetch('assets/sfx/'+n+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status)).then(b=>AC.decodeAudioData(b)).then(d=>{this.buf[n]=d;}).catch(()=>{});},
@@ -74,8 +74,9 @@ document.addEventListener('pointerdown',()=>initAudio(),{capture:true});
 // เสียงบรรยากาศตามโซน
 const AMB_OF={town:'amb_town',arena:'amb_town',cave:'amb_cave',stone:'amb_cave',crystal:'amb_cave',lava:'amb_lava',lavaboss:'amb_lava',ice:'amb_ice',frost:'amb_ice',tower:'amb_tower',sanctum:'amb_tower',cathedral:'amb_tower'};
 function sndTick(){if(!SND.booted||G.t%30)return;let n='amb_town',lv=.4;
-  try{if(G.mode==='title')lv=.25;else{const inB=BT&&(G.mode==='battle'||G.mode==='trans');n=AMB_OF[fxBiome(inB)]||'amb_cave';if(inB)lv=.3;}}catch(e){}
+  try{if(G.mode==='title')lv=.25;else{const inB=BT&&(G.mode==='battle'||G.mode==='trans');n=(!inB&&Z&&Z.theme==='spire')?'amb_tower':(AMB_OF[fxBiome(inB)]||'amb_cave');if(inB)lv=.3;}}catch(e){}
   if(n!==SND.ambName)SND.ambient(n,lv);
   let m=null;try{const inB=G.mode==='battle'||G.mode==='trans';
-    if((inB&&BT&&BT.def&&BT.def.boss)||(Z&&Z.bossRoom))m='bgm_boss';else if(!inB&&Z&&Z.id==='town')m='bgm_town';}catch(e){}
-  SND.music(m,.4);}
+    if(inB&&BT&&((BT.def&&BT.def.bgm)||(BT.e&&BT.e.kind==='spire_b1')))m=(BT.def&&BT.def.bgm)||'bgm_silva';
+    else if((inB&&BT&&BT.def&&BT.def.boss)||(Z&&Z.bossRoom))m='bgm_boss';else if(!inB&&Z&&Z.id==='town')m='bgm_town';}catch(e){}
+  SND.music(m,(m==='bgm_silva'||m==='bgm_bbqy')?.45:.4);}

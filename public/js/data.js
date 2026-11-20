@@ -48,12 +48,12 @@ const CONFIG={
   diffLock:'souls',   // ล็อกความยากไว้ที่ดาร์กโซลเท่านั้น (ตั้งเป็น null เพื่อให้เลือกได้อีก)
   flee:{chance:.50,cooldown:180,failStagger:36,safeFrames:240,allowBoss:false}   // หลบหนี: โอกาส 50%, ล้มเหลว = เซ 0.6 วิ + รอ 3 วิ, สำเร็จ = ศัตรูไม่ไล่ 4 วิ
 };
-const ELEM_PROC={fire:{s:'burn',c:.25},lightning:{s:'shock',c:.12},poison:{s:'poison',c:.35},shadow:{s:'bleed',c:.25}};
+const ELEM_PROC={fire:{s:'burn',c:.25},lightning:{s:'shock',c:.12},poison:{s:'poison',c:.35},shadow:{s:'bleed',c:.25},ice:{s:'freeze',c:.25}};
 const ELN={phys:'กายภาพ',fire:'ไฟ',lightning:'สายฟ้า',poison:'พิษ',shadow:'เงา',holy:'แสง',arcane:'อาคม',ice:'น้ำแข็ง'};
 const ELC={phys:'#dddddd',fire:'#ff7a2a',lightning:'#9fe6ff',poison:'#8aff5a',shadow:'#b08aff',holy:'#fff2a8',arcane:'#d88aff',ice:'#bff0ff'};
-const STN={poison:'พิษ',bleed:'เลือดออก',burn:'เผาไหม้',shock:'ช็อก',stun:'มึนงง',blind:'ตาบอด',chaos:'โกลาหล'};
-const STI={poison:'☠',bleed:'🩸',burn:'🔥',shock:'⚡',stun:'💫',blind:'🌑',chaos:'🌀'};
-const STC={poison:'#8aff5a',bleed:'#ff4a5a',burn:'#ff8a3a',shock:'#9fe6ff',stun:'#ffe27a',blind:'#b08aff',chaos:'#ff5ad8'};
+const STN={poison:'พิษ',bleed:'เลือดออก',burn:'เผาไหม้',shock:'ช็อก',stun:'มึนงง',blind:'ตาบอด',chaos:'โกลาหล',freeze:'แช่แข็ง'};
+const STI={poison:'☠',bleed:'🩸',burn:'🔥',shock:'⚡',stun:'💫',blind:'🌑',chaos:'🌀',freeze:'❄️'};
+const STC={poison:'#8aff5a',bleed:'#ff4a5a',burn:'#ff8a3a',shock:'#9fe6ff',stun:'#ffe27a',blind:'#b08aff',chaos:'#ff5ad8',freeze:'#8ef2ff'};
 
 /* ---------- moves (frame data). dmg = power coefficient ×10 ---------- */
 function M(n,s,a,r,dmg,reach,kb,hs,o={}){return Object.assign({n,s,a,r,dmg,reach,kb,hs,hy:62,hh:56},o);}
@@ -65,6 +65,9 @@ const WEAPONS={
     light:[M('ฟาดซ้าย',6,3,12,6,50,2,16,{anim:'slash'}),M('ฟาดขวา',6,3,14,7,50,2,18,{anim:'slash2'})],
     heavy:M('ทุบลงพื้น',14,4,22,14,54,5,28,{anim:'heavyslash',kd:1})},
   sword:{n:'ดาบเหล็กโบโร',col:'#d8dde6',fx:'#ffffff',len:13,shape:'sword',el:'phys',
+    light:[M('ฟันเฉียง',5,3,10,5,58,1,15,{anim:'slash'}),M('ฟันกลับ',5,3,10,5,58,1,15,{anim:'slash2'}),M('แทงตรง',6,3,15,8,64,3,22,{anim:'thrust',launch:1})],
+    heavy:M('ฟันผ่าหิน',13,4,20,14,62,5,28,{anim:'heavyslash',kd:1})},
+  woodsword:{n:'ดาบไม้ฝึกหัด',col:'#9c6a38',fx:'#e8c89a',len:13,shape:'sword',el:'phys',
     light:[M('ฟันเฉียง',5,3,10,5,58,1,15,{anim:'slash'}),M('ฟันกลับ',5,3,10,5,58,1,15,{anim:'slash2'}),M('แทงตรง',6,3,15,8,64,3,22,{anim:'thrust',launch:1})],
     heavy:M('ฟันผ่าหิน',13,4,20,14,62,5,28,{anim:'heavyslash',kd:1})},
   bbqysword:{n:'Chaos Blade Legendary Sword',col:'#28144a',fx:'#a64df0',len:17,shape:'chaosblade',el:'lightning',
@@ -159,6 +162,7 @@ const SKILLS={
   venomslash:{ic:'🐍',n:'ฟันอสรพิษ',tier:'common',type:'phys',el:'poison',coef:1.2,cd:5,mp:40,range:'ใกล้ (54)',anim:'heavyslash',reach:54,status:{poison:1},combo:1,desc:'ฟันหนัก ติดพิษ 1 สแตก'},
   cuttingwind:{ic:'🍃',n:'สายลมคมกริบ',tier:'common',type:'phys',el:'phys',coef:1.3,cd:5,mp:45,range:'ใกล้ (64)',anim:'thrust',reach:64,status:{bleed:1},combo:1,desc:'แทงไกล ทำให้เลือดออก 1 สแตก'},
   spiritpalm:{ic:'✋',n:'ฝ่ามือวิญญาณ',tier:'common',type:'magic',el:'weapon',coef:1.6,cd:6,mp:50,range:'ใกล้ (40)',anim:'cast',reach:40,kd:1,combo:1,desc:'ฝ่ามือพลังเวท กระแทกล้ม'},
+  slashcut:{ic:'⚔️',n:'Slash',tier:'common',type:'phys',el:'phys',coef:1.8,multi:4,cd:8,mp:5,range:'ใกล้ (72) 4 ฮิต',anim:'rush',reach:72,lunge:1.1,slashFx:1,combo:1,desc:'ฟันเสี้ยวแสงพิกเซลต่อเนื่อง 4 ครั้งรวด (CD 8 วิ · 5 MP)'},
   // ---- Rare (MP 60-100) ----
   rising:{ic:'🐉',n:'หมัดมังกรฟ้า',tier:'rare',type:'phys',el:'phys',coef:1.8,cd:6,mp:60,range:'ใกล้ (36)',anim:'rising',reach:36,hy:72,hh:96,launch:1,rise:6.6,inv:1,combo:1,desc:'อัปเปอร์คัตกระโดด อมตะช่วงเริ่ม ตีลอย'},
   rushkick:{ic:'🦶',n:'ลูกเตะพายุ',tier:'rare',type:'phys',el:'phys',coef:2.1,multi:3,cd:7,mp:65,range:'ใกล้ (44) พุ่ง',anim:'rush',kicks:1,lunge:3.2,reach:44,combo:1,desc:'พุ่งเตะต่อเนื่อง 3 ครั้ง'},
@@ -173,10 +177,15 @@ const SKILLS={
   earthshatter:{ic:'💥',n:'ธรณีแยก',tier:'rare',type:'phys',el:'phys',coef:2.4,cd:9,mp:90,range:'ใกล้ (70) ต่ำ',anim:'heavyslash',reach:70,hy:8,hh:20,low:1,kd:1,combo:1,desc:'ทุบพื้น ต้องย่อจึงกันได้ ล้มลง'},
   galeblade:{ic:'🌪️',n:'ดาบพายุ',tier:'rare',type:'phys',el:'weapon',coef:2.2,cd:9,mp:85,range:'ไกล (กระสุน 3 ฮิต)',anim:'heavyslash',proj:{spd:4,r:14,hits:3},combo:1,desc:'พายุหมุนพุ่งไปข้างหน้า'},
   guardbreak:{ic:'🛡️',n:'ทลายโล่',tier:'rare',type:'phys',el:'phys',coef:2.0,cd:12,mp:100,range:'ใกล้ (56)',anim:'thrust',reach:56,status:{stun:1},armorBreak:{def:.6,t:300},combo:1,desc:'แทงทะลวงโล่ ทำให้มึน 3 วินาที'},
+  frostnova:{ic:'❄️',n:'Ice Spear Frostnova',tier:'rare',type:'phys',el:'ice',coef:2.0,multi:8,active:36,rootDur:240,cd:8,mp:38,range:'รอบตัวกว้างพิเศษ (240) · 8 ฮิต',anim:'cast',reach:240,frostnova:1,status:{freeze:1},statusDur:8,instantShatter:1,desc:'ระเบิดวงน้ำแข็งและหอกน้ำแข็งพุ่งรอบตัววงกว้าง 8 ฮิต 200% ATK (CD 8 วิ · 38 MP) ติดแช่แข็ง 8 วิ + แช่ขยับไม่ได้ 4 วิ และกระแทกน้ำแข็งแตกทันที'},
+  windblade:{ic:'🌪️',n:'วายุอันแหลมคม',tier:'rare',type:'phys',el:'phys',coef:2.0,cd:8,mp:38,range:'ไกล (คลื่นดาบ)',anim:'heavyslash',windblade:1,proj:{spd:6.4,r:16,hits:1,wind:1},status:{bleed:10},statusDur:5,combo:1,desc:'ฟันอากาศส่งคลื่นดาบลมพุ่งใส่ศัตรู 200% ATK (CD 8 วิ · 38 MP) ติดเลือดไหล 10 สแตก นาน 5 วิ'},
+  windvanish:{ic:'💨',n:'พรางตัวสายลม',tier:'rare',type:'buff',el:'phys',cd:20,mp:35,range:'ตัวเอง',anim:'cast',buff:{t:180,vanish:180},desc:'หายตัวกลืนไปกับสายลม 3 วิ ไม่โดนการโจมตีใดๆ (CD 20 วิ · 35 MP)'},
+  fireshield:{ic:'🔥',n:'เกราะเพลิง',tier:'rare',type:'buff',el:'fire',cd:20,mp:38,startup:60,range:'ตัวเอง (ร่าย 1 วิ)',anim:'cast',buff:{t:600,dr:.15,fireShield:600},desc:'ยืนร่าย 1 วิ สร้างเกราะเพลิง 10 วิ (CD 20 วิ · 38 MP) ลดดาเมจที่ได้รับ 15% + สะท้อน 20% + เผาไหม้ผู้โจมตี 3 วิ'},
+  blink:{ic:'⚡',n:'Blink',tier:'rare',type:'buff',el:'lightning',cd:8,mp:15,range:'พุ่งระยะไกลมาก (280)',anim:'dash',blink:280,desc:'พริบตาพุ่งระยะไกลมาก แตกตัวเป็นแสงและทิ้งเงาติดตา (CD 8 วิ · 15 MP)'},
   // ---- Unique (Active MP 40-60, Passive 0) — bound permanently ----
-  piercestrike:{ic:'🗡️',n:'ทลายเกราะ (Armor Breaker)',tier:'unique',talent:'piercer',type:'phys',el:'phys',coef:2.4,cd:8,mp:40,range:'ใกล้ (64)',anim:'thrust',reach:64,ignoreDef:1,unblockable:1,armorBreak:{def:.6,t:300,n:'Armor Breaker'},combo:1,desc:'ไม่สนค่า DEF ของเป้าหมาย · ทะลุการป้องกัน (block) · ติดดีบัฟ Armor Breaker: DEF เป้าหมาย −40% นาน 5 วิ'},
-  luckyseven:{ic:'🍀',n:'แจ็คพอต (Jackpot)',tier:'unique',talent:'lucky',type:'buff',cd:12,mp:50,range:'ตัวเอง',anim:'block',jackpot:7,jackpotPen:.2,desc:'การโจมตี 7 ครั้งถัดไปติดคริติคอลแน่นอน และไม่สนเกราะ 20%'},
-  ironwall:{ic:'🧱',n:'กำแพงเหล็ก (Iron Wall)',tier:'unique',talent:'endurer',type:'buff',cd:15,mp:45,range:'ตัวเอง',anim:'block',buff:{dr:.3,armor:1,t:240,statusImm:480},desc:'ลดดาเมจเพิ่ม 30% (รวมไม่เกิน 75%) 4 วินาที และกันสถานะผิดปกติทุกชนิด 8 วินาที'},
+  piercestrike:{ic:'🗡️',n:'ทลายเกราะ (Armor Breaker)',tier:'unique',talent:'piercer',type:'phys',el:'phys',coef:2.4,cd:8,mp:40,range:'พุ่งแทง (64+)',anim:'thrust',reach:64,active:10,lunge:6.5,ignoreDef:1,unblockable:1,armorBreak:{def:.6,t:300,n:'Armor Breaker'},combo:1,desc:'พุ่งเข้าไปแทงทะลวงเกราะ ไม่สนค่า DEF ของเป้าหมาย · ทะลุการป้องกัน (block) · ติดดีบัฟ Armor Breaker: DEF เป้าหมาย −40% นาน 5 วิ'},
+  luckyseven:{ic:'🍀',n:'แจ็คพอต (Jackpot)',tier:'unique',talent:'lucky',type:'phys',el:'phys',coef:3.5,multi:5,cd:12,mp:50,range:'พุ่งแทงต่อเนื่อง 5 ครั้ง (66)',anim:'rush',reach:66,lunge:1.5,alwaysCrit:1,defPen:.2,combo:1,desc:'พุ่งแทงต่อเนื่อง 5 ครั้ง ติดคริติคอลแน่นอน 100% และไม่สนเกราะ 20% ทุกฮิต'},
+  ironwall:{ic:'🧱',n:'กำแพงเหล็ก (Iron Wall)',tier:'unique',talent:'endurer',type:'buff',cd:16,mp:45,range:'ตัวเอง',anim:'block',buff:{dr:.3,armor:1,t:240,statusImm:480,def:300,mdef:300,defT:720},desc:'เพิ่ม DEF / M.DEF +300 นาน 12 วิ, ลดดาเมจเพิ่ม 30% (รวมไม่เกิน 75%) 4 วิ และกันสถานะผิดปกติทุกชนิด 8 วิ (CD 16 วิ)'},
   bloodpact:{ic:'🩸',n:'สัญญาโลหิต (Blood Pact)',tier:'unique',talent:'undying',type:'phys',el:'shadow',coef:2.6,cd:9,mp:40,range:'ใกล้ (54)',anim:'heavyslash',reach:54,lifesteal:.1,multi:1,status:{bleed:50},combo:1,desc:'ฟื้น HP เท่ากับ 10% ของดาเมจที่ทำ และติดเลือดออก 10 สแตก'},
   toxiccurse:{ic:'🕸️',n:'คำสาปพิษ (Toxic Curse)',tier:'unique',talent:'hexweaver',type:'magic',el:'poison',coef:1.2,cd:10,mp:50,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:5,r:10,hits:1},multi:1,status:{poison:50},desc:'ยิงคำสาปใส่เป้าหมาย ติดพิษ 10 สแตก'},
   arcaneburst:{ic:'🔮',n:'ระเบิดอาคม (Arcane Burst)',tier:'unique',talent:'archmage',type:'magic',el:'arcane',coef:2,cd:20,mpPct:.2,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:6,r:12,hits:1},status:{shock:20,burn:20,stun:2},desc:'ดาเมจเวท 200% ของพลังเวท (หัก M.DEF ปกติ) · ใช้ MP 20% ของ MP สูงสุด · คูลดาวน์ 20 วิ'},
@@ -203,6 +212,8 @@ const SKILLS={
   stonepillars:{bossOnly:1,ic:'🪨',n:'เสาศิลาทลาย',tier:'ultimate',type:'phys',el:'phys',coef:5.5,cd:20,gauge:70,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',quake:1,pillars:1,kd:1,desc:'ทุบพื้นปล่อยเสาหินพุ่งแทงต่อเนื่องจนถึงตัวเป้าหมาย · ใช้เกจ 70 · คูลดาวน์ 20 วิ'},
   alchcataclysm:{bossOnly:1,ic:'⚗️',n:'มหาแปรธาตุวิบัติ',tier:'ultimate',type:'magic',el:'poison',coef:6.8,multi:6,cd:15,gauge:60,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',rain:1,status:{poison:2,burn:1,shock:1},desc:'โปรยฝนน้ำยาแปรธาตุต้องห้าม 6 ระลอก (พิษ/เผาไหม้/ช็อก) · ใช้เกจ 60 · คูลดาวน์ 15 วิ'},
   alchbarrier:{bossOnly:1,ic:'🛡️',n:'บาเรียแปรธาตุ',tier:'rare',type:'buff',cd:15,mp:0,range:'ตนเอง',anim:'cast',buff:{t:300,invuln:300},desc:'สร้างบาเรียกันดาเมจทั้งหมด 5 วินาที (คูลดาวน์ 15 วิ)'},
+  silvabarrier:{bossOnly:1,ic:'🛡️',n:'บาเรียวิญญาณ',tier:'rare',type:'buff',cd:14,mp:0,range:'ตนเอง',anim:'cast',buff:{t:240,invuln:240},desc:'สร้างบาเรียจิตวิญญาณสีฟ้าอมตะ 4 วินาที (คูลดาวน์ 14 วิ)'},
+  silvabeam:{bossOnly:1,ic:'💠',n:'ลำแสงจิตวิญญาณวารี',tier:'ultimate',type:'magic',el:'ice',coef:4.0,alwaysCrit:1,cd:15,gauge:80,range:'ทั้งจอ',anim:'beam',beam:1,multi:6,beamCol:'#42e8ff',spiritBeam:1,desc:'ปลดปล่อยลำแสงจิตวิญญาณขนาดยักษ์ 400% ATK · คริ 100% (CD 15 วิ · เกจ 80)'},
   thousandcuts:{ic:'⚔️',n:'พันคมดาบ',tier:'ultimate',type:'phys',el:'weapon',coef:7.5,multi:12,cd:10,range:'พุ่ง (52)',anim:'rush',lunge:1.8,reach:52,desc:'ฟันรัว 12 ครั้ง'},
   toxicworld:{ic:'🧪',n:'โลกพิษ',tier:'ultimate',type:'magic',el:'poison',coef:6,multi:6,cd:10,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',rain:1,status:{poison:3},desc:'ฝนพิษ 6 ระลอก พิษ 3 สแตก'},
   titanfist:{ic:'👊',n:'หมัดไททัน',tier:'ultimate',type:'phys',el:'phys',coef:8,cd:10,range:'ใกล้ (50)',anim:'straight',reach:50,kd:1,desc:'หมัดเดียวแรงที่สุด กระแทกล้ม'},
@@ -238,24 +249,24 @@ const TALENTS={
   piercer:{n:'THE PIERCER',th:'ผู้ทะลวง',ic:'🗡️',desc:'+100 เจาะเกราะ (Armor Penetration) แบบคงที่',skill:'piercestrike'},
   lucky:{n:'THE LUCKY ONE',th:'ผู้โชคดี',ic:'🍀',desc:'+25% อัตราคริติคอล และ +50% ดาเมจคริติคอล (ค่าคงที่)',skill:'luckyseven'},
   endurer:{n:'THE ENDURER',th:'ผู้ทนทาน',ic:'🛡️',desc:'ลดดาเมจที่ได้รับ 25% และ +30% ต้านสถานะผิดปกติ (ค่าคงที่)',skill:'ironwall'},
-  undying:{n:'THE UNDYING',th:'ผู้ไม่มีวันตาย',ic:'💀',desc:'ฟื้นคืนชีพได้ 2 ครั้งต่อการต่อสู้ ด้วย HP 30% และล้างสถานะผิดปกติทั้งหมด',skill:'bloodpact'},
+  undying:{n:'THE UNDYING',th:'ผู้ไม่มีวันตาย',ic:'💀',desc:'ฟื้นคืนชีพได้ 2 ครั้งต่อการต่อสู้ ด้วย HP 30% ล้างสถานะผิดปกติทั้งหมด และเป็นอมตะ 3 วิทุกครั้งที่ฟื้น',skill:'bloodpact'},
   hexweaver:{n:'THE HEXWEAVER',th:'ผู้ถักคำสาป',ic:'🕸️',desc:'+25% โอกาสติดสถานะผิดปกติ (หักลบกับค่าต้านของเป้าหมาย) · เฉพาะ Hexweaver: โอกาสติดสถานะทุก 1% ทำให้สถานะที่ติดนานขึ้น 0.05 วิ (+25% = +1.25 วิ)',skill:'toxiccurse'},
   archmage:{n:'THE ARCHMAGE',th:'จอมเวท',ic:'🔮',desc:'+15% พลังเวท · +10% MP สูงสุด · +10% ดาเมจคริติคอลเวท (ค่าคงที่)',skill:'arcaneburst'},
   sololeveling:{n:'SOLO LEVELING',th:'ผู้เติบโตไร้ขีดจำกัด',ic:'👑',desc:'ได้รับ EXP ตัวละคร และ EXP อาวุธ/อุปกรณ์เพิ่มขึ้น +25%',skill:'kingaura'},
   parryman:{n:'THE PARRY MAN',th:'จ้าวแห่งการปัดป้อง',ic:'⚔️',desc:'เพิ่มจำนวนการบล็อกสูงสุดเป็น 5 ครั้ง และลดดาเมจขณะบล็อกลง 20%',skill:'royalparry'},
-  vampire:{n:'VAMPIRE',th:'ลอร์ดโลหิต',ic:'🧛',desc:'ดูดเลือด 15% ของดาเมจที่ทำได้ (สมดุล: ไม่มีโบนัสลดดาเมจ/ฟื้นคืนชีพ)',skill:'blooddrain'}
+  vampire:{n:'VAMPIRE',th:'ลอร์ดโลหิต',ic:'🧛',desc:'ดูดเลือด 25% ของดาเมจที่ทำได้ (สมดุล: ไม่มีโบนัสลดดาเมจ/ฟื้นคืนชีพ)',skill:'blooddrain'}
 };
 /* ค่าพาสซีฟของพรสวรรค์ (ค่าคงที่ตามสเปก) — Stats.derive อ่านจากตารางนี้ที่เดียว คำนวณใหม่จากฐานทุกครั้ง จึงไม่ทบซ้ำ */
 const TALENT_PASSIVE={
   piercer:{apen:100},
   lucky:{critRate:.25,critDmg:.5},
   endurer:{dr:.25,statusRes:.30},                 // DR รวมไม่เกิน CONFIG.drCap (75%)
-  undying:{revives:2,reviveHp:.30},
+  undying:{revives:2,reviveHp:.30,reviveInvuln:180},
   hexweaver:{statusChance:.25},   // โอกาสติดสถานะทุก 1% → สถานะนานขึ้น CONFIG.statusChanceDur วิ
   archmage:{mpowPct:.15,maxMPPct:.10,mcritDmg:.10},
   sololeveling:{xpMul:.25,eqXpMul:.25},
   parryman:{guardMax:5,blockDmgRed:.20},
-  vampire:{lifesteal:.15}
+  vampire:{lifesteal:.25}
 };
 
 /* ---------- items ---------- */
@@ -275,6 +286,7 @@ const SLOTN={weapon:'อาวุธหลัก',helmet:'หมวก',armor:'�
 const slotType=s=>s.startsWith('ring')?'ring':s;
 const BASES={
   w_club:{n:'กระบองรากไม้',type:'weapon',wt:'club',atk:16,matk:4,ic:'🏏'},
+  w_woodsword:{n:'ดาบไม้ฝึกหัด',type:'weapon',wt:'woodsword',atk:12,matk:2,ic:'🗡️',fixRar:'normal',look:{wcol:'#9c6a38',wfx:'#e8c89a'}},
   w_sword:{n:'ดาบเหล็กโบโร',type:'weapon',wt:'sword',atk:24,matk:4,ic:'🗡️'},
   w_spear:{n:'หอกเขี้ยวถ้ำ',type:'weapon',wt:'spear',atk:22,matk:4,ic:'🔱'},
   w_flame:{n:'ดาบถ่านแดง',type:'weapon',wt:'flame',atk:28,matk:12,ic:'⚔️'},
@@ -301,7 +313,7 @@ const BASES={
   a_alch:{n:'เสื้อคลุมนักแปรธาตุ',type:'armor',def:9,mdef:14,ic:'🧥',set:'alchemist',look:{body:'#2a4a3a',trim:'#7af0c0',robe:'#23402f',sleeve:'#2a4a3a'}},
   g_alch:{n:'ถุงมือนักแปรธาตุ',type:'gloves',def:3,mdef:5,ic:'🧤',set:'alchemist',look:{gloves:'#3a6a4a'}},
   b_alch:{n:'รองเท้านักแปรธาตุ',type:'boots',def:3,mdef:5,ic:'🥾',set:'alchemist',look:{boots:'#2a3a30',trail:'#7af0c0'}},
-  w_lightless:{n:'ไลต์เลส ดาบใหญ่ไร้แสง',type:'weapon',wt:'gsword',atk:56,matk:10,ic:'⚔️',fixRar:'legendary',implicitRaw:1,implicit:{apenPct:.2,blindChance:.2},look:{wcol:'#3a3448',wfx:'#c9a0ff'}},   // ไม่สนเกราะ 20% · โอกาส 20% ทำให้ตาบอด 5 วิ
+  w_lightless:{n:'ไลต์เลส ดาบใหญ่ไร้แสง',type:'weapon',wt:'gsword',atk:56,matk:10,ic:'⚔️',fixRar:'legendary',implicitRaw:1,implicit:{apenPct:.2,blindChance:.2},look:{wcol:'#181820',wfx:'#ffffff',wfxKind:'lightless'}},   // ไม่สนเกราะ 20% · โอกาส 20% ทำให้ตาบอด 5 วิ · ออร่าพื้นสีดำขาว
   w_bbqy:{n:'Chaos Blade Legendary Sword (bbqy)',type:'weapon',wt:'bbqysword',atk:48,matk:12,ic:'🗡️',fixRar:'legendary',implicitRaw:1,implicit:{str:10,agi:10,int:10,vit:10,luk:10,chaosChance:.2},look:{wcol:'#28144a',wfx:'#a64df0',wshape:'chaosblade'}},   /* รางวัลชนะ bbqy: ค่าพลังทุกอย่าง +10 · โอกาส 20% ทำให้โกลาหล 4 วิ */
   r_primal:{n:'แหวนปฐมกาล',type:'ring',ic:'💍',fixRar:'legendary',implicitRaw:1,implicit:{str:10,agi:10,int:10,vit:10,luk:10}},   // ค่าพลังทุกอย่าง +10
   w_scythe:{n:'เคียวสุญญตา',type:'weapon',wt:'scythe',atk:34,matk:12,ic:'🌑',fixRar:'epic'},
@@ -356,7 +368,7 @@ const BASES={
   p_ice:{n:'สนับขาน้ำแข็ง',type:'pants',def:8,mdef:6,ic:'👖',fixRar:'rare',set:'ice',look:{pants:'#366898'}}
 };
 // แยกประเภทอุปกรณ์ตามรูปแบบการใช้งานจริง (ดาบ / ดาบหนัก / ค้อน / ค้อนหนัก / หอก / หมัด / ไม้เท้า / หมวก / เกราะ / ถุงมือ / กางเกง / รองเท้า / เครื่องประดับ)
-const BASE_CAT={w_club:'hammer',w_hammer:'hammer',w_firepan:'hammer',w_sword:'sword',w_flame:'sword',w_kage:'sword',w_seraph:'sword',w_god:'sword',w_mswd:'sword',w_adagger:'sword',w_bbqy:'sword',w_icesword:'sword',
+const BASE_CAT={w_club:'hammer',w_hammer:'hammer',w_firepan:'hammer',w_woodsword:'sword',w_sword:'sword',w_flame:'sword',w_kage:'sword',w_seraph:'sword',w_god:'sword',w_mswd:'sword',w_adagger:'sword',w_bbqy:'sword',w_icesword:'sword',
   w_spear:'spear',w_gaunt:'fist',w_gs1:'gsword',w_gs2:'gsword',w_gs3:'gsword',w_lightless:'gsword',w_scythe:'gsword',w_iceaxe:'gsword',
   w_wh1:'ghammer',w_wh2:'ghammer',w_wh3:'ghammer',w_mstaff:'staff',w_wand_fire:'staff',w_wand_ice:'staff',w_wand_lightning:'staff',w_mercstaff:'staff'};
 for(const k in BASES){const b=BASES[k];b.cat=BASE_CAT[k]||(b.type==='ring'||b.type==='necklace'?'accessory':b.type);}
@@ -548,15 +560,15 @@ const FOES={
   lavarat:{n:'หนูลาวา',kind:'mon',map:'RAT',pal:'lavarat',sc:4,hw:22,h:30,spd:1.7,range:30,cd:[22,50],el:'fire',
     base:{hp:220,atk:55,def:6,mdef:5},res:{fire:.6,poison:-.3},xp:40,loot:'lavarat',
     moves:[M('กัดไฟ',9,3,16,11,30,2,16,{hy:14,hh:26,el:'fire'}),M('พุ่งลาวา',14,10,20,15,30,3,20,{hy:14,hh:26,lunge:3.4,el:'fire'})]},
-  frostslime:{n:'สไลม์เยือกแข็ง',kind:'mon',map:'SLIME',pal:'frostslime',sc:4,hw:22,h:34,spd:1.1,range:32,cd:[26,58],el:'phys',
+  frostslime:{n:'สไลม์เยือกแข็ง',kind:'mon',map:'SLIME',pal:'frostslime',sc:4,hw:22,h:34,spd:1.1,range:32,cd:[26,58],el:'phys',freezeChance:.25,
     base:{hp:340,atk:58,def:12,mdef:4},res:{fire:-.5,phys:.2,poison:.5},xp:55,loot:'icecave',statusRes:{bleed:.6},
     moves:[M('กระแทกเยือก',10,4,18,12,34,3,16,{hy:18,hh:32}),M('เด้งทับ',18,8,22,16,30,4,22,{hy:18,hh:40,lunge:2.6,kd:1})]},
-  frostwolf:{n:'หมาป่าหิมะ',kind:'mon',map:'WOLF',pal:'frostwolf',sc:4,hw:30,h:44,spd:2,range:36,cd:[18,40],el:'phys',
+  frostwolf:{n:'หมาป่าหิมะ',kind:'mon',map:'WOLF',pal:'frostwolf',sc:4,hw:30,h:44,spd:2,range:36,cd:[18,40],el:'phys',freezeChance:.25,
     base:{hp:280,atk:70,def:8,mdef:6},res:{fire:-.3,lightning:.2},xp:65,loot:'icecave',
     moves:[M('งับ',7,3,14,11,38,2,14,{hy:22,hh:30}),M('กระโจน',14,10,20,15,36,4,20,{hy:30,hh:44,lunge:3.8}),M('ข่วนต่ำ',9,3,16,10,36,2,18,{hy:6,hh:16,low:1})]},
-  iceknight:{n:'อัศวินน้ำแข็ง',kind:'rig',look:'ICEKNIGHT',pal:'iceknight',wpn:'sword',hw:14,h:100,el:'phys',
+  iceknight:{n:'อัศวินน้ำแข็ง',kind:'rig',look:'ICEKNIGHT',pal:'iceknight',wpn:'sword',hw:14,h:100,el:'phys',freezeChance:.25,
     attr:{str:25,agi:15,int:10,vit:25,luk:10},skills:['cuttingwind'],base:{hp:420,atk:66,def:14,mdef:8},res:{fire:-.3,phys:.15},statusRes:{stun:.2},xp:110,loot:'icecave',meterStart:0},
-  icegolem:{n:'ยักษ์น้ำแข็ง',kind:'mon',map:'GOLEM',pal:'icegolem',sc:5,hw:34,h:80,spd:.8,range:44,cd:[36,74],armor:1,el:'phys',
+  icegolem:{n:'ยักษ์น้ำแข็ง',kind:'mon',map:'GOLEM',pal:'icegolem',sc:5,hw:34,h:80,spd:.8,range:44,cd:[36,74],armor:1,el:'phys',freezeChance:.25,
     base:{hp:800,atk:85,def:18,mdef:6},res:{fire:-.4,phys:.2,lightning:.1},xp:220,loot:'icecave',statusRes:{stun:.4,bleed:.4},
     moves:[M('หมัดน้ำแข็ง',16,4,22,13,56,4,22,{hy:56,hh:46}),M('ทุบพื้นเยือก',26,6,30,15,90,6,30,{hy:6,hh:16,low:1,quake:1,kd:1}),M('ขว้างก้อนน้ำแข็ง',20,3,26,10,0,4,22,{proj:{spd:3.8,r:10,hits:1,rock:1},far:1})]},
   mudslime:{n:'สไลม์โคลน',kind:'mon',map:'SLIME',pal:'mudslime',sc:4,hw:22,h:34,spd:1,range:32,cd:[28,62],el:'phys',
@@ -565,7 +577,7 @@ const FOES={
   rockling:{n:'หินเดินได้',kind:'mon',map:'GOLEM',pal:'rockling',sc:3,hw:24,h:50,spd:.9,range:34,cd:[30,64],armor:1,el:'phys',
     base:{hp:320,atk:48,def:10,mdef:2},res:{phys:.15,lightning:-.4,fire:.2},xp:48,loot:'stonecave',statusRes:{bleed:.5},
     moves:[M('หมัดหิน',12,4,20,12,40,3,18,{hy:30,hh:36}),M('กลิ้งชน',18,12,24,14,30,4,22,{hy:30,hh:44,lunge:2.8,kd:1})]},
-  duelist:{n:'bbqy legendary',reflect:.2,revive:1,reviveHp:.5,kind:'rig',fixedLv:100,look:'DUELIST',wpn:'bbqysword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,
+  duelist:{n:'bbqy legendary',reflect:.2,revive:1,reviveHp:.5,kind:'rig',fixedLv:100,look:'DUELIST',wpn:'bbqysword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,bgm:'bgm_bbqy',
     attr:{str:30,agi:40,int:20,vit:20,luk:50},skills:['bluejudge','orb','slashwave'],base:{hp:5000,atk:304,def:60,mdef:60},res:{lightning:.2,shadow:-.2},statusRes:{stun:.5,bleed:.5,shock:.4},xp:2200,loot:'duelist',meterStart:0},
   kage:{n:'คาเงะ นักดาบเงา',kind:'rig',look:'KAGE',wpn:'kageblade',hw:14,h:100,el:'shadow',miniboss:1,
     attr:{str:15,agi:30,int:10,vit:10,luk:20},skills:['moonfall','slashwave'],base:{hp:400,atk:44,def:12,mdef:8,critRate:.04},res:{shadow:.5,fire:-.2},statusRes:{stun:.15},xp:180,loot:'kage',meterStart:15},   // v0.2.1: อ่อนลง (HP 520→400 ATK 60→44 ความเร็ว/คริ/เกจเริ่มลดลง)
@@ -596,7 +608,7 @@ const FOES={
     attr:{str:30,agi:30,int:60,vit:40,luk:20},skills:['acidflask','fireflask','sparkflask','alchbarrier','alchcataclysm'],base:{hp:6200,atk:340,def:58,mdef:55},res:{poison:.6},
     statusRes:{stun:.5,poison:.8,bleed:.3},xp:1250,loot:'homunculus',meterStart:0,
     phases:[{at:.6,n:'ดื่มยาแปลงร่าง! (เฟส 2)',cdMul:.7,spdMul:1.3,aura:'poison'},{at:.3,n:'ธาตุแปรปรวน! (เฟส 3)',cdMul:.55,spdMul:1.35,elemCycle:1}]},
-  seraph:{n:'เซราฟตาเดียว',kind:'mon',map:'ANGEL',pal:'angel',sc:7.5,hw:48,h:210,spd:1,range:56,cd:[26,56],boss:1,fixedLv:50,armor:1,el:'holy',noFlip:1,hover:1,eye:[0,80],weakY:20,
+  seraph:{n:'เซราฟตาเดียว',kind:'mon',map:'ANGEL',pal:'angel',sc:7.5,hw:48,h:210,spd:1,range:56,cd:[26,56],boss:1,fixedLv:50,armor:1,el:'holy',freezeChance:.25,noFlip:1,hover:1,eye:[0,80],weakY:20,
     attr:{str:15,agi:25,int:45,vit:30,luk:20},skills:['thunderclap','heavenwings'],base:{hp:7400,atk:490,def:64,mdef:69},res:{holy:.6,shadow:-.3,lightning:-.2,fire:.1},xp:1928,loot:'seraph',
     statusRes:{stun:.6,burn:.4,shock:.4,bleed:.4,poison:.5},stunImmuneAfter:600,revive:1,reviveHp:.5,
     weakPoint:{after:'จ้องมองพิพากษา',t:150,mul:1.5},
@@ -604,20 +616,33 @@ const FOES={
       M('ขนนกศักดิ์สิทธิ์',18,3,24,10,0,4,22,{proj:{spd:4.4,r:9,hits:1},far:1,el:'holy'}),
       M('จ้องมองพิพากษา',38,30,34,16,0,5,20,{beam:1,multi:6,hy:80,el:'holy'})]},
   // ---- หอคอยคริสตัล 5 ชั้น (Lv.50 -> 60 -> 70 -> 80 -> 90+ · 3 ห้อง/ชั้น: ทั่วไป -> หัวหน้า -> บอส) ----
+  spire1_mob:{n:'จิตวิญญาณของศิษย์คริสตัล',kind:'rig',look:'SPIRE1_MOB',wpn:'mstaff',hw:14,h:100,el:'ice',
+    attr:{str:18,agi:22,int:32,vit:22,luk:12},skills:['orb'],base:{hp:420,atk:78,def:18,mdef:18},res:{ice:.25,shadow:.15},xp:140,loot:'spire',meterStart:0},
+  spire1_leader:{n:'จิตวิญญาณของหัวหน้าผู้คุมหอคอย',kind:'rig',look:'SPIRE1_LEADER',wpn:'kageblade',hw:15,h:105,el:'ice',miniboss:1,
+    attr:{str:28,agi:26,int:24,vit:30,luk:18},skills:['slashwave','cuttingwind'],base:{hp:1150,atk:118,def:26,mdef:22},res:{ice:.3,phys:.15},statusRes:{stun:.3,bleed:.2},xp:380,loot:'spire',meterStart:10},
   spiremob:{n:'ศิษย์คริสตัลอเมทิสต์',kind:'rig',look:'SPIRE_MOB',wpn:'mstaff',hw:14,h:100,el:'lightning',
     attr:{str:18,agi:22,int:32,vit:22,luk:12},skills:['orb'],base:{hp:420,atk:78,def:18,mdef:18},res:{lightning:.25,shadow:.15},xp:140,loot:'spire',meterStart:0},
   spireleader:{n:'หัวหน้าผู้คุมหอคอย',kind:'rig',look:'SPIRE_LEADER',wpn:'kageblade',hw:15,h:105,el:'shadow',miniboss:1,
     attr:{str:28,agi:26,int:24,vit:30,luk:18},skills:['slashwave','cuttingwind'],base:{hp:1150,atk:118,def:26,mdef:22},res:{shadow:.35,phys:.15},statusRes:{stun:.3,bleed:.2},xp:380,loot:'spire',meterStart:10},
-  spire_b1:{n:'ผู้พิทักษ์ศิลาซิลวา (บอสชั้น 1)',kind:'rig',look:'SPIRE_B1',wpn:'sword',hw:16,h:112,el:'phys',boss:1,
-    attr:{str:34,agi:22,int:20,vit:36,luk:16},skills:['earthshatter','slashwave'],base:{hp:2600,atk:152,def:30,mdef:24},res:{phys:.2},statusRes:{stun:.5,bleed:.3},xp:900,loot:'spireboss',meterStart:10},
+  spire_b1:{n:'จิตวิญญาณของซิลวา (บอสชั้น 1)',kind:'rig',look:'SPIRE_B1',wpn:'sword',hw:16,h:112,el:'ice',boss:1,fog:1,bgm:'bgm_silva',
+    attr:{str:32,agi:26,int:34,vit:36,luk:18},skills:['silvabeam','blink','silvabarrier','slashcut'],base:{hp:2600,atk:152,def:30,mdef:28},res:{ice:.35,phys:.15},statusRes:{stun:.5,bleed:.3},xp:900,loot:'spireboss',meterStart:15},
   spire_b2:{n:'อัศวินเงาออบซิเดียน (บอสชั้น 2)',kind:'rig',look:'SPIRE_B2',wpn:'kageblade',hw:16,h:114,el:'shadow',boss:1,
     attr:{str:36,agi:34,int:24,vit:38,luk:22},skills:['moonfall','slashwave','venomslash'],base:{hp:3400,atk:185,def:34,mdef:28},res:{shadow:.45},statusRes:{stun:.5,bleed:.4},xp:1250,loot:'spireboss',meterStart:15},
   spire_b3:{n:'จอมเวทเพลิงอเมทิสต์ (บอสชั้น 3)',kind:'rig',look:'SPIRE_B3',wpn:'mstaff',hw:16,h:116,el:'fire',boss:1,
     attr:{str:26,agi:28,int:46,vit:40,luk:24},skills:['flamepillar','orb','fireflask'],base:{hp:4400,atk:225,def:36,mdef:36},res:{fire:.5},statusRes:{stun:.5,burn:.7},xp:1650,loot:'spireboss',meterStart:20},
-  spire_b4:{n:'เทวทูตคริสตัลเหมันต์ (บอสชั้น 4)',kind:'rig',look:'SPIRE_B4',wpn:'mstaff',hw:16,h:118,el:'lightning',boss:1,
+  spire_b4:{n:'เทวทูตคริสตัลเหมันต์ (บอสชั้น 4)',kind:'rig',look:'SPIRE_B4',wpn:'mstaff',hw:16,h:118,el:'lightning',freezeChance:.25,boss:1,
     attr:{str:32,agi:34,int:50,vit:44,luk:26},skills:['thunderclap','heavenwings','orb'],base:{hp:5600,atk:270,def:42,mdef:42},res:{lightning:.4,holy:.3},statusRes:{stun:.6,shock:.5},xp:2200,loot:'spireboss',meterStart:20},
   spire_b5:{n:'อาร์คเมจแห่งหอคอยคริสตัล (บอสชั้น 5)',kind:'rig',look:'SPIRE_B5',wpn:'bbqysword',hw:17,h:122,el:'lightning',boss:1,allMagic:1,revive:1,reviveHp:.4,
-    attr:{str:38,agi:40,int:60,vit:50,luk:32},skills:['bluejudge','orb','slashwave','alchcataclysm'],base:{hp:7200,atk:325,def:48,mdef:48},res:{lightning:.4,shadow:.3,fire:.2},statusRes:{stun:.7,bleed:.5,shock:.5},xp:3200,loot:'spireboss',meterStart:25}
+    attr:{str:38,agi:40,int:60,vit:50,luk:32},skills:['bluejudge','orb','slashwave','alchcataclysm'],base:{hp:7200,atk:325,def:48,mdef:48},res:{lightning:.4,shadow:.3,fire:.2},statusRes:{stun:.7,bleed:.5,shock:.5},xp:3200,loot:'spireboss',meterStart:25},
+  // ---- โคลอสเซียม Rank G (Lv.35 · 3 ผู้ท้าทาย) ----
+  egel:{n:'เอเกล (จอมขวานเหมันต์)',kind:'rig',fixedLv:35,sc:3.25,look:'EGEL',wpn:'frostaxe',hw:16,h:106,el:'ice',freezeChance:.25,lifesteal:.10,noWave:1,revive:1,reviveHp:.5,reviveMsg:'ผู้ไม่ยอมแพ้',challenge:1,
+    attr:{str:38,agi:22,int:16,vit:36,luk:14},skills:['frostnova'],base:{hp:1650,atk:112,def:26,mdef:18},res:{ice:.45,fire:-.25},statusRes:{stun:.35},xp:420,loot:'icecave',meterStart:0},
+  rankg2:{n:'วาลิน (วายุอันแหลมคม)',kind:'rig',fixedLv:35,sc:3.0,look:'RANKG2',wpn:'sword',hw:14,h:100,el:'phys',alwaysCrit:1,noWave:1,vanishPassive:{dur:180,cd:1200},challenge:1,
+    attr:{str:30,agi:34,int:16,vit:28,luk:30},skills:['windblade','guardbreak'],base:{hp:1380,atk:98,def:24,mdef:16},res:{phys:.1},statusRes:{stun:.2},xp:360,loot:'valin',meterStart:0},
+  rankg3:{n:'เซเรส (จอมเวทเกราะเพลิง)',kind:'rig',fixedLv:35,sc:3.0,look:'RANKG3',wpn:'wand_fire',hw:14,h:100,el:'fire',noWave:1,allMagic:1,burnChance:.35,fireShieldStart:600,challenge:1,
+    attr:{str:18,agi:28,int:46,vit:32,luk:24},skills:['fireshield','flamepillar','phoenixdive','meteorfall'],base:{hp:1680,atk:118,def:28,mdef:36},res:{fire:.6,ice:-.2,phys:.1},statusRes:{stun:.4,burn:1},xp:420,loot:'ceres',meterStart:25},
+  dummy:{n:'หุ่นซ้อม (อมตะ)',kind:'mon',map:'DUMMY',pal:'dummy',sc:5.5,hw:22,h:76,fixedLv:1,xp:0,spd:0,range:40,cd:[999,999],passive:1,immortal:1,noKill:1,
+    base:{hp:50000,atk:0,def:10,mdef:10},res:{},skills:[],loot:'dummy',moves:[],desc:'หุ่นฟางฝึกซ้อมในโรงฝึกโคลอสเซียม ยืนนิ่งเฉยๆ และเป็นอมตะ สำหรับฝึกคอมโบและทดสอบดาเมจ'}
 };
 const EXTRA_MOVES={rockrain:M('ฝนหิน',20,40,24,6,0,3,18,{rain:1,multi:4,hy:60,hh:120}),featherrain:M('ฝนขนนก',20,44,24,7,0,3,18,{rain:1,multi:5,hy:60,hh:120,el:'holy'})};
 const KAGE_LOOK={hair:'#24243a',skin:'#e6bfa0',body:'#2a2240',trim:'#c94a3a',pants:'#1a1626',boots:'#111018',gloves:'#2a2a3a',head:'band',hc:'#c94a3a',hc2:'#c8ccd8',scarf:'#c94a3a',mask:1,weapon:'kageblade',sleeve:'#1e1830',eye:'#ff6a5a',arch:'sash',sashCol:'#c94a3a',cuffCol:'#6b2424'};
@@ -631,14 +656,19 @@ const EYE_COLORS=['#1a1020','#5a3820','#3a7ad8','#3ab8d8','#3ab86a','#e8b030','#
 const HOMUNC_LOOK={hair:'#3a3040',skin:'#9ad8a0',body:'#4a3a5a',trim:'#7af0c0',pants:'#2a2236',boots:'#1a1420',gloves:'#5a7a5a',head:'band',hc:'#7af0c0',hc2:'#e8fff0',sleeve:'#3a2a4a',weapon:'adagger'};
 const GARGOYLE_LOOK={hair:'#4a4a52',skin:'#8a8a92',body:'#6a6a72',trim:'#3a3a42',pants:'#4a4a52',boots:'#2a2a32',gloves:'#5a5a62',head:'helm',hc:'#5a5a62',hc2:'#3a3a42',horns:'#c8c8d0',pads:1,plate:1,sleeve:'#5a5a62',weapon:'ghammer',wcol:'#7a7a84'};
 const HOMUNCULUS_LOOK={hair:'#e8f0f0',hstyle:'long',skin:'#b8e8c0',body:'#4a2a6a',trim:'#7af0c0',pants:'#2a1a3a',boots:'#1a1024',gloves:'#7af0c0',head:'wizard',hc:'#2a1a4a',hc2:'#7af0c0',robe:'#3a1a5a',sleeve:'#4a2a6a',cape:{col:'#3a1a5a',col2:'#1a0a2a'},weapon:'mstaff',eye:'#7af0c0'};
+const SPIRE1_MOB={arch:'mage_dress',sex:'f',hstyle:'long',hair:'#82e8ff',skin:'#eef6ff',body:'#245a8a',coatCol:'#3ca2e6',trim:'#bdf6ff',pants:'#1c3e64',boots:'#162c48',head:'halo',hc:'#7cf4ff',hc2:'#ffffff',orbCol:'#66ebff',weapon:'mstaff',eye:'#6aefff'};
+const SPIRE1_LEADER={arch:'knight',sex:'m',hstyle:'spiky',hair:'#78e2ff',skin:'#e4f0fc',body:'#2c4e7c',armor:'#62b8ea',coatCol:'#1c3862',trim:'#a4f4ff',pants:'#1a2a48',boots:'#121d32',cape:'#2468a2',head:'helm',hc:'#4ca0d8',hc2:'#9ef6ff',plume:'#66ebff',weapon:'kageblade',eye:'#7ae8ff'};
 const SPIRE_MOB={arch:'mage_dress',sex:'f',hstyle:'long',hair:'#c89cf0',skin:'#e8dce8',body:'#3e2860',coatCol:'#68349c',trim:'#e0a8ff',pants:'#26183a',boots:'#1b1028',head:'cowl',hc:'#52287e',hc2:'#f0b8ff',orbCol:'#d270ff',weapon:'mstaff',eye:'#e090ff'};
 const SPIRE_LEADER={arch:'knight',sex:'m',hstyle:'spiky',hair:'#b88ce8',skin:'#dcccd8',body:'#4a3868',armor:'#7e649c',coatCol:'#382058',trim:'#f0c858',pants:'#241834',boots:'#1a1026',cape:'#4e2278',head:'helm',hc:'#6a4e8c',hc2:'#f0c858',plume:'#d058ff',weapon:'kageblade',eye:'#ffd258'};
-const SPIRE_B1={arch:'knight',sex:'m',hstyle:'short',hair:'#a8d8e8',skin:'#e8d8d0',body:'#587098',armor:'#8ca4c8',coatCol:'#384c78',trim:'#90e0ff',pants:'#243048',boots:'#1a2234',cape:'#3a568a',head:'crown',hc:'#90e0ff',hc2:'#d880ff',weapon:'sword',eye:'#7ae8ff'};
+const SPIRE_B1={arch:'mage_dress',sex:'f',hstyle:'long',hair:'#52e6ff',skin:'#f2f7ff',body:'#eef6fc',coatCol:'#1d86c8',sleeve:'#1d86c8',trim:'#1a2838',pants:'#e6f0f8',boots:'#283e54',gloves:'#f2f7ff',head:'halo',hc:'#7cf4ff',hc2:'#ffffff',orbCol:'#58e8ff',eyec:'#58e8ff',eye:'#58e8ff'};
 const SPIRE_B2={arch:'knight',sex:'m',hstyle:'spiky',hair:'#241c30',skin:'#c8b8d0',body:'#241c34',armor:'#44345c',coatCol:'#5a1c42',trim:'#ff68b8',pants:'#181224',boots:'#100a18',cape:'#341438',head:'horns',hc:'#ff68b8',weapon:'kageblade',eye:'#ff68b8'};
 const SPIRE_B3={arch:'furcoat',sex:'f',hstyle:'hime',hair:'#f05848',skin:'#fbe0d0',body:'#4e1828',coatCol:'#8a2238',furCol:'#f4b8c8',trim:'#ffd060',pants:'#2a101a',boots:'#381422',head:'wizard',hc:'#681834',hc2:'#ffd060',orbCol:'#ff7a30',weapon:'mstaff',eye:'#ffb84a'};
 const SPIRE_B4={arch:'mage_dress',elfEars:1,sex:'f',hstyle:'long',hair:'#e4f2ff',skin:'#f4e8f0',body:'#426c9c',coatCol:'#5a90c8',trim:'#e8fbff',pants:'#263c5e',boots:'#1c2e4a',head:'halo',hc:'#c888ff',orbCol:'#80e8ff',weapon:'mstaff',eye:'#a8f0ff'};
 const SPIRE_B5={arch:'furcoat',sex:'m',hstyle:'long',hair:'#f4e4ff',skin:'#ecdcf2',body:'#361858',coatCol:'#5e2098',furCol:'#e4b8ff',trim:'#ffe066',pants:'#201038',boots:'#160828',cape:{col:'#4c167e',col2:'#1c0836'},head:'crown',hc:'#ffd858',hc2:'#e058ff',orbCol:'#e068ff',weapon:'bbqysword',wcol:'#6220a8',wfx:'#e280ff',wshape:'chaosblade',eye:'#ff96ff'};
-const LOOK_BY_NAME={HOMUNC:HOMUNC_LOOK,GARGOYLE:GARGOYLE_LOOK,HOMUNCULUS:HOMUNCULUS_LOOK,KAGE:KAGE_LOOK,SHADE:SHADE_LOOK,ICEKNIGHT:ICEKNIGHT_LOOK,DUELIST:DUELIST_LOOK,SPIRE_MOB,SPIRE_LEADER,SPIRE_B1,SPIRE_B2,SPIRE_B3,SPIRE_B4,SPIRE_B5};
+const EGEL_LOOK={arch:'knight',sex:'m',hstyle:'short',hair:'#a8b0bc',beard:'#9ca4b0',eyepatch:1,eyec:'#4ab8ff',skin:'#e2b898',body:'#365270',coatCol:'#263c58',trim:'#7ad8ff',pants:'#202c3c',boots:'#18202c',gloves:'#4a6480',pads:1,plate:1,head:'none',weapon:'frostaxe',wcol:'#7ad8ff',wfx:'#ffffff'};
+const RANKG2_LOOK={arch:'elf_knight',sex:'m',hstyle:'spiky',hair:'#684830',eyec:'#d89040',skin:'#eec29c',body:'#5a687c',coatCol:'#2f4868',trim:'#6fd48c',pants:'#242a34',boots:'#1a1e24',gloves:'#444c58',pads:1,head:'band',hc:'#6fd48c',hc2:'#e8f8e0',weapon:'sword'};
+const RANKG3_LOOK={arch:'mage_dress',sex:'f',hstyle:'ponytail',hair:'#c84848',eyec:'#ff9040',skin:'#fbe0c8',body:'#682632',coatCol:'#882e3c',trim:'#ffd27a',pants:'#2a1a22',boots:'#3a1c24',head:'none',orbCol:'#ff8030',weapon:'wand_fire'};
+const LOOK_BY_NAME={HOMUNC:HOMUNC_LOOK,GARGOYLE:GARGOYLE_LOOK,HOMUNCULUS:HOMUNCULUS_LOOK,KAGE:KAGE_LOOK,SHADE:SHADE_LOOK,ICEKNIGHT:ICEKNIGHT_LOOK,DUELIST:DUELIST_LOOK,SPIRE1_MOB,SPIRE1_LEADER,SPIRE_MOB,SPIRE_LEADER,SPIRE_B1,SPIRE_B2,SPIRE_B3,SPIRE_B4,SPIRE_B5,EGEL:EGEL_LOOK,RANKG2:RANKG2_LOOK,RANKG3:RANKG3_LOOK};
 const DEFLOOK={hair:'#9a4a22',skin:'#f2c9a0',eye:'#1a1020',hstyle:'short',sex:'m',name:''};
 const pname=()=>((G.look&&G.look.name)||'').trim()||'คุณ';
 const ELITE={chance:.2,hp:2.5,atk:1.4,xp:3,prefix:'★ หัวหน้า'};
@@ -673,25 +703,25 @@ const LOOT_TABLES={
   rat:{guaranteed:[{gold:[5,12]}],entries:[
     {mat:'fang',min:1,max:2,w:30},{mat:'hide',w:25},{mat:'stoneore',w:18},{mat:'cheese',w:8},{mat:'mp_s',w:12},{mat:'potion',w:8},
     {gear:'any',w:20,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:3,rar:['epic']}]},
-  stonecave:{guaranteed:[{gold:[8,18]}],entries:[
+  stonecave:{guaranteed:[{gold:[8,18]},{mat:'sk_windblade',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'ore',min:1,max:2,w:30},{mat:'wood',w:15},{mat:'hide',w:15},{mat:'thunder',w:8},{mat:'mp_s',w:12},{mat:'potion',w:8},
     {gear:'any',w:22,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:3,rar:['epic']}]},
   duelist:{guaranteed:[{gold:[500,700]}],entries:[
     {gear:'any',w:30,rar:'any'},{book:'rare',w:12,rar:['epic']},{book:'ultimate',w:12,rar:['epic']},{mat:'mp_x',w:10}]},
-  icecave:{guaranteed:[{gold:[25,45]}],entries:[
+  icecave:{guaranteed:[{gold:[25,45]},{mat:'sk_frostnova',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'iceore',min:1,max:2,w:30},{mat:'hide',w:15},{mat:'mp_m',w:12},{mat:'potion',w:8},
     {gear:'any',w:25,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:5,rar:['epic']},{book:'ultimate',w:1,rar:['epic']}]},
-  lavarat:{guaranteed:[{gold:[15,30]}],entries:[
+  lavarat:{guaranteed:[{gold:[15,30]},{mat:'sk_fireshield',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'lavaore',min:1,max:2,w:30},{mat:'hide',w:15},{mat:'fire',w:15},{mat:'mp_m',w:12},{mat:'potion',w:8},
     {gear:'any',w:25,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:4,rar:['epic']},{book:'ultimate',w:1,rar:['epic']}]},
-  shade:{guaranteed:[{gold:[20,40]}],entries:[
+  shade:{guaranteed:[{gold:[20,40]},{mat:'sk_windvanish',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'cloth',w:25},{mat:'mp_m',w:12},{mat:'potion',w:10},{gear:'any',w:25,rar:'any'},{set:'shadow',w:12,rar:'any'},
     {book:'common',w:6,rar:['rare']},{book:'rare',w:5,rar:['epic']},{book:'ultimate',w:2,rar:['epic']}]},
   kage:{guaranteed:[{mat:'key_lava',q:1}],entries:[]},   // v0.2.1: คาเงะดรอปแค่กุญแจลงเหมืองลาวา
   golem:{guaranteed:[{gold:[150,200]},{mat:'core',q:1,rar:'epic',chance:.25},{mat:'sc_golem',q:1}],entries:[
     {base:'h_horns',w:10,rar:'any',unique:1},{base:'a_golem',w:8,rar:'any',unique:1},{gear:'any',w:25,rar:'any'},{mat:'mp_l',w:10},
     {book:'rare',w:12,rar:['rare','epic']},{book:'ultimate',w:6,rar:['epic']}]},
-  tower:{guaranteed:[{gold:[40,70]}],entries:[
+  tower:{guaranteed:[{gold:[40,70]},{mat:'sk_blink',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'mercury',w:30,min:1,max:2},{mat:'ore',w:15},{mat:'mp_m',w:10},{mat:'potion',w:8},{gear:'any',w:22,rar:'any'},{set:'alchemist',w:8,rar:'any'},
     {book:'common',w:6,rar:['rare']},{book:'rare',w:4,rar:['epic']}]},
   homunculus:{guaranteed:[{gold:[600,800]},{mat:'philostone',q:1,rar:'epic',chance:.25},{mat:'sc_merc',q:1},{mat:'mercury',q:3}],entries:[
@@ -706,8 +736,13 @@ const LOOT_TABLES={
   spire:{guaranteed:[{gold:[80,140]}],entries:[
     {mat:'mp_l',w:16},{mat:'mp_x',w:8},{mat:'potion',w:12},{mat:'exprock',w:10},{gear:'any',w:28,rar:'any'},
     {book:'rare',w:8,rar:['rare','epic']},{book:'ultimate',w:4,rar:['epic']}]},
+  valin:{guaranteed:[{gold:[120,180]},{mat:'sk_windblade',q:1,rar:'rare',chance:.052},{mat:'sk_windvanish',q:1,rar:'rare',chance:.052}],entries:[
+    {gear:'any',w:28,rar:'any'},{book:'rare',w:10,rar:['rare','epic']},{mat:'mp_l',w:10}]},
+  ceres:{guaranteed:[{gold:[120,180]},{mat:'sk_fireshield',q:1,rar:'rare',chance:.052}],entries:[
+    {gear:'any',w:28,rar:'any'},{book:'rare',w:10,rar:['rare','epic']},{mat:'mp_l',w:10}]},
   spireboss:{guaranteed:[{gold:[750,1100]},{mat:'exprock',q:2},{mat:'mp_x',q:2}],entries:[
-    {mat:'evostone',w:12},{mat:'philostone',w:8},{gear:'any',w:30,rar:'any'},{book:'ultimate',w:14,rar:['epic']}]}
+    {mat:'evostone',w:12},{mat:'philostone',w:8},{gear:'any',w:30,rar:'any'},{book:'ultimate',w:14,rar:['epic']}]},
+  dummy:{guaranteed:[],entries:[]}
 };
 /* Example tables from the design spec — NOT assigned to any enemy yet; their item IDs do not exist so the validator lists them. */
 const LOOT_TABLE_TEMPLATES={
@@ -739,13 +774,20 @@ const QUESTS={
   pan:{n:'กระทะของพ่อ',type:'รอง',steps:['หากระทะของพ่อในถ้ำคริสตัล'],reward:{xp:100,mats:{sc_firepan:1}}},
   lava:{n:'เหมืองลาวาร้าง',type:'หลัก',steps:['เข้าประตูเหมืองลาวาในถ้ำคริสตัล','ลงไปถึงชั้น 3','ปราบราชันย์ลาวา'],reward:{xp:1500,gold:500}}
 };
+const GUILD_QUESTS=[
+  {id:'gq_slime',n:'ล่าสไลม์ในถ้ำชีส',rankReq:'F',targets:['mudslime','mslime','rat'],req:5,desc:'ปราบมอนสเตอร์ในถ้ำชีส/ถ้ำคริสตัล 5 ตัว',reward:{xp:200,gold:150,mats:{potion:2}}},
+  {id:'gq_golem',n:'คำร้องปราบโกเลมศิลา',rankReq:'F',targets:['golem','rockling','stone','stonecave'],req:4,desc:'ปราบมอนสเตอร์หรือบอสในถ้ำหินโกเลม 4 ตัว',reward:{xp:450,gold:350,mats:{ore:4}}},
+  {id:'gq_lava',n:'กวาดล้างเหมืองลาวา',rankReq:'F',targets:['lavarat','lizard','fireele','lavaking'],req:6,desc:'ปราบมอนสเตอร์ในเหมืองลาวา 6 ตัว',reward:{xp:750,gold:550,mats:{fire:3,mp_m:2}}},
+  {id:'gq_ice',n:'สำรวจแดนเหมันต์',rankReq:'G',targets:['frostslime','frostwolf','iceknight','icegolem','seraph'],req:6,desc:'ปราบมอนสเตอร์ในถ้ำน้ำแข็ง 6 ตัว',reward:{xp:1400,gold:1000,mats:{iceore:4,mp_l:2}}},
+  {id:'gq_spire',n:'พิทักษ์ยอดหอคอยคริสตัล',rankReq:'G',targets:['spire1_mob','spire1_leader','spiremob','spireleader','spire_b1','spire_b2','spire_b3','spire_b4','spire_b5'],req:8,desc:'ปราบศัตรูในหอคอยคริสตัลจอมเวท 8 ตัว',reward:{xp:3200,gold:2200,mats:{evostone:1}}}
+];
 // แรงค์กิลด์นักผจญภัย 7 ขั้น (F -> G -> D -> C -> B -> A -> S) : เลื่อนขั้นเมื่อเลเวลถึงเกณฑ์ + ผ่านเควสต์เลื่อนขั้น
 const GUILD_RANKS=[
   {id:'F',n:'นักผจญภัยฝึกหัด',lvReq:1,col:'#a8b4c8',promoQuest:null,desc:'แรงค์เริ่มต้นหลังลงทะเบียนเข้ากิลด์นักผจญภัย'},
-  {id:'G',n:'นักผจญภัยหน้าใหม่',lvReq:10,col:'#6fd48c',promoQuest:'promo_g',desc:'ต้องการ Lv.10+ และสำเร็จเควสต์เลื่อนขั้น Rank G'},
-  {id:'D',n:'นักผจญภัยแนวหน้า',lvReq:20,col:'#58b8f0',promoQuest:'promo_d',desc:'ต้องการ Lv.20+ และสำเร็จเควสต์เลื่อนขั้น Rank D'},
-  {id:'C',n:'นักล่าแห่งรอยแยก',lvReq:35,col:'#9c7cf4',promoQuest:'promo_c',desc:'ต้องการ Lv.35+ และสำเร็จเควสต์เลื่อนขั้น Rank C'},
-  {id:'B',n:'ยอดฝีมือคอลลาวาร์รี',lvReq:50,col:'#f0a442',promoQuest:'promo_b',desc:'ต้องการ Lv.50+ และสำเร็จเควสต์เลื่อนขั้น Rank B'},
-  {id:'A',n:'วีรชนแสงเอเธอร์',lvReq:70,col:'#f05c5c',promoQuest:'promo_a',desc:'ต้องการ Lv.70+ และสำเร็จเควสต์เลื่อนขั้น Rank A'},
-  {id:'S',n:'ตำนานผู้ปิดประตู',lvReq:90,col:'#ffd84a',promoQuest:'promo_s',desc:'แรงค์สูงสุดของกิลด์ — ต้องการ Lv.90+ และเควสต์เลื่อนขั้น Rank S'}
+  {id:'G',n:'นักผจญภัยหน้าใหม่',lvReq:30,col:'#6fd48c',promoQuest:'promo_g',desc:'ต้องการ Lv.30+ และผ่านการทดสอบโคลอสเซียม Rank G'},
+  {id:'D',n:'นักผจญภัยแนวหน้า',lvReq:60,col:'#58b8f0',promoQuest:'promo_d',desc:'ต้องการ Lv.60+ และผ่านการทดสอบโคลอสเซียม Rank D'},
+  {id:'C',n:'นักล่าแห่งรอยแยก',lvReq:90,col:'#9c7cf4',promoQuest:'promo_c',desc:'ต้องการ Lv.90+ และผ่านการทดสอบโคลอสเซียม Rank C'},
+  {id:'B',n:'ยอดฝีมือคอลลาวาร์รี',lvReq:120,col:'#f0a442',promoQuest:'promo_b',desc:'ต้องการ Lv.120+ และผ่านการทดสอบโคลอสเซียม Rank B'},
+  {id:'A',n:'วีรชนแสงเอเธอร์',lvReq:150,col:'#f05c5c',promoQuest:'promo_a',desc:'ต้องการ Lv.150+ และผ่านการทดสอบโคลอสเซียม Rank A'},
+  {id:'S',n:'ตำนานผู้ปิดประตู',lvReq:180,col:'#ffd84a',promoQuest:'promo_s',desc:'แรงค์สูงสุดของกิลด์ — ต้องการ Lv.180+ และผ่านการทดสอบโคลอสเซียม Rank S'}
 ];

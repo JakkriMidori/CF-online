@@ -113,6 +113,7 @@ const SFX={
   heal:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.14,'sine',.06,1.08),i*55)),
   mana:()=>[587,740,880,1175].forEach((f,i)=>setTimeout(()=>tone(f,.14,'triangle',.055,1.1),i*50)),
   root:()=>{tone(988,.15,'triangle',.06,.7);setTimeout(()=>tone(659,.22,'sine',.05,.8),60);},
+  spire:()=>{[392,523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>setTimeout(()=>{tone(f,.42,'sine',.055,1.02);tone(f*1.5,.28,'triangle',.025);},i*65));noise(.35,.06,2800);},
   magic:el=>{
     if(el==='fire'){tone(340,.22,'sawtooth',.05,.5);noise(.18,.08,800);}
     else if(el==='lightning'){tone(920,.12,'square',.05,.4);noise(.14,.1,3200);}
@@ -122,6 +123,7 @@ const SFX={
     else{tone(520,.16,'triangle',.05,1.4);tone(780,.14,'sine',.04);}
   },
   status:()=>tone(300,.1,'triangle',.05,1.6),
+  shatter:()=>{noise(.28,.22,2600);tone(1480,.08,'triangle',.08,.7);setTimeout(()=>tone(2200,.14,'sine',.07,.6),35);setTimeout(()=>tone(960,.18,'triangle',.06,.5),70);},
   loot:r=>{const n={normal:1,rare:2,legendary:3,god:5}[r]||1;for(let i=0;i<n;i++)setTimeout(()=>tone(700+i*200,.1,'triangle',.06),i*70);}
 };
 
@@ -154,7 +156,9 @@ const PAL={
 };
 const SLIME=["....oooooo....", "..oohhllllo...", ".ohhllllllloo.", ".ohlllllllllo.", "olllllllleello", "olllllllleelmo", "ollllllllllmmo", "ommmmmmmmmmmmo", ".oooooooooooo."];
 const WOLF=["..............o.o.", ".............owow.", "............owwwwo", "o..........owwwewo", "wo.oooooooowwwwwnn", ".owwwwwwwwwwwwwwo.", ".owwwwwwwwwwwwdo..", ".odwwwwwwwwwwwdo..", "..odddddddddddo...", "..ow.ow....ow.ow..", "..ow.ow....ow.ow..", "..oo.oo....oo.oo.."];
-const SPR={RAT,GOLEM,ANGEL,SLIME,WOLF};
+const DUMMY=["......oooo......",".....ohhhho.....",".....ohssho.....","......oooo......","..oooowttwoooo..",".ohhhhtrrthhhho.",".ohssstrwtsssho.","..oooowttwoooo..","......owwo......","......owwo......","......owwo......","....oowwwwoo...."];
+PAL.dummy={o:'#2a1c12',h:'#e8c878',s:'#c89a42',w:'#8a5628',t:'#f2f2f2',r:'#e03a3a'};
+const SPR={RAT,GOLEM,ANGEL,SLIME,WOLF,DUMMY};
 function spr(ctx,map,pal,x,y,sc,flip,tint,f){
   if(map===GOLEM&&typeof RIG_HD!=='undefined'&&RIG_HD.on)return drawGolemHD(ctx,pal,x,y,sc,flip,tint,f);
   const h=map.length,w=map[0].length,ox=Math.round(x-w*sc/2),oy=Math.round(y-h*sc);
@@ -244,8 +248,8 @@ function drawRigRaw(ctx,x,y,sc,dir,P,K,tint){
     if(K.scarf){seg([J.sh[0]-1,J.sh[1]],[J.sh[0]-10,J.sh[1]+2+wv*2.5],2+o,C(K.scarf));seg([J.sh[0]-1,J.sh[1]+1],[J.sh[0]-8,J.sh[1]+5+wv*2],2+o,C(K.scarf));}
     seg(J.bs,J.be.j,2+o,dk(K.sleeve||K.body));seg(J.be.j,J.be.end,2+o,dk(K.gloves||K.skin));blk(J.be.end[0],J.be.end[1],3+o,3+o,dk(K.gloves||K.skin));
     seg(J.bhp,J.bk.j,3+o,dk(K.pants));seg(J.bk.j,J.bk.end,3+o,dk(K.pants));blk(J.bk.end[0]+1,J.bk.end[1]-1,5+o,3+o,dk(K.boots));
-    seg(J.hip,J.sh,(K.sex==='f'?6:7)+o,C(K.body));
-    if(K.sex==='f'&&!K.plate){const t2=.68,cx=J.hip[0]+(J.sh[0]-J.hip[0])*t2,cy=J.hip[1]+(J.sh[1]-J.hip[1])*t2;blk(cx+2.6,cy+.4,2.4+o,2.6+o,C(K.body));   // ทรงอกเล็กน้อยให้แยกเพศได้
+    seg(J.hip,J.sh,(K.sex==='f'?5.6:7)+o,C(K.body));
+    if(K.sex==='f'){const t2=.68,cx=J.hip[0]+(J.sh[0]-J.hip[0])*t2,cy=J.hip[1]+(J.sh[1]-J.hip[1])*t2;blk(cx+3.4,cy+.3,3.6+o,3.4+o,C(K.body));   // เพิ่มทรงอกผู้หญิงทั้งหมดให้ชัดเจน
       const hx=J.hip[0]+(J.sh[0]-J.hip[0])*.08,hy=J.hip[1]+(J.sh[1]-J.hip[1])*.08;blk(hx,hy,7.4+o,2+o,C(K.body));}   // สะโพกกว้างกว่าเอวเล็กน้อย
     seg(J.fhp,J.fk.j,3+o,C(K.pants));seg(J.fk.j,J.fk.end,3+o,C(K.pants));blk(J.fk.end[0]+1,J.fk.end[1]-1,5+o,3+o,C(K.boots));
     if(K.robe)for(let k=0;k<9;k++){const ww=7+k*.55;blk(J.hip[0]+.3+k*.08,J.hip[1]+k,ww+o,1.2+o,C(k===8?(K.trim||K.robe):K.robe));}   // เสื้อคลุมยาวคลุมขา
@@ -281,7 +285,7 @@ function drawRigRaw(ctx,x,y,sc,dir,P,K,tint){
   if(tint)return;
   const tor=t=>[J.hip[0]+(J.sh[0]-J.hip[0])*t,J.hip[1]+(J.sh[1]-J.hip[1])*t],bt=tor(.12),ch=tor(.62);
   blk(bt[0],bt[1],7,2,K.trim);
-  if(K.sex==='f'&&!K.plate){const b2=tor(.68);blk(b2[0]+2,b2[1]-.5,3.5,2,shade(K.body,1.3));blk(b2[0]+2.3,b2[1]+1,3,1,shade(K.body,.62));blk(b2[0]+.5,tor(.3)[1],5,1,shade(K.body,.8));}   // เงาอก + เอวคอด
+  if(K.sex==='f'){const b2=tor(.68);blk(b2[0]+2.7,b2[1]-.6,4.2,2.2,shade(K.body,1.3));blk(b2[0]+2.9,b2[1]+1.2,3.8,1.1,shade(K.body,.58));blk(b2[0]+.4,tor(.3)[1],4.5,1,shade(K.body,.8));}   // เงาอก + เอวคอด
   else blk(ch[0]+1.5,ch[1],2,4,shade(K.body,1.25));
   if(K.pads)blk(J.sh[0]+.5,J.sh[1]+.5,K.plate?6:5,K.plate?4:3,K.trim);
   if(K.plate){const c2=tor(.45);blk(c2[0]+.5,c2[1],6,5,shade(K.body,1.35));blk(c2[0]+.5,c2[1]+1.5,4,1,shade(K.body,.8));blk(J.sh[0]+2.5,J.sh[1]+.5,1,1,'#ffffff');}
@@ -394,9 +398,12 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
   }
   leg(J.fhp,J.fk.j,J.fk.end,C(K.pants),C(K.boots),1);
   // ---- ลำตัว ----
-  const bw=F?[3.05,2.3,3.0,2.5]:[2.9,2.7,3.3,2.7],bc=C(K.body),bd=Dk(K.body,.6);
-  poly([tp(-.05,bw[0]),tp(.38,bw[1]),tp(.72,F&&!K.plate?bw[2]+.6:bw[2]),tp(1.02,bw[3]),tp(1.08,0),tp(1.02,-bw[3]),tp(.72,-bw[2]),tp(.38,-bw[1]),tp(-.05,-bw[0])],bc,bd);
-  if(!T){if(F&&!K.plate){const q=tp(.66,1.9);ell(q[0],q[1],1.5,.55,shade(K.body,.7),null,Math.atan2(v[1],v[0]));}
+  const bw=F?[3.1,2.05,3.2,2.45]:[2.9,2.7,3.3,2.7],bc=C(K.body),bd=Dk(K.body,.6);
+  poly([tp(-.05,bw[0]),tp(.38,bw[1]),tp(.66,F?bw[2]+2.0:bw[2]),tp(.78,F?bw[2]+1.8:bw[2]),tp(1.02,bw[3]),tp(1.08,0),tp(1.02,-bw[3]),tp(.72,-bw[2]),tp(.38,-bw[1]),tp(-.05,-bw[0])],bc,bd);
+  if(!T){if(F){const bcol=K.arch==='knight'&&K.plateCol?C(K.plateCol):K.plate?shade(K.body,1.18):bc,q=tp(.68,2.95),qb=tp(.57,2.85),qh=tp(.75,3.1);
+      ell(q[0],q[1],1.85,1.55,bcol,Dk(bcol,.58),Math.atan2(v[1],v[0]));
+      ell(qb[0],qb[1],1.6,.55,shade(bcol,.62),null,Math.atan2(v[1],v[0]));
+      ell(qh[0],qh[1],1.1,.42,shade(bcol,1.32),null,Math.atan2(v[1],v[0]));}
     const q=tp(.78,.9);ell(q[0],q[1],1.1,1.8,shade(K.body,1.22),null,Math.atan2(u[1],u[0]));}
   // ชายเสื้อ/เสื้อคลุม
   if(K.robe){const fy=Math.max(J.fk.end[1],J.bk.end[1])-1.2;poly([tp(.15,3.1),[J.hip[0]+5.6,fy],[J.hip[0]+2,fy+.6+wv*.3],[J.hip[0]-2,fy+.4],[J.hip[0]-5.4,fy-.2],tp(.15,-3.1)],C(K.robe),Dk(K.robe,.6));
@@ -458,6 +465,10 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
     if(K.plate){poly([tp(.36,2.7),tp(.92,2.9),tp(.98,0),tp(.92,-1.2),tp(.36,-1)],shade(K.body,1.3),shade(K.body,.6));const a=tp(.85,1.6),b=tp(.5,2.2);ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}
     if(K.scales)for(const t2 of[.32,.5,.68])for(const s2 of[-1.4,.4,2.1]){const q=tp(t2,s2);ell(q[0],q[1],.8,.5,K.scales,shade(K.scales,.6));}
     if(K.glowTrim&&G.t%30<20){const q=tp(.78,.9);ell(q[0],q[1],.6,1.5,'#ffb03a');}
+    if(F){const bcol=K.arch==='knight'?C(K.plateCol||K.armor||K.body):K.plate?shade(K.body,1.2):bc,b2=tp(.69,3.2),bs=tp(.57,3.0),bh=tp(.76,3.35);
+      ell(b2[0],b2[1],1.8,1.55,bcol,Dk(bcol,.58),Math.atan2(v[1],v[0]));
+      ell(bs[0],bs[1],1.6,.52,shade(bcol,.58),null,Math.atan2(v[1],v[0]));
+      ell(bh[0],bh[1],1.15,.4,shade(bcol,1.28),null,Math.atan2(v[1],v[0]));}
     const nk=tp(1.02,0);if(K.scarf)ell(nk[0]+.4,nk[1]+.2,2.6,1.3,K.scarf,shade(K.scarf,.6));else if(K.trim)poly([tp(.98,2.4),tp(1.1,1),tp(1.1,-1),tp(.98,-2.4),tp(.92,0)],K.trim,shade(K.trim,.6));
     if(K.neck){ctx.fillStyle='#d8b050';ctx.fillRect(nk[0]-.3,nk[1]+.6,2.8,.4);ell(nk[0]+1.6,nk[1]+1.9,.75,.85,K.neck,'#6a4a20');}}
   // ---- หัว ----
@@ -474,6 +485,8 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
     ell(E2[0],E2[1],.42,1.05,'#1a1020');ell(E2[0]+.05,E2[1]+.3,.28,.65,ec);ctx.fillStyle='#fff';ctx.fillRect(E2[0]-.25,E2[1]-.6,.35,.35);
     ctx.fillStyle='#1a1020';ctx.fillRect(E1[0]-1,E1[1]-1.45,2,.5);ctx.fillRect(E2[0]-.5,E2[1]-1.35,1,.45);if(F){ctx.fillRect(E1[0]-1.35,E1[1]-1.65,.6,.45);}
     ctx.fillStyle=F?'#c05a6a':'#9a5a52';ctx.fillRect(Hc[0]+3,Hc[1]+3.1,.9,.4);ctx.fillStyle='rgba(255,110,110,.35)';ctx.fillRect(Hc[0]+.9,Hc[1]+2.1,1.4,.5);
+    if(K.eyepatch){ctx.strokeStyle='#1c1e26';ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(...hp(-3.4,-.6));ctx.lineTo(...hp(4.3,1.3));ctx.stroke();ell(E1[0],E1[1],1.35,1.45,'#181a24','#0c0d12');ctx.fillStyle='#2a2e3c';ctx.fillRect(E1[0]-.5,E1[1]-.7,.9,.4);}
+    if(K.beard){const bc=C(K.beard),bd2=Dk(K.beard,.62);poly([hp(-.4,2.8),hp(4.2,2.4),hp(4.3,4.8),hp(2.2,6.4),hp(-.4,5.0),hp(-1.1,3.6)],bc,bd2);poly([hp(.9,2.4),hp(4.6,2.2),hp(4.9,3.3),hp(2.8,3.6),hp(.8,3.3)],shade(K.beard,1.12),bd2);}
     if(K.mask)poly([hp(.6,2),hp(4.6,1.6),hp(3.6,4.4),hp(1.2,5.2),hp(-.6,3.8)],'#1a1a24','#000');}
   // ผมหน้า + ปลายผมแหลม + ปอยผมโค้ง Ahoge ด้านบน (ตามภาพที่ 1, 2, 3)
   if(!helm&&hs!=='bald'){
@@ -575,7 +588,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
     if(K.outfit&&!T){ctx.fillStyle=K.bracerBands[0];ctx.fillRect(e[0]-1.1,e[1]+.4,2.2,.65);ctx.fillStyle=K.bracerBands[1];ctx.fillRect(e[0]-1.1,e[1]+1.4,2.2,.55);}ell(h[0],h[1],1.3,1.25,hand,Dk(K.gloves||K.skin,.6));
     if(K.outfit&&!T){const R2=back?sx>0:sx<0,pc=R2?K.pauldronR:K.pauldronL;ell(sx*3.7,shY+1.1,2.3,1.8,pc,shade(pc,.55),sx*.18);ell(sx*3.55,shY+.5,1.15,.5,shade(pc,1.4));if(R2){ctx.fillStyle=K.pauldronRTrim;ctx.fillRect(sx*4.2-.42,shY+1.1,.85,.85);}else{ctx.fillStyle=K.pauldronLStitch[0];ctx.fillRect(sx*3.5-.5,shY+.7,1,.75);ctx.fillStyle=K.pauldronLStitch[1];ctx.fillRect(sx*4.2-.4,shY+1.3,.8,.75);}}return h;};
   // ---- ลำตัว ----
-  const bc=C(K.body),bd=Dk(K.body,.6),wst=F?2.3:2.7,chs=F?3.1:3.4;
+  const bc=C(K.body),bd=Dk(K.body,.6),wst=F?2.05:2.7,chs=F?3.35:3.4;
   const torso=()=>{poly([[-2.9,hipY+.2],[-wst,hipY-3.6],[-chs,shY+2.2],[-2.9,shY],[0,shY-.6],[2.9,shY],[chs,shY+2.2],[wst,hipY-3.6],[2.9,hipY+.2]],bc,bd);
     if(K.robe)poly([[-3.1,hipY-1],[3.1,hipY-1],[5,-1.2],[-5,-1.2]],C(K.robe),Dk(K.robe,.6));
     else if(K.outfit&&!T){const co=K.coat,cd=shade(co,.58),hm=K.hemTrim,w2=wv*.25;
@@ -628,10 +641,10 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
         ctx.fillStyle=K.beltPouch;ctx.fillRect(-2.4,hipY-1.2,1.2,1.1);ctx.fillRect(1.2,hipY-1.2,1.2,1.1);}
       else{ctx.strokeStyle=K.chestStraps;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(2.7,shY+.6);ctx.lineTo(-2.5,hipY-1.4);ctx.stroke();}}
     if(back){ctx.fillStyle=shade(K.body,.8);ctx.fillRect(-.25,shY+1,.5,hipY-shY-3);}
-    else{if(F&&!K.plate){ell(-1.4,shY+3.6,1.3,.5,shade(K.body,.72));ell(1.4,shY+3.6,1.3,.5,shade(K.body,.72));}
-      if(K.plate){poly([[-2.6,shY+1.4],[2.6,shY+1.4],[2.2,hipY-3],[0,hipY-2.2],[-2.2,hipY-3]],shade(K.body,1.3),shade(K.body,.6));ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(-1.6,shY+2.2,.5,3);}
+    else{if(K.plate){poly([[-2.6,shY+1.4],[2.6,shY+1.4],[2.2,hipY-3],[0,hipY-2.2],[-2.2,hipY-3]],shade(K.body,1.3),shade(K.body,.6));ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(-1.6,shY+2.2,.5,3);}
       if(K.scales)for(const yy of[shY+3,shY+5,shY+7])for(const xx of[-1.4,0,1.4])ell(xx,yy,.75,.45,K.scales,shade(K.scales,.6));
       if(K.glowTrim&&G.t%30<20)ell(0,shY+4,.6,1.4,'#ffb03a');
+      if(F){const bcol=K.arch==='knight'?C(K.armor||K.body):K.plate?shade(K.body,1.25):bc;for(const sx of[-1,1]){ell(sx*1.5,shY+3.1,1.42,1.15,shade(bcol,1.16),Dk(bcol,.62));ell(sx*1.5,shY+4.15,1.45,.58,shade(bcol,.58));}}
       if(K.scarf)ell(0,shY+.5,2.9,1.3,K.scarf,shade(K.scarf,.6));else if(K.trim)poly([[-2.6,shY+.2],[0,shY+2.2],[2.6,shY+.2],[0,shY-.6]],K.trim,shade(K.trim,.6));
       if(K.neck){ctx.fillStyle='#d8b050';ctx.fillRect(-1.4,shY+1.2,2.8,.4);ell(0,shY+2.6,.75,.85,K.neck,'#6a4a20');}}};
   const sl=C(K.sleeve||K.body),hd=C(K.gloves||K.skin);
@@ -670,6 +683,8 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
       for(const sx of[-1,1]){const E=hp(sx*1.8,.9);ell(E[0],E[1],.72,1.15,'#1a1020');ell(E[0],E[1]+.3,.52,.75,ec);ell(E[0],E[1]+.62,.38,.32,shade(ec,1.6));ctx.fillStyle='#fff';ctx.fillRect(E[0]-.45,E[1]-.7,.45,.45);
         ctx.fillStyle='#1a1020';ctx.fillRect(E[0]-.9,E[1]-1.42,1.8,.5);if(F)ctx.fillRect(E[0]+sx*.7,E[1]-1.65,.55,.45);}
       ctx.fillStyle=F?'#c05a6a':'#9a5a52';ctx.fillRect(Hc[0]-.45,Hc[1]+3.1,.9,.4);ctx.fillStyle='rgba(255,110,110,.32)';ctx.fillRect(Hc[0]-3.4,Hc[1]+2.1,1.3,.5);ctx.fillRect(Hc[0]+2.1,Hc[1]+2.1,1.3,.5);
+      if(K.eyepatch){const EP1=hp(1.8,.9);ctx.strokeStyle='#1c1e26';ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(...hp(-4.4,-1.0));ctx.lineTo(...hp(4.4,1.9));ctx.stroke();ell(EP1[0],EP1[1],1.3,1.4,'#181a24','#0c0d12');ctx.fillStyle='#2a2e3c';ctx.fillRect(EP1[0]-.5,EP1[1]-.6,.9,.4);}
+      if(K.beard){const bc=C(K.beard),bd2=Dk(K.beard,.62);poly([hp(-3.1,2.2),hp(3.1,2.2),hp(2.7,4.9),hp(0,6.6),hp(-2.7,4.9)],bc,bd2);poly([hp(-2.9,2.2),hp(2.9,2.2),hp(2.2,3.4),hp(0,3.0),hp(-2.2,3.4)],shade(K.beard,1.12),bd2);}
       if(K.mask)poly([hp(-3.4,1.8),hp(3.4,1.8),hp(2.4,4.6),hp(0,5.4),hp(-2.4,4.6)],'#1a1a24','#000');}
     if(hair!=='none'&&hair!=='bald'){
       if(hair==='mohawk'){for(let k=0;k<4;k++){const b=hp(0,-4.4);poly([[b[0]-1,b[1]+.4],[b[0]+(k-1.5)*.6,b[1]-2.4-k%2],[b[0]+1,b[1]+.4]],hc,hcd);}}
