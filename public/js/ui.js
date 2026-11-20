@@ -14,8 +14,8 @@ const rb=r=>`style="border-color:${RARC[r]}"`;
 function statLines(s){return Object.keys(s).map(k=>`<div>${STATN2[k]||k} <b>${fmtStat(k,s[k])}</b></div>`).join('');}
 function itemTip(it,cmp){
   const b=BASES[it.base],s=itemStats(it),c=cmp?itemStats(cmp):null;
-  const lv=it.lv||1,mxLv=CONFIG.equipExp.maxLv,needExp=lv<mxLv?Equip.expNext(lv):0;
-  let h=`<div class="tip" style="border-color:${RARC[it.rar]}"><div class="tn" ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</div><div class="ts">${RARN[it.rar]}${it.rar==='legendary'?` LV.${it.legLv||1}/5`:''} · ${CAT_N[b.cat]||SLOTN[b.type]} · Lv.${lv}/${mxLv}${lv<mxLv?` (${it.exp||0}/${needExp} EXP)`:' (MAX)'} · iLv.${it.ilvl} · ต้องการ Lv.${it.req}${G.level<it.req?' <span class="bad">(เลเวลไม่พอ)</span>':''}</div>`;
+  const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),mxLv=CONFIG.equipExp.maxLv,needExp=(noCap||lv<mxLv)?Equip.expNext(lv):0;
+  let h=`<div class="tip" style="border-color:${RARC[it.rar]}"><div class="tn" ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</div><div class="ts">${RARN[it.rar]}${it.rar==='legendary'?` LV.${it.legLv||1}/5`:''} · ${CAT_N[b.cat]||SLOTN[b.type]} · Lv.${lv}/${noCap?'∞':mxLv}${noCap||lv<mxLv?` (${it.exp||0}/${needExp} EXP)`:' (MAX)'} · iLv.${it.ilvl} · ต้องการ Lv.${it.req}${G.level<it.req?' <span class="bad">(เลเวลไม่พอ)</span>':''}</div>`;
   h+=`<div class="ts">ตีบวก <b>+${it.enh||0}</b> / +${Equip.maxEnh(it)}${it.crafted?' · <span class="good">ของ craft</span>':''} · ทุกขั้น: ค่าแบบหน่วย +${CONFIG.enhFlat} · ค่า % +${CONFIG.enhPct*100}%</div>`;
   if(b.wt)h+=`<div class="ts">ชุดท่า: ${WEAPONS[b.wt].n} · ธาตุ <span style="color:${ELC[WEAPONS[b.wt].el]}">${ELN[WEAPONS[b.wt].el]}</span></div>`;
   const keys=new Set([...Object.keys(s),...(c?Object.keys(c):[])]);
@@ -42,7 +42,7 @@ const UI={
     $('#hudname').innerHTML=`Lv.${G.level}${rkTag} ${ico(TALENT_ICO[G.talent],14)} <small>${TALENTS[G.talent].th}</small>${G.points?` <span class="pts">+${G.points} แต้ม (C)</span>`:''} <small style="color:#ffd23a">⚡${Math.floor(G.ult||0)}</small> <small title="ระดับความยาก">${Diff.cur().ic}</small>${G.bloodstain?' <small style="color:#ff5a4a">🩸'+G.bloodstain.gold+'g</small>':''}`;
     $('#hpb').style.width=(G.hp/S.maxHP*100)+'%';$('#hpt').textContent=`${G.hp}/${S.maxHP}`;
     $('#mpb').style.width=(G.mp/S.maxMP*100)+'%';$('#mpt').textContent=`${Math.floor(G.mp)}/${S.maxMP}`;
-    $('#xpb').style.width=(G.level>=CONFIG.levelCap?100:G.xp/CONFIG.xpNext(G.level)*100)+'%';$('#gold').textContent=G.gold;
+    $('#xpb').style.width=((!(typeof hasNoMaxLv==='function'&&hasNoMaxLv())&&G.level>=CONFIG.levelCap)?100:G.xp/CONFIG.xpNext(G.level)*100)+'%';$('#gold').textContent=G.gold;
     const hm=$('#hudmods');
     if(hm){
       const ms=(S.mods||[]).slice().sort((a,b)=>(a.kind==='debuff'?1:0)-(b.kind==='debuff'?1:0));
@@ -84,7 +84,7 @@ const UI={
         <div class="sl">Lv.${G.level} · <b style="color:${(typeof Guild!=='undefined'&&Guild.registered()?Guild.info().col:'#99a')}">Rank ${typeof Guild!=='undefined'&&Guild.registered()?Guild.rank():'-'}</b> · ${TALENTS[G.talent].th} · ${Diff.cur().n}</div>
         <div class="sb"><span>HP</span>${bar(G.hp,S.maxHP,'#b8413a')}<b>${Math.round(G.hp)} / ${S.maxHP}</b></div>
         <div class="sb"><span>MP</span>${bar(G.mp,S.maxMP,'#3a7ac8')}<b>${Math.round(G.mp)} / ${S.maxMP}</b></div>
-        <div class="sb"><span>XP</span>${bar(G.xp,CONFIG.xpNext(G.level),'#c8a464')}<b>${G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)}</b></div>
+        <div class="sb"><span>XP</span>${bar(G.xp,CONFIG.xpNext(G.level),'#c8a464')}<b>${!(typeof hasNoMaxLv==='function'&&hasNoMaxLv())&&G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)+(typeof hasNoMaxLv==='function'&&hasNoMaxLv()?' (∞)':'')}</b></div>
         <div class="sgold">${ico('coin',18)} ${G.gold}</div>
       </div>
 </div></div>`;},
@@ -108,7 +108,7 @@ const UI={
     const ago=StatSync.lastTickAt?Math.round((Date.now()-StatSync.lastTickAt)/1000):null;
     const syncLine=`<div class="ts dim">${ico('gear',14)} ทรัพยากร: HP ${Math.round(G.hp)}/${S.maxHP} · MP ${Math.round(G.mp)}/${S.maxMP} · สตามินา ${S.maxSTA}/${S.maxSTA}</div>`;
     return`<h2>${ico('status',22)} ค่าสถานะตัวละคร${G.look&&G.look.name?' — '+G.look.name.replace(/[<>&]/g,''):''}</h2><div class="eqg"><div><canvas id="pv" width="220" height="270"></canvas><p><button class="btn sm" data-open="create">🎨 แต่งตัวละคร</button></p>
-      <div class="stat"><span>เลเวล</span><b>${G.level}</b><span>แรงค์กิลด์</span><b style="color:${(typeof Guild!=='undefined'&&Guild.registered()?Guild.info().col:'#a8b4c8')}">${typeof Guild!=='undefined'&&Guild.registered()?`Rank ${Guild.rank()} (${Guild.info().n})`:'ยังไม่สมัคร'}</b><span>XP</span><b>${G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)}</b><span>พรสวรรค์</span><b>${TALENTS[G.talent].ic} ${TALENTS[G.talent].th}</b><span>ความยาก</span><b>${Diff.cur().ic} ${Diff.cur().n}</b><span>ทอง</span><b>${G.gold}</b></div></div>
+      <div class="stat"><span>เลเวล</span><b>${G.level}</b><span>แรงค์กิลด์</span><b style="color:${(typeof Guild!=='undefined'&&Guild.registered()?Guild.info().col:'#a8b4c8')}">${typeof Guild!=='undefined'&&Guild.registered()?`Rank ${Guild.rank()} (${Guild.info().n})`:'ยังไม่สมัคร'}</b><span>XP</span><b>${!(typeof hasNoMaxLv==='function'&&hasNoMaxLv())&&G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)+(typeof hasNoMaxLv==='function'&&hasNoMaxLv()?' (∞)':'')}</b><span>พรสวรรค์</span><b>${TALENTS[G.talent].ic} ${TALENTS[G.talent].th}</b><span>ความยาก</span><b>${Diff.cur().ic} ${Diff.cur().n}</b><span>ทอง</span><b>${G.gold}</b></div></div>
     <div><h3>ค่าพลังหลัก — แต้มคงเหลือ <span class="pts">${G.points}</span> ${Inv.has('reset')?'<button class="btn ghost sm" data-use="reset">📜 ใช้คัมภีร์ล้างค่าพลัง</button>':''}</h3>${attrs}
       <h3>ค่าที่คำนวณได้</h3><div class="stat2">
       <span>HP สูงสุด</span><b>${S.maxHP}</b>
@@ -152,7 +152,7 @@ const UI={
     const typ=slot.startsWith('ring')?'ring':slot,cur=G.eq[slot]&&itemByUid(G.eq[slot]);
     const rows=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return`<button class="eqrow${s===slot?' on':''}" data-slot="${s}" ${it?rb(it.rar):''}><small>${SLOTN[s]}</small><span ${it?rc(it.rar):'class="dim"'}>${it?bIco(it.base,16)+' '+itemName(it):'— ว่าง —'}</span></button>`;}).join('');
     const A=[['พลังโจมตี',S.ap],['พลังเวท',S.mpow],['DEF',S.def],['M.DEF',S.mdef],['STR',S.str],['AGI',S.agi],['INT',S.int],['VIT',S.vit],['LUK',S.luk],['อัตราคริ',pct(S.critRate)],['HP สูงสุด',S.maxHP],['MP สูงสุด',S.maxMP]].map(([n,v])=>`<div class="eqa"><span>${n}</span><b>${v}</b></div>`).join('');
-    const cands=G.bag.filter(it=>BASES[it.base].type===typ&&it.uid!==(cur&&cur.uid)),list=(cur?[cur]:[]).concat(cands).map(it=>`<button class="eqcand${sel&&sel.uid===it.uid?' on':''}" data-sel="${it.uid}" ${rb(it.rar)}>${cur&&it.uid===cur.uid?'<em>สวมอยู่</em>':''}<span ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</span><b>Lv.${it.req}</b></button>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ชนิดนี้ในช่องเก็บของ</div>';
+    const cands=G.bag.filter(it=>BASES[it.base].type===typ&&it.uid!==(cur&&cur.uid)),list=(cur?[cur]:[]).concat(cands).map(it=>`<button class="eqcand${sel&&sel.uid===it.uid?' on':''}" data-sel="${it.uid}" ${rb(it.rar)}>${cur&&it.uid===cur.uid?'<em>สวมอยู่</em>':''}<span ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</span><b>อัป Lv.${it.lv||1} · ใช้ Lv.${it.req}</b></button>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ชนิดนี้ในช่องเก็บของ</div>';
     return`<h2>${ico('equip',22)} สวมใส่อุปกรณ์ <small class="gold-r">${ico('coin',16)} ${G.gold}</small></h2>
       <div class="eq4"><div class="eqc"><canvas id="pv" width="220" height="270"></canvas><div class="eqn">${pname()}</div><div class="dim">Lv.${G.level} · ${TALENTS[G.talent].th}</div>
           <div class="sb"><span>HP</span><div class="mbar"><i style="width:${Math.min(100,G.hp/Math.max(1,S.maxHP)*100)}%;background:#b8413a"></i></div><b>${Math.round(G.hp)}/${S.maxHP}</b></div>
@@ -208,7 +208,7 @@ const UI={
       if(o.mat){const k=o.mat,m=MATS[k],mr=matRar(k);
         return`<button class="brow it${this.selMat===k?' sel':''}" data-selmat="${k}" style="border-color:${RARC[mr]};border-left-width:3px"><span class="bn">${mIco(k,20)} <span ${rc(mr)}>${m.n}</span></span><b class="bq">× ${G.mats[k]}</b></button>`;}
       const it=o.gear,eqd=Equip.isEquipped(it);
-      return`<button class="brow it${this.sel===it.uid?' sel':''}" data-sel="${it.uid}" style="border-color:${RARC[it.rar]};border-left-width:3px"><span class="bn">${bIco(it.base,20)} <span ${rc(it.rar)}>${itemName(it)}</span></span><small class="bq">Lv.${it.req}${eqd?' · <b class="good">สวมอยู่</b>':''}</small></button>`;}).join('')||'<div class="dim" style="padding:14px">ไม่มีไอเท็มในหมวดนี้</div>';
+      return`<button class="brow it${this.sel===it.uid?' sel':''}" data-sel="${it.uid}" style="border-color:${RARC[it.rar]};border-left-width:3px"><span class="bn">${bIco(it.base,20)} <span ${rc(it.rar)}>${itemName(it)}</span></span><small class="bq">อัป Lv.${it.lv||1} · ใช้ Lv.${it.req}${eqd?' · <b class="good">สวมอยู่</b>':''}</small></button>`;}).join('')||'<div class="dim" style="padding:14px">ไม่มีไอเท็มในหมวดนี้</div>';
     const eqCnt=`<span class="${G.bag.length>=LOOT_CONFIG.inventory.equipSlots?'bad':''}">${G.bag.length}/${LOOT_CONFIG.inventory.equipSlots}</span>`;
     const detail=isGear?this.itemDet(sel&&list.some(o=>o.gear===sel)?sel:null):this.matDet(list.some(o=>o.mat===this.selMat)?this.selMat:null);
     return`<h2>${ico('bag',22)} ช่องเก็บของ <small class="dim">ทอง ${G.gold} · ช่องอุปกรณ์ ${eqCnt}</small></h2>
@@ -384,11 +384,11 @@ const UI={
     const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
     const stones=G.mats.exprock||0;
     return`<div class="flist">`+(list.map(it=>{
-      const lv=it.lv||1,mx=lv>=CONFIG.equipExp.maxLv,need=mx?0:Equip.expNext(lv),pctExp=mx?100:Math.min(100,(it.exp||0)/Math.max(1,need)*100);
+      const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),mx=!noCap&&lv>=CONFIG.equipExp.maxLv,need=mx?0:Equip.expNext(lv),pctExp=mx?100:Math.min(100,(it.exp||0)/Math.max(1,need)*100);
       return`<div class="frow" style="border-color:${RARC[it.rar]}66">
         <div class="frow-main"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,20)}</span>
           <div><div ${rc(it.rar)}><b>${itemName(it)}</b>${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
-            <div class="dim">${RARN[it.rar]} · Lv.${lv}/${CONFIG.equipExp.maxLv}${mx?' (MAX)':` · EXP ${it.exp||0}/${need} (${Math.floor(pctExp)}%)`}</div></div>
+            <div class="dim">${RARN[it.rar]} · Lv.${lv}/${noCap?'∞':CONFIG.equipExp.maxLv}${mx?' (MAX)':` · EXP ${it.exp||0}/${need} (${Math.floor(pctExp)}%)`}</div></div>
         </div>
         <div class="frow-act">${mx?'<span class="good">MAX</span>':`<button class="btn sm" data-exprock="${it.uid}" ${stones>0?'':'disabled'}>⬆ +${CONFIG.equipExp.stone} EXP (หิน ×1)</button>`}</div>
       </div>`;
@@ -752,11 +752,13 @@ const UI={
       ${e.kills>=1?`<div>ค่าพลัง: ${Object.keys(BASE_ATTR).map(k=>k.toUpperCase()+' '+((d.attr||{})[k]??BASE_ATTR[k])).join(' · ')}</div><div>สกิล: ${(d.skills||[]).filter(id=>skillUsable(id,'enemy')).map(id=>SKILLS[id].n).join(', ')||'—'}</div>`:''}
       ${d.reflect?`<div>สกิลติดตัว: สะท้อนดาเมจที่ได้รับ ${Math.round(d.reflect*100)}% กลับไปหาผู้โจมตี</div>`:''}${d.statusRes?`<div>ต้านสถานะ: ${Object.entries(d.statusRes).map(([s,v])=>STN[s]+' '+pct(v)).join(', ')}</div>`:''}${d.phases?`<div>เฟส: ${d.phases.length+1} · จุดอ่อน: หลังท่า "${d.weakPoint.after}"</div>`:''}<div>ดรอปตายตัว: ${drops}</div></div>`;}).join('')+'</div>';},
 
-  lootPopup(out,title,xp=0,ups=0,newSk=[]){
+  lootPopup(out,title,xp=0,ups=0,newSk=[],eqInfo=null){
     this.cur='loot';G.mode='menu';ov.classList.remove('hidden');const best=(out.items||[]).reduce((a,it)=>Math.max(a,RARS.indexOf(it.rar)),0);SFX.loot(RARS[best]);
     const row=(l,v)=>`<div class="brow"><span>${l}</span><b>${v}</b></div>`,mats=Object.entries(out.mats||{}).map(([k,q])=>`${mIco(k,14)} ${MATS[k].n} ×${q}`).join(' · ');
     const items=(out.items||[]).map(it=>`<div class="lc" style="border-color:${RARC[it.rar]}">${itemTip(it)}</div>`).join('');
+    const eqRow=eqInfo?(eqInfo.eqCnt?row(`EXP อุปกรณ์ที่สวม (${eqInfo.eqCnt} ชิ้น)`,`+${eqInfo.eqExp} EXP${eqInfo.eqUps?` <em class="good">อัปเลเวล +${eqInfo.eqUps} ขั้น!</em>`:''}`):row('EXP อุปกรณ์','<span class="dim">— (ยังไม่ได้สวมอุปกรณ์)</span>')):'';
     const rows=[xp?row('EXP ที่ได้รับ',`${xp} XP${ups?` <em class="good">เลเวลอัป! Lv.${G.level} (+${ups*CONFIG.levelPoints} แต้ม)</em>`:''}`):'',
+      eqRow,
       out.gold?row('ทองที่ได้รับ',`${ico('coin',16)} ${out.gold}`):'',
       out.dropped!==undefined?row('ของตก',out.dropped?`${out.dropped} ชิ้นรอบจุดที่ศัตรูล้ม — กด E เก็บภายใน ${LOOT_CONFIG.ground.lifetime/60} วินาที`:'—'):'',
       mats?row('วัตถุดิบ',mats):'',

@@ -50,7 +50,7 @@ const StatSync={
   /* ลายเซ็นของทุกแหล่งที่มีผลต่อค่าสถานะผู้เล่น — ไม่เปลี่ยน = ไม่ต้องคำนวณใหม่ */
   sig(){
     if(typeof G==='undefined'||!G.talent)return'';
-    const eq=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return it?[it.uid,it.base,it.rar,it.enh,it.sockets.join('|'),it.uniq||''].join(':'):'-';}).join(',');
+    const eq=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return it?[it.uid,it.base,it.rar,it.lv||1,it.legLv||1,it.enh,it.sockets.join('|'),it.uniq||''].join(':'):'-';}).join(',');
     const sk=G.skills?[G.skills.bound||'',G.skills.bound?Skills.level(G.skills.bound):0].join(':'):'';
     return[G.level,G.talent,JSON.stringify(G.alloc),eq,sk,this.mods.map(m=>m.id+'@'+m.v).join(',')].join('#');},
   recalc(owner,reason){

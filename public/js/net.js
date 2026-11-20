@@ -110,19 +110,27 @@ class NetCore{
   hookSfx(){if(this.sfxOrig)return;this.sfxOrig={};for(const n of SFX_HOOKS){const o=SFX[n];if(typeof o!=='function')continue;this.sfxOrig[n]=o;SFX[n]=(...a)=>{o(...a);this.evq.push({e:'s',n,a});};}}
   unhookSfx(){if(!this.sfxOrig)return;for(const n in this.sfxOrig)SFX[n]=this.sfxOrig[n];this.sfxOrig=null;}
   snap(){const b=BT,F=f=>{const o={x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),mp:Math.round(f.mp||0),fk:f.flask|0,mn:f.mana|0,iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq,ul:Math.round(f.ult||0),gl:f.guardLeft|0,gb:f.guardBroken|0,pcd:f.potCD|0,lm:f.lastMove?f.lastMove.n:null,lt:f.lastT|0,cs:f.comboShow|0,ct:f.comboT|0};
+    if(f.fireShieldT>0)o.fst=f.fireShieldT;if(f.vanishT>0)o.vt=f.vanishT;if(f.parryBuffT>0)o.pbt=f.parryBuffT;if(f.kingAuraT>0)o.kat=f.kingAuraT;if(f.rootT>0)o.rt=f.rootT;
+    if(f.st8){const st={};for(const k in f.st8)if(f.st8[k])st[k]=f.st8[k].stacks?{t:f.st8[k].t,stacks:f.st8[k].stacks}:{t:f.st8[k].t};if(Object.keys(st).length)o.st=st;}
     if(f.cd){const cd={};let any=0;for(const k in f.cd)if(f.cd[k]>0){cd[k]=f.cd[k];any=1;}if(any)o.cd=cd;}return o;};
     for(const n of b.nums)if(!n._s){n._s=1;this.evq.push({e:'n',x:Math.round(n.x),y:Math.round(n.y),t:n.txt,c:n.col,z:n.size});}
-    for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0});}
+    for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0,el:u.el||null,ex:u.exp?1:0,st:u.star?1:0,dm:u.dome?1:0});}
     for(const u of b.bolts)if(!u._s){u._s=1;this.evq.push({e:'z',x:Math.round(u.x),t:u.t});}
+    for(const pl of b.pillars||[])if(!pl._s){pl._s=1;this.evq.push({e:'pl',x:Math.round(pl.x),mh:pl.maxH,t:pl.t,dl:pl.delay|0,el:pl.el||null,c:pl.col||null,fn:pl.frostnova?1:0});}
+    for(const fx of b.moveFx||[])if(!fx._s&&fx.kind!=='fog'){fx._s=1;const w=fx.actor===b.e?1:0;
+      if(fx.kind==='slash')this.evq.push({e:'fx',kd:'slash',w,x:Math.round(fx.x),y:Math.round(fx.y),d:fx.dir,v:fx.v|0});
+      else if(fx.kind==='heal')this.evq.push({e:'fx',kd:'heal',w,sub:fx.sub||'heal'});
+      else if(fx.kind==='shield')this.evq.push({e:'fx',kd:'shield',w,c:fx.col});
+      else if(fx.kind==='dash'||fx.kind==='blink')this.evq.push({e:'fx',kd:fx.kind,w,x0:Math.round(fx.x0),x1:Math.round(fx.x1),y:Math.round(fx.y),d:fx.dir});}
     for(const f of[b.p,b.e]){const w=f===b.e?1:0;
       if(f.fullCombo&&!f.fullCombo._s){f.fullCombo._s=1;this.evq.push({e:'fc',n:f.fullCombo.n,w});}
       if(f.small&&!f.small._s){f.small._s=1;this.evq.push({e:'sm',t:f.small.t,l:f.small.l,w});}}
     if(b.flash&&!b.flash._s){b.flash._s=1;this.evq.push({e:'fl',w:b.flash.f===b.e?1:0,t:b.flash.t,mn:b.flash.m?b.flash.m.n:null});}
     if(b.fullCombo&&!b.fullCombo._s){b.fullCombo._s=1;if(!b.p.fullCombo&&!b.e.fullCombo)this.evq.push({e:'fc',n:b.fullCombo.n,w:b.fullCombo.who===b.e?1:0});}
-    for(const ev of this.evq.splice(0)){ev.k=++this.evK;this.evRing.push(ev);}if(this.evRing.length>14)this.evRing.splice(0,this.evRing.length-14);
-    return{t:'snap',rid:this.rid,p:F(b.p),e:F(b.e),tm:b.time,it:b.intro,en:b.end,sh:+b.shake.toFixed(1),hs:b.hitstop,wh:b.white,ms:b.msg,rs:b.result,
+    for(const ev of this.evq.splice(0)){ev.k=++this.evK;this.evRing.push(ev);}if(this.evRing.length>24)this.evRing.splice(0,this.evRing.length-24);
+    return{t:'snap',rid:this.rid,p:F(b.p),e:F(b.e),tm:b.time,it:b.intro,en:b.end,sh:+b.shake.toFixed(1),hs:b.hitstop,wh:b.white,im:b.impFrame|0,ms:b.msg,rs:b.result,
       cb:{n:b.comboShow,w:b.comboWho===b.e?1:0,t:b.comboT},k:++this.snapK,ev:this.evRing.slice(),
-      pj:b.proj.map(q=>[Math.round(q.x),Math.round(q.y),q.r,q.col,q.vx>0?1:-1,q.rock?1:0])};}
+      pj:b.proj.map(q=>[Math.round(q.x),Math.round(q.y),q.r,q.col,q.vx>0?1:-1,q.rock?1:0,q.wind?1:0,(q.m&&q.m.el)||null])};}
   hostTick(){if(!BT||!BT.vs||this.role!=='host')return;
     if(this.now()-this.lastRx>6000&&this.lastRx){this.dropped('เพื่อนหลุดการเชื่อมต่อ');return;}
     if(G.t%2===0)this.tx(this.snap());}
@@ -138,20 +146,32 @@ class NetCore{
     if(s){this.pend=null;
       for(const[f,d]of[[b.p,s.p],[b.e,s.e]]){const far=Math.abs(d.x-f.x)>60;f.tx=d.x;if(far)f.x=d.x;f.y=d.y;f.vy=d.vy;f.dir=d.d;f.state=d.s;f.phase=d.ph;f.pt=d.pt;f.hp=d.h;f.sta=d.sta;if(d.mp!==undefined){f.mp=d.mp;f.flask=d.fk;f.mana=d.mn;}f.invuln=d.iv;f.flash=d.fl;f.onGround=!!d.og;f.walkT=d.w;f.gc=!!d.gc;f.didHit=!!d.dh;f.move=moveByName(d.mv,f);f.moveSeq=d.ms;
         if(d.ul!==undefined)f.ult=d.ul;if(d.gl!==undefined){f.guardLeft=d.gl;f.guardBroken=d.gb||0;f.potCD=d.pcd||0;}
-        f.cd=Object.assign({},d.cd||{});f.lastMove=d.lm?moveByName(d.lm,f):null;f.lastT=d.lt||0;if(d.cs!==undefined){f.comboShow=d.cs;f.comboT=d.ct||0;}}
-      b.time=s.tm;b.intro=s.it;b.end=s.en;b.msg=s.ms;b.result=s.rs;b.comboT=s.cb.t;b.comboShow=s.cb.n;b.comboWho=s.cb.w?b.e:b.p;if(s.sh>b.shake)b.shake=s.sh;b.hitstop=s.hs;if(s.wh>b.white)b.white=s.wh;
-      b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],life:2,o:null}));
+        f.cd=Object.assign({},d.cd||{});f.lastMove=d.lm?moveByName(d.lm,f):null;f.lastT=d.lt||0;if(d.cs!==undefined){f.comboShow=d.cs;f.comboT=d.ct||0;}
+        f.fireShieldT=d.fst||0;f.vanishT=d.vt||0;f.parryBuffT=d.pbt||0;f.kingAuraT=d.kat||0;f.rootT=d.rt||0;
+        if(f.st8){for(const k in f.st8)f.st8[k]=(d.st&&d.st[k])||null;}}
+      b.time=s.tm;b.intro=s.it;b.end=s.en;b.msg=s.ms;b.result=s.rs;b.comboT=s.cb.t;b.comboShow=s.cb.n;b.comboWho=s.cb.w?b.e:b.p;if(s.sh>b.shake)b.shake=s.sh;b.hitstop=s.hs;if(s.wh>b.white)b.white=s.wh;if((s.im||0)>0)b.impFrame=s.im;
+      b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],wind:!!a[6],m:a[7]?{el:a[7]}:null,life:2,o:null}));
       for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55});
-        else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,big:ev.g});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
+        else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,el:ev.el||null,big:ev.g,exp:!!ev.ex,star:!!ev.st,dome:!!ev.dm});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
+        else if(ev.e==='pl'){(b.pillars=b.pillars||[]).push({x:ev.x,h:0,maxH:ev.mh,t:ev.t,delay:ev.dl||0,el:ev.el,col:ev.c,frostnova:!!ev.fn});}
+        else if(ev.e==='fx'){const tf=ev.w?b.e:b.p;b.moveFx=b.moveFx||[];
+          if(ev.kd==='slash')b.moveFx.push(slashFx({actor:tf,x:ev.x,y:ev.y,dir:ev.d,variant:ev.v||0}));
+          else if(ev.kd==='heal')b.moveFx.push(healFx({kind:ev.sub||'heal',actor:tf,x:tf.x,y:tf.y}));
+          else if(ev.kd==='shield')b.moveFx.push(shieldFx({actor:tf,x:tf.x,y:tf.y,col:ev.c}));
+          else if(ev.kd==='dash'||ev.kd==='blink')b.moveFx.push(movementFx({kind:ev.kd,actor:tf,x0:ev.x0,x1:ev.x1,y:ev.y,dir:ev.d}));}
         else if(ev.e==='fc'){const tf=ev.w?b.e:b.p;tf.fullCombo={n:ev.n,t:90};b.fullCombo={n:ev.n,t:90,who:tf};}
         else if(ev.e==='sm'){const tf=ev.w?b.e:b.p;tf.small={t:ev.t,l:ev.l||60};}
         else if(ev.e==='fl'){const tf=ev.w?b.e:b.p,fm=moveByName(ev.mn,tf);if(fm)b.flash={t:ev.t||46,f:tf,m:fm};}
         else if(ev.e==='s'&&SFX[ev.n])SFX[ev.n](...ev.a);}}
-    for(const f of[b.p,b.e]){if(f.tx!==undefined)f.x+=(f.tx-f.x)*.55;f.dhp+=(f.hp-f.dhp)*.05;
+    for(const f of[b.p,b.e]){const o=f===b.p?b.e:b.p;if(f.tx!==undefined)f.x+=(f.tx-f.x)*.55;f.dhp+=(f.hp-f.dhp)*.05;
       if(f.cd)for(const k in f.cd)if(f.cd[k]>0)f.cd[k]--;if(f.guardBroken>0)f.guardBroken--;if(f.potCD>0)f.potCD--;if(f.lastT>0&&f.state!=='attack')f.lastT--;if(f.comboT>0)f.comboT--;if(f.fullCombo&&--f.fullCombo.t<=0)f.fullCombo=null;if(f.small&&--f.small.l<=0)f.small=null;
-      if(['dash','backdash','dodge'].includes(f.state)||(f.state==='attack'&&f.move&&(f.move.lunge))){if(G.t%2===0){f.trail.push({x:f.x,y:f.y,P:f.rig?poseFor(f):null});if(f.trail.length>4)f.trail.shift();}}else if(f.trail.length&&G.t%2===0)f.trail.shift();}
+      if(f.fireShieldT>0)f.fireShieldT--;if(f.vanishT>0)f.vanishT--;if(f.parryBuffT>0)f.parryBuffT--;if(f.kingAuraT>0)f.kingAuraT--;if(f.rootT>0)f.rootT--;
+      if(f.look&&f.look.trail&&['walk','dash','air'].includes(f.state)&&G.t%3===0)b.parts.push({x:f.x-f.dir*6,y:f.y-rnd(0,8),vx:-f.dir*.6,vy:-.2,l:16,c:f.look.trail,s:2});
+      if(f.state==='attack'&&f.phase==='active'&&f.move&&f.move.rain&&G.t%3===0){const rel=f.move.el||'fire',rc=ELC[rel]||'#ff8a3a';b.parts.push({x:o.x+rnd(-56,56),y:rnd(10,50),vx:f.dir*1.4,vy:6.8,l:32,c:rc,s:5,meteor:1});}
+      if(['dash','backdash','dodge'].includes(f.state)||(f.state==='attack'&&f.move&&(f.move.lunge||f.move.super))){if(G.t%2===0){f.trail.push({x:f.x,y:f.y,P:f.rig?poseFor(f):null,d:f.dir,c:'#8ef2ff'});if(f.trail.length>4)f.trail.shift();}}else if(f.trail.length&&G.t%2===0)f.trail.shift();}
     for(const n of b.nums){n.t--;n.y-=.5;}b.nums=b.nums.filter(n=>n.t>0);for(const u of b.bursts)u.t++;b.bursts=b.bursts.filter(u=>u.t<14);for(const u of b.bolts)u.t--;b.bolts=b.bolts.filter(u=>u.t>0);
-    if(b.white>0)b.white--;if(b.fullCombo&&--b.fullCombo.t<=0)b.fullCombo=null;if(b.flash&&--b.flash.t<=0)b.flash=null;if(b.shake>0){b.shake*=.85;if(b.shake<.3)b.shake=0;}
+    if(b.moveFx)b.moveFx=b.moveFx.filter(fx=>{fx.update(1/60);return!fx.done();});
+    if(b.white>0)b.white--;if(b.impFrame>0)b.impFrame--;if(b.fullCombo&&--b.fullCombo.t<=0)b.fullCombo=null;if(b.flash&&--b.flash.t<=0)b.flash=null;if(b.shake>0){b.shake*=.85;if(b.shake<.3)b.shake=0;}
     for(const q of b.parts){q.x+=q.vx;q.y+=q.vy;if(q.grav)q.vy+=.15;q.l--;}b.parts=b.parts.filter(q=>q.l>0);if(b.comboT>0)b.comboT--;}
 }
 const Net=new NetCore();

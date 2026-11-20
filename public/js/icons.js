@@ -109,7 +109,7 @@ const BASE_ICO={
   w_icesword:['sword','#8ee4ff'],w_iceaxe:['axe','#7ad8ff'],b_ice:['boot','#8ee4ff'],h_ice:['helm','#8ee4ff'],a_ice:['plate','#aeeeff'],g_ice:['glove','#8ee4ff'],p_ice:['pants','#7ad8ff']
 };
 const MAT_ICO={
-  wood:['log','#c8925a'],ore:['ore','#b8bfcc'],stoneore:['ore','#8a867e'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['bolt','#9fe6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
+  wood:['log','#c8925a'],ore:['ore','#b8bfcc'],stoneore:['ore','#8a867e'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['crystal','#eef6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
   potion:['potion','#ff5a6a'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
   sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],reset:['scroll','#e8d8b0']

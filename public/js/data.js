@@ -22,7 +22,7 @@ const CONFIG={
   craftBoost:.20,           // Divine Crafting Crystal: +20 percentage points, max one per attempt, final chance capped at 100%
   craftSlots:6,
   enhanceRates:[1,.95,.90,.85,.80,.75,.70,.65,.60,.55,.50,.47,.44,.42,.40],  // โอกาสสำเร็จจาก +n ไป +n+1 (n=0..14) สูงสุด +15 · ลดลงเรื่อย ๆ ต่ำสุด 40%
-  equipExp:{maxLv:100,kill:{normal:[10,20],elite:[40,60],boss:[300,500]},stone:1000,
+  equipExp:{maxLv:100,kill:{normal:[30,50],elite:[90,140],boss:[450,700]},stone:1000,
     next(lv){if(lv>=100)return 0;if(lv<=20)return Math.round(100+(lv-1)*(200/19));if(lv<=40)return Math.round(350+(lv-21)*(250/19));if(lv<=60)return Math.round(650+(lv-41)*(350/19));if(lv<=80)return Math.round(1100+(lv-61)*(400/19));return Math.round(1600+(lv-81)*(600/18));}},
   regen:{sta:24},           // stamina per second
   mana:{combatEvery:180,outEvery:90,recoveryCap:.30,costCap:.30},   // 1 MP / 3 s in combat, 1 MP / 1.5 s outside; gear bonus caps 30%
@@ -194,7 +194,7 @@ const SKILLS={
   arcaneburst:{ic:'🔮',n:'ระเบิดอาคม (Arcane Burst)',tier:'unique',talent:'archmage',type:'magic',el:'arcane',coef:2,cd:20,mpPct:.2,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:6,r:12,hits:1},status:{shock:20,burn:20,stun:2},desc:'ดาเมจเวท 200% ของพลังเวท (หัก M.DEF ปกติ) · ใช้ MP 20% ของ MP สูงสุด · คูลดาวน์ 20 วิ'},
   kingaura:{ic:'👑',n:'ออร่าราชา (Monarch\'s Aura)',tier:'unique',talent:'sololeveling',type:'buff',cd:15,mp:45,range:'ทั้งฉาก',anim:'cast',kingAura:600,desc:'ปลดปล่อยออร่าราชา 10 วิ: ฝ่ายตรงข้ามได้รับดาเมจจากเราแรงขึ้น 25% (คูลดาวน์ 15 วิ · 45 MP)'},
   royalparry:{ic:'🛡️',n:'ยืนหยัดปัดป้อง (Royal Parry)',tier:'unique',talent:'parryman',type:'passive',passive:{id:'royalparry',v:1},range:'พาสซีฟ',anim:'-',desc:'พาสซีฟ (กดใช้ไม่ได้): เมื่อกดกัน [E] แล้วติดป้องกันสมบูรณ์ (Perfect Block) แทนที่การสตันศัตรู จะเกิดแสงขาว-ฟ้าและได้รับบัฟปัดป้อง 3 วิ (โจมตีเป็น True Damage)'},
-  blooddrain:{ic:'🩸',n:'คำสาปสูบโลหิต (Crimson Curse)',tier:'unique',talent:'vampire',type:'passive',passive:{id:'blooddrain',v:.15},range:'พาสซีฟ',anim:'-',desc:'พาสซีฟ (กดใช้ไม่ได้): ลด Max HP ฝ่ายตรงข้ามลง 15% ตลอดการต่อสู้'},
+  blooddrain:{ic:'🩸',n:'คำสาปสูบโลหิต (Crimson Curse)',tier:'unique',talent:'vampire',type:'passive',passive:{id:'blooddrain',v:.20,defRed:.20},range:'พาสซีฟ',anim:'-',desc:'พาสซีฟ: ลด Max HP, DEF และ M.DEF ฝ่ายตรงข้ามลง 20% ตลอดการต่อสู้'},
   phoenixdive:{ic:'🐦',n:'ฟีนิกซ์โฉบ',tier:'unique',type:'magic',el:'fire',coef:2.6,multi:3,cd:10,mp:60,range:'พุ่ง (50)',anim:'rush',lunge:3,reach:50,status:{burn:50},combo:1,desc:'โฉบเปลวไฟ 3 ฮิต เผาไหม้'},
   stormcall:{ic:'🌩️',n:'เรียกพายุ',tier:'unique',type:'magic',el:'lightning',coef:2.2,cd:12,mp:60,range:'กลาง (110)',anim:'cast',strike:110,status:{shock:1},combo:1,desc:'เรียกสายฟ้าใหญ่ ช็อกและมึน'},
   berserker:{ic:'😤',n:'คลั่งศึก',tier:'unique',type:'passive',passive:{id:'berserker',v:.15},range:'พาสซีฟ',anim:'-',desc:'พาสซีฟ: ดาเมจ +15% เมื่อ HP ต่ำกว่า 50%'},
@@ -255,9 +255,9 @@ const TALENTS={
   undying:{n:'THE UNDYING',th:'ผู้ไม่มีวันตาย',ic:'💀',desc:'ฟื้นคืนชีพได้ 2 ครั้งต่อการต่อสู้ ด้วย HP 30% ล้างสถานะผิดปกติทั้งหมด และเป็นอมตะ 3 วิทุกครั้งที่ฟื้น',skill:'bloodpact'},
   hexweaver:{n:'THE HEXWEAVER',th:'ผู้ถักคำสาป',ic:'🕸️',desc:'+25% โอกาสติดสถานะผิดปกติ (หักลบกับค่าต้านของเป้าหมาย) · เฉพาะ Hexweaver: โอกาสติดสถานะทุก 1% ทำให้สถานะที่ติดนานขึ้น 0.05 วิ (+25% = +1.25 วิ)',skill:'toxiccurse'},
   archmage:{n:'THE ARCHMAGE',th:'จอมเวท',ic:'🔮',desc:'+15% พลังเวท · +10% MP สูงสุด · +10% ดาเมจคริติคอลเวท (ค่าคงที่)',skill:'arcaneburst'},
-  sololeveling:{n:'SOLO LEVELING',th:'ผู้เติบโตไร้ขีดจำกัด',ic:'👑',desc:'ได้รับ EXP ตัวละคร และ EXP อาวุธ/อุปกรณ์เพิ่มขึ้น +25%',skill:'kingaura'},
+  sololeveling:{n:'SOLO LEVELING',th:'ผู้เติบโตไร้ขีดจำกัด',ic:'👑',desc:'ได้รับ EXP ตัวละครและอุปกรณ์ +25% · ปลดเพดานเลเวลไม่มี LVL MAX (ทั้งตัวละครและอุปกรณ์)',skill:'kingaura'},
   parryman:{n:'THE PARRY MAN',th:'จ้าวแห่งการปัดป้อง',ic:'⚔️',desc:'เพิ่มจำนวนการบล็อกสูงสุดเป็น 5 ครั้ง และลดดาเมจขณะบล็อกลง 20%',skill:'royalparry'},
-  vampire:{n:'VAMPIRE',th:'ลอร์ดโลหิต',ic:'🧛',desc:'ดูดเลือด 25% ของดาเมจที่ทำได้ (สมดุล: ไม่มีโบนัสลดดาเมจ/ฟื้นคืนชีพ)',skill:'blooddrain'}
+  vampire:{n:'VAMPIRE',th:'ลอร์ดโลหิต',ic:'🧛',desc:'โจมตีดูดเลือด 25% ของดาเมจที่ทำได้ เพื่อฟื้นฟู HP ตัวเอง',skill:'blooddrain'}
 };
 /* ค่าพาสซีฟของพรสวรรค์ (ค่าคงที่ตามสเปก) — Stats.derive อ่านจากตารางนี้ที่เดียว คำนวณใหม่จากฐานทุกครั้ง จึงไม่ทบซ้ำ */
 const TALENT_PASSIVE={
@@ -267,9 +267,9 @@ const TALENT_PASSIVE={
   undying:{revives:2,reviveHp:.30,reviveInvuln:180},
   hexweaver:{statusChance:.25},   // โอกาสติดสถานะทุก 1% → สถานะนานขึ้น CONFIG.statusChanceDur วิ
   archmage:{mpowPct:.15,maxMPPct:.10,mcritDmg:.10},
-  sololeveling:{xpMul:.25,eqXpMul:.25},
+  sololeveling:{xpMul:.25,eqXpMul:.25,noMaxLv:1},
   parryman:{guardMax:5,blockDmgRed:.20},
-  vampire:{lifesteal:.25}
+  vampire:{lifesteal:.25,cursePct:.20}
 };
 
 /* ---------- items ---------- */
@@ -405,7 +405,7 @@ const SETS={
 };
 const MATS={
   wood:{n:'ไม้',ic:'🪵'},ore:{n:'แร่เหล็ก',ic:'🪨'},stoneore:{n:'แร่หิน',ic:'🪨'},iceore:{n:'แร่เหล็กน้ำแข็ง',ic:'🧊'},
-  fire:{n:'คริสตัลไฟ',ic:'🔥'},thunder:{n:'หินสายฟ้า',ic:'⚡'},fang:{n:'เขี้ยวหนู',ic:'🦷'},
+  fire:{n:'คริสตัลไฟ',ic:'🔥'},thunder:{n:'หินสมมาตรขาว',ic:'💠'},fang:{n:'เขี้ยวหนู',ic:'🦷'},
   hide:{n:'หนังสัตว์',ic:'🟫'},cheese:{n:'ชีสแข็งโป๊ก',ic:'🧀'},pan:{n:'กระทะของพ่อ',ic:'🍳',rareMat:1},cloth:{n:'ผ้าเงา',ic:'🧵'},core:{n:'แก่นหินเทพ',ic:'💠',rareMat:1,rar:'epic',desc:'แก่นศิลาโบราณ (ดรอปเฉพาะจากบอสโกเลมหิน)'},
   lavaore:{n:'แร่ลาวา',ic:'🟧'},essence:{n:'แก่นลาวาเทพ',ic:'🌟',rareMat:1,rar:'epic',desc:'แก่นเพลิงบริสุทธิ์ (ดรอปเฉพาะจากบอสราชันย์ลาวา)'},
   potion:{n:'ยาฟื้น HP',ic:'❤️',use:'potion',desc:'ฟื้น HP 40%'},
@@ -466,7 +466,7 @@ const RECIPES=[
   {id:'iboots',out:{base:'b_iron'},rar:'normal',mats:{ore:2},known:1,clue:'โบโรเล่า: "แร่เหล็กสองก้อนตีแผ่ เป็นรองเท้าเหล็กพอดีเท้า"'},
   {id:'potion',out:{mat:'potion',q:3},rar:'normal',mats:{cheese:1,hide:1},known:1,clue:'ไลร่ากระซิบ: "ชีสหนึ่งก้อนห่อหนังสัตว์หนึ่งผืน ต้มแล้วได้ยาสามขวด"'},
   {id:'flame',out:{base:'w_flame'},rar:'rare',mats:{ore:2,fire:1,wood:1},clue:'คัมภีร์ดาบเพลิง: "แร่สอง ไม้หนึ่ง และหัวใจไฟหนึ่งดวง"'},
-  {id:'gaunt',out:{base:'w_gaunt'},rar:'rare',mats:{ore:1,thunder:1,hide:1},clue:'คัมภีร์สนับมือ: "แร่หนึ่ง หินสายฟ้าหนึ่ง พันด้วยหนังหนึ่งผืน"'},
+  {id:'gaunt',out:{base:'w_gaunt'},rar:'rare',mats:{ore:1,thunder:1,hide:1},clue:'คัมภีร์สนับมือ: "แร่หนึ่ง หินสมมาตรขาวหนึ่ง พันด้วยหนังหนึ่งผืน"'},
   {id:'hammer',out:{base:'w_hammer'},rar:'rare',mats:{cheese:1,wood:2},clue:'โน้ตลายมือเด็ก: "ชีสแข็งโป๊กหนึ่งก้อน เสียบไม้สองท่อน = ค้อน!!"'},
   {id:'reset',out:{mat:'reset',q:1},rar:'rare',mats:{cheese:1,fang:2},clue:'คัมภีร์ล้างค่าพลัง: "ชีสหนึ่ง เขี้ยวสอง เขียนอักขระลบความทรงจำ"'},
   {id:'dragon',out:{base:'a_dragon'},rar:'epic',mats:{hide:3,fire:2,ore:2},clue:'ตำรามังกร: "หนังสาม ไฟสอง เหล็กสอง หลอมเป็นเกล็ดมังกร"'},
@@ -480,7 +480,7 @@ const RECIPES=[
   {id:'gs2',out:{base:'w_gs2'},rar:'rare',mats:{ore:4,fire:1,fang:2},known:1,clue:'โบโรเล่า: "แร่สี่ ไฟหนึ่ง เขี้ยวสอง ชุบใบดาบใหญ่ให้คมดั่งเขี้ยวมังกร"'},
   {id:'gs3',out:{base:'w_gs3'},rar:'epic',mats:{ore:4,cloth:2},known:1,clue:'โบโรเล่า: "ผ้าเงาสอง หลอมกับแร่สี่ — ดาบใหญ่แห่งราตรี"'},
   {id:'wh1',out:{base:'w_wh1'},rar:'normal',mats:{ore:3,wood:2},known:1,clue:'โบโรเล่า: "หัวค้อนแร่สามก้อน ด้ามไม้สองท่อน ทุบทีหัวมึนเลย"'},
-  {id:'wh2',out:{base:'w_wh2'},rar:'rare',mats:{ore:4,thunder:1,hide:1},known:1,clue:'โบโรเล่า: "แร่สี่ หินสายฟ้าหนึ่ง พันด้ามด้วยหนัง — ค้อนศิลาฟ้า"'},
+  {id:'wh2',out:{base:'w_wh2'},rar:'rare',mats:{ore:4,thunder:1,hide:1},known:1,clue:'โบโรเล่า: "แร่สี่ หินสมมาตรขาวหนึ่ง พันด้ามด้วยหนัง — ค้อนศิลาฟ้า"'},
   {id:'wh3',out:{base:'w_wh3'},rar:'epic',mats:{lavaore:3,ore:2},known:1,clue:'โบโรเล่า: "แร่ลาวาสาม แร่เหล็กสอง — ทุบทีแผ่นดินสะเทือน"'},
   {id:'mercstaff',out:{base:'w_mercstaff'},rar:'epic',mats:{mercury:4,fire:1},clue:'บันทึกอาจารย์นักแปรธาตุ: "ปรอทสี่หยด จุดด้วยไฟหนึ่ง — ไม้เท้าที่ยิงหมอกพิษ"'},
   {id:'lightless',out:{base:'w_lightless'},rar:'legendary',rate:.10,mats:{bossfrag:10,ore:20,hide:2,wood:2},gold:10,known:1,clue:'จารึกดำในห้องบอส: "ดวงตาศักดิ์สิทธิ์ของเซราฟสิบ แร่เหล็กยี่สิบ หนังสอง ไม้สอง ทองสิบ — ดาบที่กลืนแสง"'},
@@ -495,12 +495,12 @@ const RECIPES=[
   {id:'icegloves',out:{base:'g_ice'},rar:'rare',mats:{iceore:2,cloth:1},known:1,clue:'ช่างถ้ำน้ำแข็ง: "แร่เหล็กน้ำแข็ง 2 ก้อน ผ้าเงา 1 — ถุงมือน้ำแข็ง"'},
   {id:'icepants',out:{base:'p_ice'},rar:'rare',mats:{iceore:3,hide:2},known:1,clue:'ช่างถ้ำน้ำแข็ง: "แร่เหล็กน้ำแข็ง 3 ก้อน หนัง 2 — สนับขาน้ำแข็ง"'},
   // ---- อาวุธเวท / กริช / ไม้เท้า / เคียว / ดาบรุ่งอรุณ ----
-  {id:'mswd',out:{base:'w_mswd'},rar:'rare',mats:{ore:2,thunder:1,wood:2},known:1,clue:'คัมภีร์ช่างเวท: "แร่เหล็ก 2 หินสายฟ้า 1 ไม้ 2 — ดาบมนตรา"'},
-  {id:'mstaff',out:{base:'w_mstaff'},rar:'epic',mats:{wood:2,thunder:2,mercury:1},known:1,clue:'คัมภีร์ช่างเวท: "ไม้ 2 หินสายฟ้า 2 ปรอท 1 — คทาดาราจักร"'},
-  {id:'adagger',out:{base:'w_adagger'},rar:'rare',mats:{ore:1,fang:2,thunder:1},known:1,clue:'คัมภีร์ช่างเวท: "แร่เหล็ก 1 เขี้ยวหนู 2 หินสายฟ้า 1 — กริชอาคมพราย"'},
+  {id:'mswd',out:{base:'w_mswd'},rar:'rare',mats:{ore:2,thunder:1,wood:2},known:1,clue:'คัมภีร์ช่างเวท: "แร่เหล็ก 2 หินสมมาตรขาว 1 ไม้ 2 — ดาบมนตรา"'},
+  {id:'mstaff',out:{base:'w_mstaff'},rar:'epic',mats:{wood:2,thunder:2,mercury:1},known:1,clue:'คัมภีร์ช่างเวท: "ไม้ 2 หินสมมาตรขาว 2 ปรอท 1 — คทาดาราจักร"'},
+  {id:'adagger',out:{base:'w_adagger'},rar:'rare',mats:{ore:1,fang:2,thunder:1},known:1,clue:'คัมภีร์ช่างเวท: "แร่เหล็ก 1 เขี้ยวหนู 2 หินสมมาตรขาว 1 — กริชอาคมพราย"'},
   {id:'wand_fire',out:{base:'w_wand_fire'},rar:'rare',mats:{wood:2,fire:2},known:1,clue:'คัมภีร์จอมเวท: "ไม้ 2 คริสตัลไฟ 2 — ไม้เท้าเปลวอัคคี"'},
   {id:'wand_ice',out:{base:'w_wand_ice'},rar:'rare',mats:{wood:2,iceore:2},known:1,clue:'คัมภีร์จอมเวท: "ไม้ 2 แร่เหล็กน้ำแข็ง 2 — ไม้เท้าเกล็ดหิมะ"'},
-  {id:'wand_lightning',out:{base:'w_wand_lightning'},rar:'rare',mats:{wood:2,thunder:2},known:1,clue:'คัมภีร์จอมเวท: "ไม้ 2 หินสายฟ้า 2 — ไม้เท้าอสนีบาต"'},
+  {id:'wand_lightning',out:{base:'w_wand_lightning'},rar:'rare',mats:{wood:2,thunder:2},known:1,clue:'คัมภีร์จอมเวท: "ไม้ 2 หินสมมาตรขาว 2 — ไม้เท้าอสนีบาต"'},
   {id:'scythe',out:{base:'w_scythe'},rar:'epic',mats:{cloth:3,core:1,ore:2},known:1,clue:'บันทึกเงามืด: "ผ้าเงา 3 แก่นหินเทพ 1 แร่เหล็ก 2 — เคียวสุญญตา"'},
   {id:'wseraph',out:{base:'w_seraph'},rar:'epic',mats:{ore:4,bossfrag:1,fire:1},known:1,clue:'จารึกรุ่งอรุณ: "แร่เหล็ก 4 ดวงตาเซราฟ 1 คริสตัลไฟ 1 — ดาบขนนกรุ่งอรุณ"'},
   // ---- เครื่องประดับ ----
@@ -508,8 +508,8 @@ const RECIPES=[
   {id:'rruby',out:{base:'r_ruby'},rar:'rare',mats:{ore:2,fire:1,stoneore:1},known:1,clue:'ช่างอัญมณี: "แร่เหล็ก 2 คริสตัลไฟ 1 แร่หิน 1 — แหวนทับทิมเลือด"'},
   {id:'rluck',out:{base:'r_luck'},rar:'rare',mats:{ore:1,hide:2,cheese:1},known:1,clue:'ช่างอัญมณี: "แร่เหล็ก 1 หนัง 2 ชีส 1 — แหวนใบโคลเวอร์"'},
   {id:'nfang',out:{base:'n_fang'},rar:'normal',mats:{fang:2,hide:1},known:1,clue:'โบโรเล่า: "เขี้ยวหนู 2 หนัง 1 — สร้อยเขี้ยวถ้ำ"'},
-  {id:'ncrystal',out:{base:'n_crystal'},rar:'rare',mats:{iceore:2,thunder:1},known:1,clue:'ช่างอัญมณี: "แร่เหล็กน้ำแข็ง 2 หินสายฟ้า 1 — สร้อยคริสตัลมานา"'},
-  {id:'ngod',out:{base:'n_god'},rar:'epic',mats:{fire:1,thunder:1,iceore:1,lavaore:1,core:1},known:1,clue:'ตำราเบญจธาตุ: "ไฟ 1 สายฟ้า 1 น้ำแข็ง 1 ลาวา 1 แก่นหินเทพ 1 — อามูเลตห้าธาตุ"'},
+  {id:'ncrystal',out:{base:'n_crystal'},rar:'rare',mats:{iceore:2,thunder:1},known:1,clue:'ช่างอัญมณี: "แร่เหล็กน้ำแข็ง 2 หินสมมาตรขาว 1 — สร้อยคริสตัลมานา"'},
+  {id:'ngod',out:{base:'n_god'},rar:'epic',mats:{fire:1,thunder:1,iceore:1,lavaore:1,core:1},known:1,clue:'ตำราเบญจธาตุ: "ไฟ 1 หินสมมาตรขาว 1 น้ำแข็ง 1 ลาวา 1 แก่นหินเทพ 1 — อามูเลตห้าธาตุ"'},
   // ---- เกราะ / หมวก / ถุงมือ / กางเกง / รองเท้าทั่วไป ----
   {id:'acloth',out:{base:'a_cloth'},rar:'normal',mats:{wood:1,hide:1},known:1,clue:'โบโรเล่า: "ไม้ 1 หนัง 1 — เสื้อป่านชาวบ้าน"'},
   {id:'aleather',out:{base:'a_leather'},rar:'normal',mats:{hide:4},known:1,clue:'โบโรเล่า: "หนังสัตว์ 4 ผืน — เกราะหนังพราน"'},
@@ -518,7 +518,7 @@ const RECIPES=[
   {id:'hiron',out:{base:'h_iron'},rar:'normal',mats:{ore:2,stoneore:1},known:1,clue:'โบโรเล่า: "แร่เหล็ก 2 แร่หิน 1 — หมวกเหล็กทหารยาม"'},
   {id:'giron',out:{base:'g_iron'},rar:'normal',mats:{ore:1,stoneore:2},known:1,clue:'โบโรเล่า: "แร่เหล็ก 1 แร่หิน 2 — ถุงมือเหล็กทหาร"'},
   {id:'hband',out:{base:'h_band'},rar:'normal',mats:{cloth:2},known:1,clue:'นักสู้: "ผ้าเงา 2 ผืน — ผ้าคาดผากนักสู้"'},
-  {id:'bwind',out:{base:'b_wind'},rar:'rare',mats:{hide:2,thunder:1},known:1,clue:'ช่างหนัง: "หนัง 2 หินสายฟ้า 1 — รองเท้าสายลม"'},
+  {id:'bwind',out:{base:'b_wind'},rar:'rare',mats:{hide:2,thunder:1},known:1,clue:'ช่างหนัง: "หนัง 2 หินสมมาตรขาว 1 — รองเท้าสายลม"'},
   {id:'hhorns',out:{base:'h_horns'},rar:'epic',mats:{fang:4,lavaore:2},known:1,clue:'บันทึกปีศาจ: "เขี้ยวหนู 4 แร่ลาวา 2 — มงกุฎเขาอสูร"'},
   // ---- ชุดนินจาสนธยา (Shadow) ----
   {id:'hshadow',out:{base:'h_shadow'},rar:'rare',mats:{cloth:2,hide:1},known:1,clue:'ม้วนสนธยา: "ผ้าเงา 2 หนัง 1 — ผ้าคาดผากสนธยา"'},
@@ -535,12 +535,12 @@ const RECIPES=[
   {id:'galch',out:{base:'g_alch'},rar:'rare',mats:{mercury:2,hide:1},known:1,clue:'บันทึกนักแปรธาตุ: "ปรอท 2 หนัง 1 — ถุงมือนักแปรธาตุ"'},
   {id:'balch',out:{base:'b_alch'},rar:'rare',mats:{mercury:2,stoneore:1},known:1,clue:'บันทึกนักแปรธาตุ: "ปรอท 2 แร่หิน 1 — รองเท้านักแปรธาตุ"'},
   // ---- ชุดนักปราชญ์ดารา (Mage) ----
-  {id:'hmage',out:{base:'h_mage'},rar:'rare',mats:{cloth:2,thunder:1},known:1,clue:'ตำรานักปราชญ์: "ผ้าเงา 2 หินสายฟ้า 1 — หมวกปลายแหลมนักปราชญ์"'},
-  {id:'amage',out:{base:'a_mage'},rar:'epic',mats:{cloth:3,thunder:1,ore:1},known:1,clue:'ตำรานักปราชญ์: "ผ้าเงา 3 หินสายฟ้า 1 แร่เหล็ก 1 — เสื้อคลุมนักปราชญ์"'},
+  {id:'hmage',out:{base:'h_mage'},rar:'rare',mats:{cloth:2,thunder:1},known:1,clue:'ตำรานักปราชญ์: "ผ้าเงา 2 หินสมมาตรขาว 1 — หมวกปลายแหลมนักปราชญ์"'},
+  {id:'amage',out:{base:'a_mage'},rar:'epic',mats:{cloth:3,thunder:1,ore:1},known:1,clue:'ตำรานักปราชญ์: "ผ้าเงา 3 หินสมมาตรขาว 1 แร่เหล็ก 1 — เสื้อคลุมนักปราชญ์"'},
   {id:'pmage',out:{base:'p_mage'},rar:'rare',mats:{cloth:2,iceore:1},known:1,clue:'ตำรานักปราชญ์: "ผ้าเงา 2 แร่เหล็กน้ำแข็ง 1 — กางเกงนักปราชญ์"'},
-  {id:'bmage',out:{base:'b_mage'},rar:'rare',mats:{cloth:1,thunder:1,hide:1},known:1,clue:'ตำรานักปราชญ์: "ผ้าเงา 1 หินสายฟ้า 1 หนัง 1 — รองเท้านักปราชญ์"'},
+  {id:'bmage',out:{base:'b_mage'},rar:'rare',mats:{cloth:1,thunder:1,hide:1},known:1,clue:'ตำรานักปราชญ์: "ผ้าเงา 1 หินสมมาตรขาว 1 หนัง 1 — รองเท้านักปราชญ์"'},
   // ---- ชุดรุ่งอรุณ (Seraph) ----
-  {id:'hhalo',out:{base:'h_halo'},rar:'epic',mats:{bossfrag:2,thunder:2},known:1,clue:'จารึกรุ่งอรุณ: "ดวงตาเซราฟ 2 หินสายฟ้า 2 — วงรัศมีรุ่งอรุณ"'},
+  {id:'hhalo',out:{base:'h_halo'},rar:'epic',mats:{bossfrag:2,thunder:2},known:1,clue:'จารึกรุ่งอรุณ: "ดวงตาเซราฟ 2 หินสมมาตรขาว 2 — วงรัศมีรุ่งอรุณ"'},
   {id:'aseraph',out:{base:'a_seraph'},rar:'epic',mats:{bossfrag:3,cloth:3},known:1,clue:'จารึกรุ่งอรุณ: "ดวงตาเซราฟ 3 ผ้าเงา 3 — เสื้อคลุมรุ่งอรุณ"'},
   {id:'gseraph',out:{base:'g_seraph'},rar:'epic',mats:{bossfrag:1,cloth:2},known:1,clue:'จารึกรุ่งอรุณ: "ดวงตาเซราฟ 1 ผ้าเงา 2 — ถุงมือรุ่งอรุณ"'},
   {id:'pseraph',out:{base:'p_seraph'},rar:'epic',mats:{bossfrag:1,hide:2},known:1,clue:'จารึกรุ่งอรุณ: "ดวงตาเซราฟ 1 หนัง 2 — กางเกงรุ่งอรุณ"'},
@@ -713,46 +713,46 @@ const LOOT_CONFIG={
 const LOOT_TABLES={
   rat:{guaranteed:[{gold:[5,12]}],entries:[
     {mat:'fang',min:1,max:2,w:30},{mat:'hide',w:25},{mat:'stoneore',w:18},{mat:'cheese',w:8},{mat:'mp_s',w:12},{mat:'potion',w:8},
-    {gear:'any',w:20,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:3,rar:['epic']}]},
+    {gear:'any',w:20,rar:'any'},{book:'common',w:1,rar:['rare']},{book:'rare',w:1,rar:['epic']}]},
   stonecave:{guaranteed:[{gold:[8,18]},{mat:'sk_windblade',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'ore',min:1,max:2,w:30},{mat:'wood',w:15},{mat:'hide',w:15},{mat:'thunder',w:8},{mat:'mp_s',w:12},{mat:'potion',w:8},
-    {gear:'any',w:22,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:3,rar:['epic']}]},
+    {gear:'any',w:22,rar:'any'},{book:'common',w:1,rar:['rare']},{book:'rare',w:1,rar:['epic']}]},
   duelist:{guaranteed:[{gold:[500,700]}],entries:[
-    {gear:'any',w:30,rar:'any'},{book:'rare',w:12,rar:['epic']},{book:'ultimate',w:12,rar:['epic']},{mat:'mp_x',w:10}]},
+    {gear:'any',w:30,rar:'any'},{book:'rare',w:3,rar:['epic']},{book:'ultimate',w:3,rar:['epic']},{mat:'mp_x',w:10}]},
   icecave:{guaranteed:[{gold:[25,45]},{mat:'sk_frostnova',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'iceore',min:1,max:2,w:30},{mat:'hide',w:15},{mat:'mp_m',w:12},{mat:'potion',w:8},
-    {gear:'any',w:25,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:5,rar:['epic']},{book:'ultimate',w:1,rar:['epic']}]},
+    {gear:'any',w:25,rar:'any'},{book:'common',w:1,rar:['rare']},{book:'rare',w:1,rar:['epic']}]},
   lavarat:{guaranteed:[{gold:[15,30]},{mat:'sk_fireshield',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'lavaore',min:1,max:2,w:30},{mat:'hide',w:15},{mat:'fire',w:15},{mat:'mp_m',w:12},{mat:'potion',w:8},
-    {gear:'any',w:25,rar:'any'},{book:'common',w:6,rar:['rare']},{book:'rare',w:4,rar:['epic']},{book:'ultimate',w:1,rar:['epic']}]},
+    {gear:'any',w:25,rar:'any'},{book:'common',w:1,rar:['rare']},{book:'rare',w:1,rar:['epic']}]},
   shade:{guaranteed:[{gold:[20,40]},{mat:'sk_windvanish',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'cloth',w:25},{mat:'mp_m',w:12},{mat:'potion',w:10},{gear:'any',w:25,rar:'any'},{set:'shadow',w:12,rar:'any'},
-    {book:'common',w:6,rar:['rare']},{book:'rare',w:5,rar:['epic']},{book:'ultimate',w:2,rar:['epic']}]},
+    {book:'common',w:1,rar:['rare']},{book:'rare',w:1,rar:['epic']}]},
   kage:{guaranteed:[{mat:'key_lava',q:1}],entries:[]},   // v0.2.1: คาเงะดรอปแค่กุญแจลงเหมืองลาวา
   golem:{guaranteed:[{gold:[150,200]},{mat:'core',q:1,rar:'epic',chance:.25},{mat:'sc_golem',q:1}],entries:[
     {base:'h_horns',w:10,rar:'any',unique:1},{base:'a_golem',w:8,rar:'any',unique:1},{gear:'any',w:25,rar:'any'},{mat:'mp_l',w:10},
-    {book:'rare',w:12,rar:['rare','epic']},{book:'ultimate',w:6,rar:['epic']}]},
+    {book:'rare',w:2,rar:['rare','epic']},{book:'ultimate',w:2,rar:['epic']}]},
   tower:{guaranteed:[{gold:[40,70]},{mat:'sk_blink',q:1,rar:'rare',chance:.052}],entries:[
     {mat:'mercury',w:30,min:1,max:2},{mat:'ore',w:15},{mat:'mp_m',w:10},{mat:'potion',w:8},{gear:'any',w:22,rar:'any'},{set:'alchemist',w:8,rar:'any'},
-    {book:'common',w:6,rar:['rare']},{book:'rare',w:4,rar:['epic']}]},
+    {book:'common',w:1,rar:['rare']},{book:'rare',w:1,rar:['epic']}]},
   homunculus:{guaranteed:[{gold:[600,800]},{mat:'philostone',q:1,rar:'epic',chance:.25},{mat:'sc_merc',q:1},{mat:'mercury',q:3}],entries:[
     {set:'alchemist',w:30,rar:'any'},{base:'w_mercstaff',w:6,rar:'any',unique:1},{gear:'any',w:20,rar:'any'},{mat:'mp_x',w:8},
-    {book:'rare',w:10,rar:['rare','epic']},{book:'ultimate',w:8,rar:['epic']}]},
+    {book:'rare',w:2,rar:['rare','epic']},{book:'ultimate',w:2,rar:['epic']}]},
   seraph:{guaranteed:[{gold:[700,900]},{mat:'bossfrag',q:1,rar:'epic',chance:.25}],entries:[
-    {base:'h_halo',w:10,rar:'any',unique:1},{base:'w_seraph',w:8,rar:'any',unique:1},{set:'seraph',w:18,rar:'any'},{mat:'sk_eyejudge',w:10},{gear:'any',w:16,rar:'any'},{mat:'mp_x',w:8},
-    {book:'ultimate',w:10,rar:['epic']}]},
+    {base:'h_halo',w:10,rar:'any',unique:1},{base:'w_seraph',w:8,rar:'any',unique:1},{set:'seraph',w:18,rar:'any'},{mat:'sk_eyejudge',w:4},{gear:'any',w:16,rar:'any'},{mat:'mp_x',w:8},
+    {book:'ultimate',w:2,rar:['epic']}]},
   lavaking:{guaranteed:[{gold:[400,600]},{mat:'essence',q:1,rar:'epic',chance:.25}],entries:[
     {base:'h_crown',w:10,rar:'any',unique:1},{set:'magma',w:20,rar:'any'},{gear:'any',w:20,rar:'any'},{mat:'mp_x',w:8},
-    {book:'rare',w:10,rar:['rare','epic']},{book:'ultimate',w:10,rar:['epic']}]},
+    {book:'rare',w:2,rar:['rare','epic']},{book:'ultimate',w:2,rar:['epic']}]},
   spire:{guaranteed:[{gold:[80,140]}],entries:[
     {mat:'mp_l',w:16},{mat:'mp_x',w:8},{mat:'potion',w:12},{mat:'exprock',w:10},{gear:'any',w:28,rar:'any'},
-    {book:'rare',w:8,rar:['rare','epic']},{book:'ultimate',w:4,rar:['epic']}]},
+    {book:'rare',w:2,rar:['rare','epic']},{book:'ultimate',w:1,rar:['epic']}]},
   valin:{guaranteed:[{gold:[120,180]},{mat:'sk_windblade',q:1,rar:'rare',chance:.052},{mat:'sk_windvanish',q:1,rar:'rare',chance:.052}],entries:[
-    {gear:'any',w:28,rar:'any'},{book:'rare',w:10,rar:['rare','epic']},{mat:'mp_l',w:10}]},
+    {gear:'any',w:28,rar:'any'},{book:'rare',w:2,rar:['rare','epic']},{mat:'mp_l',w:10}]},
   ceres:{guaranteed:[{gold:[120,180]},{mat:'sk_fireshield',q:1,rar:'rare',chance:.052}],entries:[
-    {gear:'any',w:28,rar:'any'},{book:'rare',w:10,rar:['rare','epic']},{mat:'mp_l',w:10}]},
+    {gear:'any',w:28,rar:'any'},{book:'rare',w:2,rar:['rare','epic']},{mat:'mp_l',w:10}]},
   spireboss:{guaranteed:[{gold:[750,1100]},{mat:'exprock',q:2},{mat:'mp_x',q:2}],entries:[
-    {mat:'evostone',w:12},{mat:'philostone',w:8},{gear:'any',w:30,rar:'any'},{book:'ultimate',w:14,rar:['epic']}]},
+    {mat:'evostone',w:12},{mat:'philostone',w:8},{gear:'any',w:30,rar:'any'},{book:'ultimate',w:3,rar:['epic']}]},
   dummy:{guaranteed:[],entries:[]}
 };
 /* Example tables from the design spec — NOT assigned to any enemy yet; their item IDs do not exist so the validator lists them. */
@@ -761,7 +761,7 @@ const LOOT_TABLE_TEMPLATES={
   fire_demon:['burning_ash','flame_core','infernal_crystal','infernal_sword'],thunder_wolf:['thunder_fang','lightning_core','storm_essence','thunder_ring'],
   flame_dragon:['dragon_heart','infernal_armor'],thunder_king:['thunder_core','storm_blade'],blood_reaper:['blood_essence','reaper_scythe'],
   void_emperor:['void_fragment','void_robe'],ancient_guardian:['guardian_soul','guardian_shield']};
-const BASE_BY_TYPE=t=>Object.keys(BASES).filter(k=>BASES[k].type===t&&k!=='w_god'&&k!=='n_god'&&k!=='h_crown'&&!(BASES[k].set&&BASES[k].set!=='shadow'&&false));
+const BASE_BY_TYPE=t=>Object.keys(BASES).filter(k=>BASES[k].type===t&&k!=='w_god'&&k!=='n_god'&&k!=='h_crown'&&!['legendary','god'].includes(BASES[k].fixRar));
 
 /* ---------- zones & quests ---------- */
 const ZONE_INFO={town:{n:'เมือง Collawarrie',lv:1,biome:'town',safe:1},outer:{n:'ถ้ำชีสชั้นนอก',lv:1,biome:'cave'},inner:{n:'ถ้ำคริสตัล',lv:5,biome:'crystal'},lava1:{n:'เหมืองลาวา ชั้น 1',lv:11,biome:'lava',danger:1},

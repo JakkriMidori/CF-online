@@ -21,11 +21,8 @@ function makeCave(){
     props:[{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town'},   // v0.2.1: ทางออกเหลือประตูเดียว
       {k:'cheese',...T(16,3,8,15),hw:9},{k:'cheese',...T(17,3,10,15),hw:9},{k:'barrel',...T(2,14,8,12),hw:6},{k:'barrel',...T(17,14,8,12),hw:6},{k:'barrel',...T(18,14,6,12),hw:6},
       {k:'crystal',...T(22,13,8,12),hw:5},{k:'crystal',...T(27,5,8,12),hw:5},{k:'crystal',...T(28,12,4,12),hw:5},
-      {k:'chest',...T(5,14,8,12),hw:7,inter:'chest',content:{base:'a_leather',rar:'normal',mat2:'sk_orb'}},
-      {k:'chest',...T(11,7,8,12),hw:7,inter:'chest',content:{mat:'sc_hammer',mat2:'sk_poisondart'},hidden:1},
-      {k:'chest',...T(16,12,8,12),hw:7,inter:'chest',content:{base:'b_wind',rar:'rare',mat2:'sk_rising'}},
-      {k:'chest',...T(21,14,8,12),hw:7,inter:'chest',content:{base:'h_iron',rar:'rare',mat:'sc_reset'}},
-      {k:'chest',...T(28,7,8,12),hw:7,inter:'chest',content:{base:'r_luck',rar:'rare',mat:'potion'}}],
+      {k:'chest',...T(11,7,8,12),hw:7,inter:'chest',content:{base:'a_leather',rar:'normal',mat:'sc_hammer'},hidden:1},
+      {k:'chest',...T(21,14,8,12),hw:7,inter:'chest',content:{base:'b_wind',rar:'rare',mat:'sc_reset'}}],
     items:[{it:'wood',...T(11,13)},{it:'wood',...T(4,9)},{it:'wood',...T(12,4)},{it:'wood',...T(7,14)},
       {it:'stoneore',...T(15,8)},{it:'stoneore',...T(8,12)},{it:'stoneore',...T(18,6)},{it:'stoneore',...T(6,10)},
       {it:'fire',...T(17,10)},{it:'cheese',...T(15,4)},{it:'fire',...T(23,7)},{it:'pan',...T(27,14)},{it:'thunder',...T(26,13)}],
@@ -103,7 +100,7 @@ function makeDungeon(floor,theme){
   for(let y=0;y<17;y++)grid.push(Array(COLS).fill('#'));
   for(let x=1;x<COLS-1;x++)grid[2][x]=x%6===3?'T':'^';
   const parts=[];{const bag=CHUNKS.slice();for(let i=0;i<NCH;i++){if(!bag.length)bag.push(...CHUNKS);parts.push(bag.splice(rint(0,bag.length-1),1)[0]);}}
-  const props=[],items=[],foes=[];let cx=0;
+  const props=[],items=[],foes=[],chestPts=[];let cx=0;
   const lavaTiles=[];
   for(const ch of parts){const w=ch[0].length;
     for(let r=0;r<12;r++)for(let c=0;c<w;c++){const tx=cx+c,ty=3+r;if(tx<1||tx>COLS-2)continue;let s=ch[r][c];
@@ -113,8 +110,12 @@ function makeDungeon(floor,theme){
       if(s==='L'&&lava)lavaTiles.push({x:tx*16+8,y:ty*16+8});
       if(s==='E')foes.push(tower?(floor===2&&rand()<.2?mkFoe('gargoyle',T(tx,ty,8,8),{elite:1}):mkFoe(pick(['mslime','mslime','homunc','homunc']),T(tx,ty,8,8))):mkFoe(stone?(floor===2&&rand()<.2?'rockling':pick(['rat','rat','mudslime','mudslime','rockling'])):ice?(floor===2&&rand()<.15?'icegolem':pick(['frostslime','frostslime','frostwolf','frostwolf','iceknight'])):rand()<.65?'lavarat':'shade',T(tx,ty,8,8)));
       if(s==='M')items.push({it:pick(tower?['mercury','mercury','ore','thunder','fire']:stone?['ore','ore','wood','hide','thunder']:ice?['iceore','iceore','hide']:['lavaore','lavaore','fire','ore','hide']),...T(tx,ty)});
-      if(s==='C')props.push({k:'chest',...T(tx,ty,8,12),hw:7,inter:'chest',content:{loot:tower?'tower':stone?'stonecave':ice?'icecave':'lavarat',skill:.25}});}
+      if(s==='C')chestPts.push([tx,ty]);}
     cx+=w;}
+  // จำกัดจำนวนกล่องต่อชั้นให้พอดี (สุ่ม 1–2 กล่องต่อชั้น แทนการวางทุกห้อง)
+  for(let i=chestPts.length-1;i>0;i--){const j=rint(0,i);[chestPts[i],chestPts[j]]=[chestPts[j],chestPts[i]];}
+  const maxC=Math.min(chestPts.length,rint(1,2));
+  for(let i=0;i<maxC;i++){const[tx,ty]=chestPts[i];props.push({k:'chest',...T(tx,ty,8,12),hw:7,inter:'chest',content:{loot:tower?'tower':stone?'stonecave':ice?'icecave':'lavarat',skill:.05}});}
   for(let x=1;x<COLS-1;x++)grid[15][x]='.';
   if(floor===2&&lava)props.push({k:'chest',...T(2,15,8,12),hw:7,inter:'chest',content:{mat:'sc_god',mat2:'divine'},hidden:1});
   for(let y=3;y<=9;y++)for(let x=1;x<=3;x++)grid[y][x]='.';   // clear path from spawn to the exit door
@@ -316,10 +317,9 @@ function makeSpireFloor(floor=1){
     {k:'exitdoor',...T(2,3,8,14),hw:7,inter:'ow_spire_exit'},
     {k:'puzzle_clue',...T(5,6,8,12),hw:8,inter:'puzzle_clue'},
     {k:'puzzle_rune',ri:0,rc:SPIRE_RUNE_COLS[0],rn:SPIRE_RUNE_NAMES[0],...T(13,13,8,12),hw:8,inter:'puzzle_rune'},
-    {k:'chest',...T(13,4,8,12),hw:7,inter:'chest',content:{loot:'spire',skill:.35}},
     {k:'puzzle_rune',ri:1,rc:SPIRE_RUNE_COLS[1],rn:SPIRE_RUNE_NAMES[1],...T(20,5,8,12),hw:8,inter:'puzzle_rune'},
     {k:'puzzle_rune',ri:2,rc:SPIRE_RUNE_COLS[2],rn:SPIRE_RUNE_NAMES[2],...T(28,5,8,12),hw:8,inter:'puzzle_rune'},
-    {k:'chest',...T(28,13,8,12),hw:7,inter:'chest',content:{loot:'spireboss',skill:.45}},
+    {k:'chest',...T(28,13,8,12),hw:7,inter:'chest',content:{loot:'spireboss',skill:.08}},
     {k:'bossdoor',...T(32,9,8,8),hw:10,locked:1,spireGate:1,inter:'spire_boss_gate'}
   ];
   if(floor<5)props.push({k:'stairs',...T(45,9,8,10),hw:7,inter:'spire_stairs'});
@@ -466,13 +466,22 @@ function findNear(){
 }
 function grantChest(o){
   const ct=o.content,got=[];
-  if(ct.base){const it=Inv.addItem(newItem(ct.base,ct.rar,Z.levelAt(Math.floor(o.x/16))));got.push(`<span style="color:${RARC[it.rar]}">${bIco(it.base,14)} ${itemName(it)}</span>`);}
+  const safeChestItem=(base,rar,lv)=>{
+    let r=rar==='legendary'||rar==='god'?'epic':rar;
+    let b=base&&(!BASES[base].fixRar||!['legendary','god'].includes(BASES[base].fixRar))?base:pick(BASE_BY_TYPE(pick(ALLTYPES)));
+    const it=newItem(b,r,lv);
+    if(it.rar==='legendary'||it.rar==='god')return newItem(pick(BASE_BY_TYPE(pick(ALLTYPES))),'epic',lv);
+    return it;
+  };
+  if(ct.base){const it=Inv.addItem(safeChestItem(ct.base,ct.rar,Z.levelAt(Math.floor(o.x/16))));got.push(`<span style="color:${RARC[it.rar]}">${bIco(it.base,14)} ${itemName(it)}</span>`);}
   for(const k of [ct.mat,ct.mat2])if(k){Inv.add(k,1);got.push(mIco(k,14)+' '+MATS[k].n);}
   if(ct.loot){
     const out=Loot.roll(ct.loot,Z.levelAt(0),false);
+    // กล่องสมบัติจะไม่ดรอปอุปกรณ์ระดับตำนานหรือเทพเด็ดขาด
+    out.items=(out.items||[]).filter(it=>it&&it.rar!=='legendary'&&it.rar!=='god');
     if(ct.skill&&rand()<ct.skill){const k=pick(CHEST_SKILLS);out.mats[k]=(out.mats[k]||0)+1;}
     else if(!ct.skill&&rand()<.052){const k=pick(RARE_COLO_SKILLS);out.mats[k]=(out.mats[k]||0)+1;}
-    out.items.length||out.items.push(newItem(pick(BASE_BY_TYPE(pick(ALLTYPES))),'rare',Z.levelAt(0)));
+    out.items.length||out.items.push(safeChestItem(pick(rarPool(BASE_BY_TYPE(pick(ALLTYPES)),'rare')),'rare',Z.levelAt(0)));
     Loot.grant(out);
     for(const it of out.items)got.push(`<span style="color:${RARC[it.rar]}">${bIco(it.base,14)} ${itemName(it)}</span>`);
     for(const k in out.mats){const q=out.mats[k];got.push(mIco(k,14)+' '+MATS[k].n+(q>1?' ×'+q:''));}
@@ -845,7 +854,7 @@ function drawItem(o){
     case'wood':g.fillStyle='#9a6a3a';g.fillRect(x-5,y-6,10,4);g.fillStyle='#d8b07a';g.fillRect(x-5,y-6,2,4);break;
     case'ore':case'stoneore':case'iceore':case'lavaore':g.fillStyle=o.it==='iceore'?'#7ac8f0':o.it==='stoneore'?'#7a7870':o.it==='ore'?'#6a6c78':'#7a3a20';g.fillRect(x-4,y-8,8,6);g.fillRect(x-5,y-6,10,3);g.fillStyle=o.it==='iceore'?'#e8fbff':o.it==='stoneore'?'#b8b4a8':o.it==='ore'?'#e0a050':'#ffb02a';g.fillRect(x-2,y-7,1,1);g.fillRect(x+2,y-5,1,1);break;
     case'fire':g.fillStyle='#ff5a1a';g.beginPath();g.moveTo(x,y-11);g.lineTo(x+4,y-6);g.lineTo(x,y-1);g.lineTo(x-4,y-6);g.fill();g.fillStyle='#ffe08a';g.fillRect(x-1,y-8,2,4);break;
-    case'thunder':g.fillStyle='#4a7aa0';g.fillRect(x-4,y-7,8,6);g.fillStyle='#9fe6ff';g.fillRect(x-1,y-8,2,3);g.fillRect(x,y-5,2,3);break;
+    case'thunder':g.fillStyle='#cdd8e8';g.beginPath();g.moveTo(x,y-9);g.lineTo(x+4,y-4);g.lineTo(x,y+1);g.lineTo(x-4,y-4);g.closePath();g.fill();g.fillStyle='#ffffff';g.fillRect(x-1,y-7,2,6);g.fillRect(x-3,y-5,6,2);break;
     case'cheese':g.fillStyle='#f2c94c';g.beginPath();g.moveTo(x-5,y-2);g.lineTo(x+5,y-2);g.lineTo(x+5,y-8);g.fill();break;
     case'pan':g.fillStyle='#2a2a30';g.beginPath();g.ellipse(x-2,y-4,5,3,0,0,7);g.fill();g.fillStyle='#5a3a22';g.fillRect(x+3,y-5,6,2);break;
     case'hide':g.fillStyle='#8a6a4a';g.fillRect(x-5,y-6,10,5);g.fillStyle='#6a4a2a';g.fillRect(x-3,y-5,6,1);break;
@@ -1324,7 +1333,7 @@ function talk(id){
     else say([[s,'หินก้อนแรกกลับมาอยู่ในมือเจ้าแล้ว! แต่ประตูรอยแยกยังไม่ปิดจนกว่าหินทั้งแปดจะครบ — ประตูเหมืองลาวาในถ้ำคริสตัลรอเจ้าอยู่']]);
   }else{const l=nm||'ไลร่า';
     if(!G.flags.girlGave)say([[l,'ตั้งแต่หินเอเธอร์หายไป ประตูใต้รอยแยกก็แง้มออก... ฝูงหนูถ้ำหนีความว่างเปล่าขึ้นมาอาละวาดทุกคืนเลย'],[l,'ฉันเก็บหินประหลาดกับคัมภีร์เก่าเล่มนี้ไว้ได้ แต่เธอคงใช้มันปกป้องเมืองได้ดีกว่า ฝากจัดการหนูถ้ำ 3 ตัวทีนะ']],
-      ()=>{G.flags.girlGave=1;Inv.add('thunder');Inv.add('sc_flame');Quest.activate('hunt');toast('ได้รับ ⚡ หินสายฟ้า และ 📘 คัมภีร์สูตร: ดาบเพลิง (ใช้ในหน้ากระเป๋า)');SFX.pick();});
+      ()=>{G.flags.girlGave=1;Inv.add('thunder');Inv.add('sc_flame');Quest.activate('hunt');toast('ได้รับ 💠 หินสมมาตรขาว และ 📘 คัมภีร์สูตร: ดาบเพลิง (ใช้ในหน้ากระเป๋า)');SFX.pick();});
     else{const tips=['ไม่ได้มีแค่เราที่ออกตามหาหินเอเธอร์ ทั้งนักล่าค่าหัว สาวกเงา และนักแปรธาตุต่างก็เคลื่อนไหวแล้ว ระวังตัวด้วยนะ','ถ้าเป้าหมายกำลังเผาไหม้แล้วโดนช็อก จะเกิดระเบิดพลาสมา — ใช้รับมือมอนสเตอร์ที่กลายพันธุ์จากรอยแยกได้ดีมาก',
       'ศัตรูที่มีดาว ★ คือผู้พิทักษ์ที่ถูกแสงหินบิดเบือน จนจำศัตรูและมิตรไม่ได้แล้ว','คอมโบที่ทำครบชุดจะแรงขึ้น 20% หมั่นฝึกในหน้าสกิล (K) เพื่อพิสูจน์ว่าคนธรรมดาก็เป็นผู้กล้าได้'];say([[l,tips[(G.flags.tip=(G.flags.tip||0)+1)%tips.length]]]);}
   }

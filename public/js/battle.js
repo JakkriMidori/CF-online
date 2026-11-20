@@ -51,6 +51,10 @@ function buildBattleBg(scene){
   c.fillStyle=P.glow;c.globalAlpha=.06;c.fillRect(0,GY-2,W2,2);c.globalAlpha=1;
 }
 const FLASK={uses:3,heal:.30,frames:30};   // ขวดยาฟื้นพลัง: 3 ครั้งต่อการต่อสู้ ฟื้น 30% HP ระหว่างดื่มขยับไม่ได้ 0.5 วิ
+const applyVampireCurse=t=>{const pct=(TALENT_PASSIVE.vampire&&TALENT_PASSIVE.vampire.cursePct)||.20,r=1-pct;
+  t.maxHp=Math.max(1,Math.round(t.maxHp*r));t.hp=t.maxHp;t.dhp=t.maxHp;
+  t.S.def=Math.max(0,Math.round(t.S.def*r));t.S.mdef=Math.max(0,Math.round(t.S.mdef*r));
+  if(t.S0&&t.S0!==t.S){t.S0.def=t.S.def;t.S0.mdef=t.S.mdef;}};
 function startBattle(e){G.mode='trans';G.tt=0;G.pendingFoe=e;SFX.hit(true);}
 function setupBattle(e){
   const def=FOES[e.kind],zl=Z.levelAt(Math.floor(e.x/16)),lv=foeLevel(def,zl);
@@ -61,8 +65,8 @@ function setupBattle(e){
   const ES=Stats.enemy(def,lv,e.elite);
   const en=mkF({x:BW/2+160,dir:-1,kind:e.kind,def,S:ES,hp:ES.maxHP,maxHp:ES.maxHP,dhp:ES.maxHP,lv:def.fixedLv||lv,elite:e.elite,rig:def.kind==='rig',
     look:LOOK_BY_NAME[def.look]||null,wpn:def.wpn,hw:def.hw,h:def.kind==='rig'?(def.h||100):def.h,armor:!!def.armor,
-    statusRes:def.statusRes||{},stunImmuneAfter:def.stunImmuneAfter,name:(e.elite?ELITE.prefix+' ':'')+def.n,moves:def.moves?def.moves.slice():null,cdMul:Diff.cur().aiCD,spdMul:Diff.cur().eSpd,ultT:600});
-  if(G.talent==='vampire'||(G.skills&&G.skills.slots&&G.skills.slots.includes('blooddrain'))){en.maxHp=Math.max(1,Math.round(en.maxHp*.85));en.hp=en.maxHp;en.dhp=en.maxHp;}
+    statusRes:def.statusRes||{},stunImmuneAfter:def.stunImmuneAfter,name:(e.elite?ELITE.prefix+' ':'')+def.n,moves:def.moves?def.moves.slice():null,cdMul:Diff.cur().aiCD,spdMul:Diff.cur().eSpd*(def.boss?BOSS_AI.spdMul:1),think:def.boss?10:40,ultT:600});
+  if(G.talent==='vampire'||(G.skills&&G.skills.slots&&G.skills.slots.includes('blooddrain')))applyVampireCurse(en);
   BT={flask:FLASK.uses,mana:FLASK.uses,foe:e,def,p,e:en,proj:[],parts:[],nums:[],bursts:[],bolts:[],pillars:[],moveFx:def.fog?[fogFx({area:{x:0,y:0,w:BW,h:GY+24},col:'#94e8ff'})]:[],hitstop:0,shake:0,intro:90,end:0,slow:0,result:null,msg:null,small:null,lastMove:null,lastT:0,
     comboT:0,comboShow:0,flash:null,time:99*60,white:0,fullCombo:null,phaseMsg:null,coach:def.immortal?{t:0}:null};
   if(def.fireShieldStart){en.fireShieldT=def.fireShieldStart;en.buffT=Math.max(en.buffT||0,def.fireShieldStart);StatSync.addMod(en,{id:'fireshield',n:'เกราะเพลิง',kind:'buff',stat:'buffDr',op:'add',v:.15,ttl:def.fireShieldStart});}
@@ -129,7 +133,7 @@ function movementFx(o){
   }else{
     for(let i=0;i<14;i++)pts.push({x:x0+rnd(-10,10),y:y-rnd(4,fh*.75),vx:-dir*rnd(1.5,3.8),vy:rnd(-1.1,.4),sz:2,c:i%3===0?'#ffffff':'#a8ecff',k:'dash'});
   }
-  return{t:0,maxT,kind,x0,x1,y,dir,fh,pts,
+  return{t:0,maxT,kind,actor:o.actor,x0,x1,y,dir,fh,pts,
     update(dt){this.t+=(dt||1/60)*60;for(const q of this.pts){q.x+=q.vx;q.y+=q.vy;if(q.k==='dissolve')q.vx*=.92;else q.vy*=.94;}},
     done(){return this.t>=this.maxT;},
     draw(frameOrG,layer){
@@ -164,7 +168,7 @@ function slashFx(o){
   const sp=[],dust=[];
   for(let i=0;i<10;i++)sp.push({x:x+dir*rnd(-8,8),y:y-r*.45+rnd(-10,10),vx:-dir*rnd(2.2,4.8),vy:rnd(-1.4,1.6),c:i%3===0?'#ffffff':i%2?'#ffe875':'#ff7a2a',sz:i%4?2:3});
   for(let i=0;i<16;i++){const u=i/15,a=arcs[0]+(arcs[1]-arcs[0])*u;dust.push({x:x+Math.cos(dir>0?a:Math.PI-a)*(r+rnd(-8,10)),y:y+Math.sin(dir>0?a:Math.PI-a)*(r+rnd(-8,10)),vx:dir*rnd(.2,1.1),vy:rnd(-.5,.5),c:i%3===0?'#ffffff':i%2?'#8ef2ff':'#2a9df4',sz:i%4?2:3});}
-  return{t:0,maxT,kind:'slash',x,y,dir,r,arcs,sp,dust,
+  return{t:0,maxT,kind:'slash',actor:o.actor,v,x,y,dir,r,arcs,sp,dust,
     update(dt){this.t+=(dt||1/60)*60;for(const q of this.sp){q.x+=q.vx;q.y+=q.vy;q.vx*=.9;}for(const q of this.dust){q.x+=q.vx;q.y+=q.vy;}},
     done(){return this.t>=this.maxT;},
     draw(frameOrG,layer){
@@ -553,7 +557,7 @@ function updAtk(f,o){
   const m=f.move;f.pt++;
   if(f.phase==='startup'){
     if(m.inv)f.invuln=Math.max(f.invuln,2);if(m.lunge)f.x+=f.dir*m.lunge*.3;
-    if(f.pt>=(f.isP||f.isP2||m.skillId?m.s:Math.round(m.s*CONFIG.enemyStartupMul))){f.phase='active';f.pt=0;SFX.swing();
+    if(f.pt>=atkStartup(f,m)){f.phase='active';f.pt=0;SFX.swing();
       if(m.lunge>=4)spawnMoveFx('dash',f,f.x,f.x+f.dir*60,f.dir);
       if(m.swap&&o){const nx=clamp(o.x+f.dir*34,24,BW-24);for(let i=0;i<14;i++)BT.parts.push({x:f.x,y:f.y-50+rnd(-20,20),vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),l:20,c:'#c9a0ff',s:3});
         f.x=nx;f.dir=o.x>f.x?1:-1;for(let i=0;i<14;i++)BT.parts.push({x:f.x,y:f.y-50+rnd(-20,20),vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),l:20,c:'#c9a0ff',s:3});}   // วาร์ปไปด้านหลังศัตรู
@@ -576,7 +580,7 @@ function updAtk(f,o){
     if(m.slashFx&&(f.__slN||0)<n){const step=Math.max(2,Math.floor(m.a/n));if((f.pt-1)%step===0){BT.moveFx=BT.moveFx||[];BT.moveFx.push(slashFx({actor:f,x:f.x+f.dir*36,y:f.y-54,dir:f.dir,variant:f.__slN||0}));f.__slN=(f.__slN||0)+1;SFX.swing();}}
     if(!m.proj&&!m.strike&&!m.buff&&!m.jackpot&&f.hitN<n&&f.hitCD<=0&&(m.beam?beamHits(f,o):m.frostnova?(Math.abs(o.x-f.x)<=(m.reach||240)+o.hw&&o.y>=GY-130):(m.rain||m.pillars)?(o.onGround&&o.state!=='down'):inBox(f,o,m))){applyHit(f,o,m,1/n);f.hitN++;f.hitCD=Math.max(2,Math.floor(m.a/n));}
     if(f.pt>=m.a){f.phase='recovery';f.pt=0;}
-  }else if(f.pt>=m.r+(f.penalty||0))endAtk(f);
+  }else if(f.pt>=atkRecovery(f,m)+(f.penalty||0))endAtk(f);
 }
 function endAtk(f){
   const prev=f.move;
@@ -638,7 +642,7 @@ function stepF(f,o){
   if(actionable(f)||f.state==='land')f.dir=o.x>f.x?1:-1;
   if(!['hurt','airhurt','stun'].includes(o.state))f.combo=0;
   // boss phases
-  if(f.def&&f.def.phases)f.def.phases.forEach((ph,i)=>{if(f.ph<=i&&f.hp>0&&f.hp/f.maxHp<=ph.at){f.ph=i+1;f.cdMul=ph.cdMul;f.spdMul=ph.spdMul;
+  if(f.def&&f.def.phases)f.def.phases.forEach((ph,i)=>{if(f.ph<=i&&f.hp>0&&f.hp/f.maxHp<=ph.at){f.ph=i+1;f.cdMul=ph.cdMul;f.spdMul=ph.spdMul*(f.def.boss?BOSS_AI.spdMul:1);
     if(ph.addMove&&f.moves&&!f.moves.includes(EXTRA_MOVES[ph.addMove]))f.moves.push(EXTRA_MOVES[ph.addMove]);f.auraBurn=ph.aura==='burn';f.auraPoison=ph.aura==='poison';
     if(ph.heal){f.hp=Math.min(f.maxHp,f.hp+f.maxHp*ph.heal);num(f,'+'+Math.round(f.maxHp*ph.heal)+' HP','#7aff9a',18,-40);}
     if(ph.elemCycle){f.elemCycle=1;f.elT=0;}
@@ -665,7 +669,7 @@ function enemyCast(e,p,dist){
   const s=SKILLS[pick_],m=Skills.move(pick_,e.wpn||'fist',Math.max(0,TIERS.indexOf(s.tier)));if(!m)return false;
   if(e.rig){if(!beginMove(e,m))return false;}else startAtk(e,m);
   if(s.tier==='ultimate'){e.ult=Math.max(0,(e.ult||0)-(s.gauge||100));if(!BT.flash){BT.flash={t:56,f:e,m};BT.white=6;SFX.flash();}}
-  e.skcd[pick_]=Math.round((s.cd||8)*60*(bz&&!s.bossOnly?BOSS_AI.cdMul:1));e.think=Math.round(rint(30,50)*(e.cdMul||1));
+  e.skcd[pick_]=Math.round((s.cd||8)*60*(bz&&!s.bossOnly?BOSS_AI.cdMul:1));e.think=Math.round((bz?rint(12,24):rint(30,50))*(e.cdMul||1)*(bz?BOSS_AI.cdMul:1));
   num(e,s.n,s.tier==='ultimate'?'#ffd23a':'#ff9a8a',s.tier==='ultimate'?20:14,-70);if(s.tier==='ultimate'){BT.shake=6;SFX.flash();}
   return true;}
 function aiRig(e,p){
@@ -685,10 +689,12 @@ function aiRig(e,p){
   else if(dist>90&&r<.75){e.state='prejump';e.st=4;e.jumpVx=Math.sign(dx)*2.6;e.aiAir=1;}
   else if(dist<75){if(r<.25)beginMove(e,UNI.sweep);else if(r<.35)beginMove(e,UNI.kick);else{e.aiChain=2;beginMove(e,w.light[0]);}}
   else{e.state='dash';e.st=14;e.vx=e.dir*4.2;}
-  e.think=Math.round(rint(22,58)*e.cdMul*(e.def&&e.def.boss?BOSS_AI.cdMul:1));
+  e.think=Math.round((e.def&&e.def.boss?rint(12,28):rint(22,58))*e.cdMul*(e.def&&e.def.boss?BOSS_AI.cdMul:1));
 }
-// บอสออกสกิลบ่อยขึ้น: คิดเร็วขึ้น ใช้ท่าระยะไกล/ท่าพิเศษบ่อยขึ้น
-const BOSS_AI={cdMul:.7,farChance:.8,specialChance:.5,rigUltCD:600,rigSkillChance:.65};
+// บอสออกสกิลบ่อยขึ้นและออกท่าทุกชนิดเร็วขึ้น: สตาร์ทอัป/ฟื้นตัวสั้นลง เคลื่อนไหวเร็วขึ้น คิดเร็วขึ้น
+const BOSS_AI={cdMul:.45,atkMul:.60,spdMul:1.35,farChance:.85,specialChance:.60,rigUltCD:420,rigSkillChance:.80};
+const atkStartup=(f,m)=>f.isP||f.isP2?m.s:(f.def&&f.def.boss)?Math.max(2,Math.round(m.s*BOSS_AI.atkMul)):m.skillId?m.s:Math.round(m.s*CONFIG.enemyStartupMul);
+const atkRecovery=(f,m)=>f.def&&f.def.boss?Math.max(2,Math.round(m.r*BOSS_AI.atkMul)):m.r;
 const isSpecialMove=m=>!!(m.beam||m.rain||m.quake||m.proj||m.multi||m.kd||m.lunge);
 function aiMon(e,p){
   if(e.def&&e.def.passive){e.state='idle';e.vx=0;return;}
@@ -772,9 +778,10 @@ function finishBattle(){
     const out={gold:0,mats:{},items:[],dropped};
     const ups=Prog.gainXP(xp);
     const eqExpK=d.boss||d.miniboss?CONFIG.equipExp.kill.boss:foe.elite?CONFIG.equipExp.kill.elite:CONFIG.equipExp.kill.normal;
-    const eqExp=rint(eqExpK[0],eqExpK[1]);let eqUps=0;
-    for(const eqIt of equipped())eqUps+=Equip.gainExp(eqIt,eqExp);
-    if(eqUps)setTimeout(()=>toast(`⚒️ อุปกรณ์ที่สวมใส่อัปเลเวล (+${eqExp} EXP)!`,2400),600);
+    const eqExp=Math.round(rint(eqExpK[0],eqExpK[1])*(1+.08*Math.max(0,b.e.lv-1))*Diff.cur().xp),eqList=equipped();let eqUps=0;
+    for(const eqIt of eqList)eqUps+=Equip.gainExp(eqIt,eqExp);
+    const eqExpShown=Math.round(eqExp*(1+((G.talent&&TALENT_PASSIVE[G.talent]&&TALENT_PASSIVE[G.talent].eqXpMul)||0)));
+    if(eqUps)setTimeout(()=>toast(`⚒️ อุปกรณ์ที่สวมใส่อัปเลเวล (+${eqExpShown} EXP)!`,2400),600);
     if(foe.kind==='rat'){const h=G.q.hunt;if(h.active&&!h.done){h.count++;if(h.count>=QUESTS.hunt.count)Quest.complete('hunt');else toast(`กำจัดหนูถ้ำ ${h.count}/3`);}}
     if(foe.kind==='kage'){G.flags.kageDown=1;G.flags.keyEra=1;Quest.advance('main1',4);setTimeout(()=>toast('🪨 ผนึกห้องบอสใน "ถ้ำหินโกเลม" (ทางใต้สุดของเมือง) คลายแล้ว',4500),1200);}
     if(foe.kind==='golem'){G.flags.golemDown=1;Quest.advance('main1',5);Quest.activate('lava');}
@@ -786,7 +793,7 @@ function finishBattle(){
     if(d.boss)setBossCD(foe.kind);
     if(Z.bossRoom&&d.boss){Z.cleared=1;for(const pt of Z.props)if(pt.k==='portal'||pt.k==='exitdoor')pt.locked=0;setTimeout(()=>toast('🔓 ผนึกห้องบอสคลายแล้ว — เก็บของแล้วออกทางประตูหรือพอร์ทัลได้',3500),400);}
     const newSk=Skills.check();
-    BT=null;G.mode='explore';UI.lootPopup(out,`ชนะ! ${d.n} Lv.${b.e.lv}${foe.elite?' (หัวหน้า)':''}`,xp,ups,newSk);
+    BT=null;G.mode='explore';UI.lootPopup(out,`ชนะ! ${d.n} Lv.${b.e.lv}${foe.elite?' (หัวหน้า)':''}`,xp,ups,newSk,{eqExp:eqExpShown,eqUps,eqCnt:eqList.length});
   }else{
     const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;foe.cool=200;if(foe.home){foe.x=foe.home.x;foe.y=foe.home.y;}
     const souls=Diff.cur().death==='bloodstain',pen=Diff.onDeath(Z.id,P.x,P.y);
@@ -812,9 +819,9 @@ function setupVS(wins,round){
   const mk=(X,o)=>mkF(Object.assign({rig:true,S:Object.assign({},X.S,{res:Object.assign({},X.S.res)}),hp:X.S.maxHP,maxHp:X.S.maxHP,dhp:X.S.maxHP,mp:0,sta:X.S.maxSTA,wpn:X.wpn,hw:14,h:100,lv:X.lv,ult:0,ultKeys:new Set(),flask:FLASK.uses,mana:FLASK.uses,comboShow:0,comboT:0,lastMove:null,lastT:0,fullCombo:null,small:null,talent:X.talent||null,moves:null,cdMul:1,spdMul:1},o));
   const p=mk(A1,{x:BW/2-160,dir:1,isP:true,keys:VSKN1,look:A1.look,name:'P1',vsName:nm[0],skillSet:A1.skills,skk:VSS1,cd:{},mp:A1.S.maxMP});
   const e=mk(A2,{x:BW/2+160,dir:-1,isP2:true,keys:VSKN2,look:A2.look,name:'P2',vsName:nm[1],skillSet:A2.skills,skk:VSKN2_SK,cd:{},mp:A2.S.maxMP});
-  if(p.talent==='vampire'||(p.skillSet&&p.skillSet.includes('blooddrain'))){e.maxHp=Math.max(1,Math.round(e.maxHp*.85));e.hp=e.maxHp;e.dhp=e.maxHp;}
-  if(e.talent==='vampire'||(e.skillSet&&e.skillSet.includes('blooddrain'))){p.maxHp=Math.max(1,Math.round(p.maxHp*.85));p.hp=p.maxHp;p.dhp=p.maxHp;}
-  BT={net:G.vsNet||null,vs:{wins:wins.slice(),round},foe:null,def:{},p,e,proj:[],parts:[],nums:[],bursts:[],bolts:[],hitstop:0,shake:0,intro:90,end:0,slow:0,result:null,msg:null,small:null,lastMove:null,lastT:0,
+  if(p.talent==='vampire'||(p.skillSet&&p.skillSet.includes('blooddrain')))applyVampireCurse(e);
+  if(e.talent==='vampire'||(e.skillSet&&e.skillSet.includes('blooddrain')))applyVampireCurse(p);
+  BT={net:G.vsNet||null,vs:{wins:wins.slice(),round},foe:null,def:{},p,e,proj:[],parts:[],nums:[],bursts:[],bolts:[],pillars:[],moveFx:[],hitstop:0,shake:0,intro:90,end:0,slow:0,result:null,msg:null,small:null,lastMove:null,lastT:0,
     comboT:0,comboShow:0,flash:null,time:99*60,white:0,fullCombo:null,phaseMsg:null,fleeCD:0};
   wrap.classList.add('battle','vs');G.mode='battle';
 }
@@ -848,7 +855,7 @@ function poseFor(f){
     case'airhurt':P.lean=-1.1;P.hip=-12;P.fh=[-6,2];P.bh=[-8,-1];P.ff=[7,-6];P.bf=[5,-2];P.head=-.3;P.wa=2.4;break;
     case'down':case'ko':P.lean=-1.5;P.hip=-3;P.ff=[11,0];P.bf=[9,0];P.fh=[-1,3];P.bh=[2,3];P.wa=1.6;break;
     case'attack':{
-      const m=f.move,ph=f.phase,Sx=ph==='startup',A=ph==='active',u=Sx?Math.min(1,f.pt/Math.max(1,f.isP||f.isP2||m.skillId?m.s:Math.round(m.s*CONFIG.enemyStartupMul))):A?f.pt/Math.max(1,m.a):f.pt/Math.max(1,m.r);
+      const m=f.move,ph=f.phase,Sx=ph==='startup',A=ph==='active',u=Sx?Math.min(1,f.pt/Math.max(1,atkStartup(f,m))):A?f.pt/Math.max(1,m.a):f.pt/Math.max(1,atkRecovery(f,m));
       if(!f.onGround){P.hip=-14;P.ff=[4,-5];P.bf=[-3,-3];}
       switch(m.anim){
         case'jab':case'cjab':if(m.anim==='cjab'){P.hip=-9;P.lean=.3;P.ff=[6,0];P.bf=[-5,0];}P.lean+=.1;P.fh=Sx?[4,1]:A?[11,0]:lp([11,0],[6,1],u);break;
