@@ -687,7 +687,8 @@ function aiRig(e,p){
   if(e.rootT>0){e.state='idle';return;}
   const dx=p.x-e.x,dist=Math.abs(dx),w=WEAPONS[e.wpn],act=!e.st8||!e.st8.freeze||e.__frzAct!==false;if(act){e.think--;if(e.ultT>0)e.ultT--;}
   const pThreat=(p.state==='attack'&&dist<120&&p.phase!=='recovery')||BT.proj.some(q=>q.o===p&&Math.abs(q.x-e.x)<120);
-  if(pThreat&&(e.guard>0||rand()<.045*Diff.cur().guard)){e.guard=e.guard>0?e.guard-1:24;e.state=(p.move&&p.move.low)?'cblock':'block';return;}
+  const gRate=e.kind==='duelist'?.018:.045,gLen=e.kind==='duelist'?12:24;
+  if(pThreat&&(e.guard>0||rand()<gRate*Diff.cur().guard)){e.guard=e.guard>0?e.guard-1:gLen;e.state=(p.move&&p.move.low)?'cblock':'block';return;}
   e.guard=0;
   if(!p.onGround&&dist<80&&p.vy>-3&&rand()<.06&&skillUsable('rising','enemy')){beginMove(e,Skills.move('rising',e.wpn,1));return;}
   if(e.think>0){const fm=(e.st8&&e.st8.freeze?.55:1);if(dist>80){e.x+=Math.sign(dx)*1.7*e.spdMul*fm;e.state='walk';e.walkT++;}else if(dist<40){e.x-=Math.sign(dx)*1.3*fm;e.state='walk';e.walkT--;}else e.state='idle';return;}
@@ -701,7 +702,7 @@ function aiRig(e,p){
   e.think=Math.round((e.def&&e.def.boss?rint(12,28):rint(22,52))*e.cdMul*ai.cdMul);
 }
 // มอนสเตอร์และบอสทุกตัว (ยกเว้น bbqy) ออกท่า/ฟื้นตัว/คูลดาวน์เร็วขึ้น: สตาร์ทอัปและฟื้นตัวสั้นลง คิดเร็วขึ้น เดินเร็วขึ้น
-const BBQY_AI={cdMul:.45,atkMul:.60,spdMul:1.35,farChance:.85,specialChance:.60,rigUltCD:420,rigSkillChance:.80};
+const BBQY_AI={cdMul:.70,atkMul:.85,spdMul:1.15,farChance:.75,specialChance:.55,rigUltCD:480,rigSkillChance:.65};
 const BOSS_AI={cdMul:.35,atkMul:.45,spdMul:1.45,farChance:.88,specialChance:.65,rigUltCD:360,rigSkillChance:.82};
 const MON_AI={cdMul:.65,atkMul:.65,spdMul:1.15};
 const aiCfg=f=>(f&&f.def&&f.def.boss)?(f.kind==='duelist'?BBQY_AI:BOSS_AI):MON_AI;
@@ -803,7 +804,7 @@ function finishBattle(){
     if(foe.kind==='seraph')G.flags.seraphDown=1;
     if(Z&&Z.colosseum){foe.alive=false;foe.respawnable=false;
       if(Z.colosseum==='G'&&!Z.foes.some(f=>f.alive)){G.guildPromo=G.guildPromo||{};G.guildPromo.promo_g=1;setTimeout(()=>toast('🏆 เอาชนะผู้ท้าทาย Rank G ครบทั้ง 3 คนแล้ว! กลับไปเลื่อนเป็นแรงค์ G ที่กิลด์ได้เลย!',5000),800);}}
-    if(foe.kind==='duelist'){const sw=Inv.addItem(newItem('w_bbqy','legendary',Math.max(1,G.level)));out.items.push(sw);G.flags.duelWon=1;foe.alive=false;G.skills.learned.add('bluejudge');setTimeout(()=>toast('🐉 ได้รับท่าสุดยอด: คำพิพากษาตาคราม — ตั้งช่อง 4 ที่หน้าสกิล (K)',5000),1500);}
+    if(foe.kind==='duelist'){const sw=Inv.addItem(newItem('w_bbqy','legendary',Math.max(1,G.level)));out.items.push(sw);G.flags.duelWon=1;G.flags.pendingBbqyWinDlg=1;foe.alive=false;G.skills.learned.add('bluejudge');setTimeout(()=>toast('🐉 ได้รับท่าสุดยอด: คำพิพากษาตาคราม — ตั้งช่อง 4 ที่หน้าสกิล (K)',5000),1500);}
     if(d.boss)setBossCD(foe.kind);
     if(Z.bossRoom&&d.boss){Z.cleared=1;for(const pt of Z.props)if(pt.k==='portal'||pt.k==='exitdoor')pt.locked=0;setTimeout(()=>toast('🔓 ผนึกห้องบอสคลายแล้ว — เก็บของแล้วออกทางประตูหรือพอร์ทัลได้',3500),400);}
     const newSk=Skills.check();

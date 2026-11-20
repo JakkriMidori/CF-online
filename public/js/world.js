@@ -28,6 +28,8 @@ function makeCave(){
       {it:'fire',...T(17,10)},{it:'cheese',...T(15,4)},{it:'fire',...T(23,7)},{it:'pan',...T(27,14)},{it:'thunder',...T(26,13)}],
     npcs:[],
     foes:[mkFoe('rat',T(10,9),{respawnable:1,bound:19*16-6}),mkFoe('rat',T(14,6),{respawnable:1,bound:19*16-6}),mkFoe('rat',T(6,12),{respawnable:1,bound:19*16-6}),
+      mkFoe('mudslime',T(13,13),{respawnable:1,bound:19*16-6}),mkFoe('mudslime',T(9,5),{respawnable:1,bound:19*16-6}),
+      mkFoe('mslime',T(26,12),{respawnable:1}),
       mkFoe('kage',T(21,9,8,0))]};
 }
 /* ----- TOWN (safe hub): NPCs, forge, fountain, shop, quest board, dungeon entrance ----- */
@@ -253,6 +255,12 @@ function enterInterior(kind){
   const rp=fromTownNormal?{x:P.x,y:P.y+6}:interiorDoorPos(kind);
   loadZone(makeInterior(kind,rz,rp));
   toast(Z.title,2200);
+  if(kind==='in_store'&&!(G.flags&&G.flags.storeWelcomeExitScroll)){
+    G.flags=G.flags||{};G.flags.storeWelcomeExitScroll=1;
+    Inv.add('exitscroll',2);SFX.pick&&SFX.pick();Save.save&&Save.save();
+    toast('📜 ได้รับ คัมภีร์ทางออก ×2 (สวัสดิการของกิลด์)!',3400);
+    say([['มาร์คัส (ร้านค้า)','ยินดีต้อนรับสู่ร้านค้าครั้งแรก! รับ "คัมภีร์ทางออก 2 อัน" ไปเลย — นี่เป็นสวัสดิการของกิลด์สำหรับพกติดตัวเวลาลงดันเจี้ยน เผื่อมีเหตุฉุกเฉินจะได้กลับออกมาได้ทันที!']]);
+  }
 }
 function makeColosseumZone(rankId='G',retZone,retPos){
   const C=30,R=17,gr=Array.from({length:R},(_,y)=>Array.from({length:C},(_,x)=>(x<6||x>23||y<3||y>13)?'#':'.'));
@@ -507,7 +515,7 @@ function interact(n){
   else if(n.type==='chest'){o.opened=true;SFX.craft();grantChest(o);for(let i=0;i<16;i++)EP.push({x:o.x,y:o.y-8,vx:rnd(-1.2,1.2),vy:rnd(-2,-.5),l:40,c:'#ffe27a'});}
   else if(n.type==='npc'){if(o.id==='reitem')UI.open('reitem');else talk(o.id);}
   else if(n.type==='duel'){const f=Z.foes.find(x=>x.challenge&&x.alive);if(!f){toast('bbqy legendary พ่ายแพ้แล้ว');return;}
-    say([['bbqy legendary','ข้า bbqy นักดวลไพ่ที่แข็งแกร่งที่สุดในโลก!'],['bbqy legendary','ข้าไม่สนหินเอเธอร์หรือประตูรอยแยก — ถ้าเจ้าอยากเป็นผู้กล้า จงเอาดาบ Chaos Blade ของข้าไปให้ได้ก่อน'],['','กด E อีกครั้งเพื่อท้าดวล']],()=>{startBattle(f);});}
+    say([['bbqy legendary','ข้าคือตำนานที่เคยครอบครองเอเธอร์ทั้งหมด 3 ยุค และข้าคืออดีตผู้กล้าคนที่ 3 เจ้าอยากจะท้าทายข้างั้นเหรอ ก็ลองชนะข้าให้ได้สิ'],['','กด E อีกครั้งเพื่อท้าดวล']],()=>{startBattle(f);});}
   else if(n.type==='folk'){const sv=o.face;o.face=P.x<o.x?-1:1;o.wait=240;o.tx=null;say([[o.name,o.line||pick(FOLK_LINES)]]);}
   else if(n.type==='colosseum'){UI.open('colosseum');}
   else if(n.type==='in_smithy'||n.type==='in_store'||n.type==='in_alchemy'||n.type==='in_guild'){enterInterior(n.type);}
@@ -662,6 +670,11 @@ function updFolk(){
 function updExplore(){
   StatSync.frame('P');   // นับเวลาบัฟ/ดีบัฟนอกการต่อสู้
   {const S=StatSync.get();if(G.t%60===0&&(S.hotPct||0)>0&&G.hp>0&&G.hp<S.maxHP){G.hp=Math.min(S.maxHP,G.hp+Math.max(1,Math.round(S.maxHP*S.hotPct)));UI.hud&&UI.hud();}}
+  if(Z&&Z.pitRoom&&G.mode==='explore'){Z.drainT=(Z.drainT||0)+1;if(Z.drainT>=90){Z.drainT=0;const S=StatSync.get(),dm=Math.max(1,Math.ceil(S.maxHP*.20));
+    G.hp-=dm;G.shake=5;SFX.hit&&SFX.hit(false);EP.push({x:P.x,y:P.y-12,vx:0,vy:-.5,l:32,c:'#ff4a5a'});
+    if(G.hp<=0){const souls=Diff.cur().death==='bloodstain',pen=Diff.onDeath(Z.id,P.x,P.y);G.hp=S.maxHP;G.mp=S.maxMP;P.castExit=0;loadZone(TOWN);Save.save&&Save.save();UI.hud&&UI.hud();
+      toast(souls?'💀 คุณตายในห้องปิดตาย — '+(pen||'กลับเมือง Collawarrie'):'💀 พ่ายแพ้ในห้องปิดตาย... ฟื้นที่เมือง Collawarrie (HP เต็ม)'+(pen?' · '+pen:''),4500);return;}
+    UI.hud&&UI.hud();toast(`🕳️ ห้องปิดตายดูดพลังชีวิต! -${dm} HP (-20% Max HP)`,1500);}}
   if(Z.puddles&&G.t%30===0){const k=Math.floor(P.x/16)+','+Math.floor((P.y-2)/16),t=Z.puddles[k];   // แอ่งน้ำยาในหอคอย
     if(t){const S=StatSync.get();if(t==='poison'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.03));toast('🧪 แอ่งพิษ — HP ลดลง',900);}
       else if(t==='burn'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.05));toast('🔥 แอ่งเพลิง — HP ลดลง',900);}
@@ -1322,6 +1335,7 @@ function talk(id){
     return;
   }
   if(id==='smith'){const s=nm||'โบโร';
+    if(G.flags&&G.flags.pendingBoroCraftDlg){G.flags.pendingBoroCraftDlg=0;G.flags.boroFirstCraftSay=1;say([[s,'นี่คือการคราฟต์ จงจำไว้ว่าการคราฟต์แต่ละครั้งมีความเสี่ยง — วัตถุดิบอาจสูญหายได้หากล้มเหลว'],[s,'และเวลาลงดันเจี้ยนอย่าลืมที่จะพก "คัมภีร์ทางออก" ไปด้วย เผื่อมีอุบัติเหตุจะได้ออกได้ทันที คัมภีร์หาได้จากร้านค้าในเมืองนะ!']]);return;}
     if(q.step===0)say([[s,'โอ้ เจ้าคือนักผจญภัยคนใหม่ใช่ไหม? ดูท่าเจ้าต้องการอาวุธที่ดีขึ้น ข้าจะให้เจ้า... เอาอันนี้ไป!'],
       [s,'นี่คือ "ดาบไม้ฝึกหัด (พลังโจมตี 12)" ถึงจะทำจากไม้แต่ก็สมดุลพอให้เจ้าปกป้องตัวเองได้ในถ้ำ'],
       [s,'ข้าอยากพิสูจน์ว่าเจ้ามีความสามารถคู่ควรกับดาบฝีมือข้าไหม — จงออกไปสู้กับนักดาบเงา "คาเงะ" ในถ้ำชีส แล้วไปเก็บวัตถุดิบกลับมาตีอาวุธเหล็กที่โต๊ะตีเหล็กข้างข้า'],
@@ -1337,7 +1351,7 @@ function talk(id){
       }
       Quest.advance('main1',1);
     });
-    else if(q.step===1)say([[s,'ยังไม่มีดาบรึ? เก็บแร่หิน 2 ก้อนกับไม้ 1 ชิ้นในถ้ำมาตี "ดาบหิน" หรือใช้ไม้ 1 กับแร่เหล็ก 1 ทำ "ดาบเหล็กโบโร" บนโต๊ะตีเหล็กข้างข้าได้เลย!']]);
+    else if(q.step===1)say([[s,'ยังไม่มีดาบรึ? เก็บแร่หิน 2 ก้อนกับไม้ 1 ชิ้นในถ้ำมาตี "ดาบหิน" บนโต๊ะตีเหล็กข้างข้าได้เลย — การคราฟต์ดาบหินครั้งแรกการันตีสำเร็จ 100%!']]);
     else if(!G.flags.gotGauntScroll){G.flags.gotGauntScroll=1;Inv.add('sc_gaunt');say([[s,'ถือดาบไว้แล้วสินะ! นี่คือคัมภีร์สูตรสนับมือสายฟ้า — แม้แต่คนธรรมดาก็โค่นผู้พิทักษ์ได้ด้วยฝีมือ'],[s,'หินถล่มทางขวาของถ้ำชั้นในปิดเส้นทางสู่หินแห่งรอยแยกอยู่ ทุบมันเปิดซะ']]);}
     else if(!G.flags.golemDown)say([[s,'คาเงะเป็นผู้พิทักษ์ที่ถูกแสงหินบิดเบือน มันป้องกันเก่ง ใช้ท่ากวาดขา (↓+K) ให้เสียหลัก ส่วนโกเลมศิลา หลังทุบพื้นแกนกลางจะเปิดออก!']]);
     else say([[s,'หินก้อนแรกกลับมาอยู่ในมือเจ้าแล้ว! แต่ประตูรอยแยกยังไม่ปิดจนกว่าหินทั้งแปดจะครบ — ประตูเหมืองลาวาในถ้ำคริสตัลรอเจ้าอยู่']]);

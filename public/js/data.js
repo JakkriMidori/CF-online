@@ -588,7 +588,7 @@ const FOES={
   rockling:{n:'หินเดินได้',kind:'mon',map:'GOLEM',pal:'rockling',sc:3,hw:24,h:50,spd:.9,range:34,cd:[30,64],armor:1,el:'phys',
     base:{hp:320,atk:48,def:10,mdef:2},res:{phys:.15,lightning:-.4,fire:.2},xp:48,loot:'stonecave',statusRes:{bleed:.5},
     moves:[M('หมัดหิน',12,4,20,12,40,3,18,{hy:30,hh:36}),M('กลิ้งชน',18,12,24,14,30,4,22,{hy:30,hh:44,lunge:2.8,kd:1})]},
-  duelist:{n:'bbqy legendary',reflect:.2,lifesteal:.15,revive:1,reviveHp:.5,chaosChance:.2,kind:'rig',fixedLv:100,look:'DUELIST',wpn:'bbqysword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,bgm:'bgm_bbqy',
+  duelist:{n:'bbqy legendary',reflect:.2,lifesteal:.15,revive:2,reviveHp:.5,chaosChance:.2,kind:'rig',fixedLv:100,look:'DUELIST',wpn:'bbqysword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,bgm:'bgm_bbqy',
     attr:{str:30,agi:40,int:20,vit:20,luk:50},skills:['bluejudge','orb','slashwave','bbqybarrier'],base:{hp:5000,atk:304,def:60,mdef:60},res:{lightning:.2,shadow:-.2},statusRes:{stun:.5,bleed:.5,shock:.4},xp:2200,loot:'duelist',meterStart:0},
   kage:{n:'คาเงะ นักดาบเงา',kind:'rig',look:'KAGE',wpn:'kageblade',hw:14,h:100,el:'shadow',miniboss:1,
     attr:{str:15,agi:30,int:10,vit:10,luk:20},skills:['moonfall','slashwave'],base:{hp:400,atk:44,def:12,mdef:8,critRate:.04},res:{shadow:.5,fire:-.2},statusRes:{stun:.15},xp:180,loot:'kage',meterStart:15},   // v0.2.1: อ่อนลง (HP 520→400 ATK 60→44 ความเร็ว/คริ/เกจเริ่มลดลง)

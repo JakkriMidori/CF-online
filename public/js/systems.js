@@ -347,7 +347,7 @@ const Craft={
   boosterId(boost){return boost===true?'divine':(boost&&MATS[boost]&&MATS[boost].booster?boost:null);},
   boostAmt(boost){const k=this.boosterId(boost);return k?((MATS[k]&&MATS[k].craftBoost)||CONFIG.craftBoost):0;},
   base(r){return r.rate!=null?r.rate:CONFIG.craftRates[r.rar];},   // สูตรพิเศษกำหนดโอกาสเองได้
-  chance(r,boost){return Math.min(1,this.base(r)+this.boostAmt(boost));},
+  chance(r,boost){if(r&&r.id==='stonesword'&&(G.stats.crafts||0)===0&&!(G.flags&&G.flags.boroFirstCraftSay))return 1;return Math.min(1,this.base(r)+this.boostAmt(boost));},
   shortage(slots){const m=this.combine(slots),out=[];for(const k in m)if((G.mats[k]||0)<m[k])out.push({id:k,need:m[k],have:G.mats[k]||0});return out;},
   /* recipes the player has a written clue for that the current slots are heading toward */
   hints(slots){const m=this.combine(slots),ks=Object.keys(m);if(!ks.length)return[];

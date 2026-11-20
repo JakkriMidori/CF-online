@@ -31,7 +31,9 @@ const UI={
   cur:null,sel:null,filt:{type:'all',rar:'all',sort:'rarity'},
   open(name,arg){if(name==='map'&&arg===undefined){this.mapSel=null;this.mapTab='continents';}this.cur=name;G.mode='menu';ov.classList.remove('hidden');this.render(arg);SFX.ui('open');},
   close(){const was=this.cur;if(this.cur)SFX.ui('cancel');ov.classList.add('hidden');this.cur=null;this.mapTab=null;this.talentSwitch=false;pvCtx=null;mapPinCtx=null;if(G.mode==='menu')G.mode='explore';this.hud();if(typeof Net!=='undefined')Net.onUIClose();
-    if(was==='skills'&&G.flags&&G.flags.pendingIntroCS&&!G.flags.introDone&&typeof Cutscene!=='undefined'){G.flags.pendingIntroCS=0;Cutscene.startIntro();}},
+    if(was==='skills'&&G.flags&&G.flags.pendingIntroCS&&!G.flags.introDone&&typeof Cutscene!=='undefined'){G.flags.pendingIntroCS=0;Cutscene.startIntro();}
+    else if(was==='craft'&&G.flags&&G.flags.pendingBoroCraftDlg){G.flags.pendingBoroCraftDlg=0;G.flags.boroFirstCraftSay=1;if(typeof say==='function')say([['โบโร','นี่คือการคราฟต์ จงจำไว้ว่าการคราฟต์แต่ละครั้งมีความเสี่ยง — วัตถุดิบอาจสูญหายได้หากล้มเหลว'],['โบโร','และเวลาลงดันเจี้ยนอย่าลืมที่จะพก "คัมภีร์ทางออก" ไปด้วย เผื่อมีอุบัติเหตุจะได้ออกได้ทันที คัมภีร์หาได้จากร้านค้าในเมืองนะ!']]);}
+    else if(was==='loot'&&G.flags&&G.flags.pendingBbqyWinDlg){G.flags.pendingBbqyWinDlg=0;if(typeof say==='function')say([['bbqy legendary','ในเมื่อเจ้าชนะข้าได้ งั้นก็สืบต่อพลังของข้าให้กับเจ้า']]);}},
   render(arg){const ae=document.activeElement,key=ae&&pn.contains(ae)?Nav.key(ae):null;const f=this['scr_'+this.cur];let html=f?f.call(this,arg):'';if(MENU_SUB.includes(this.cur))html=`<div class="backbar"><button class="btn ghost sm" data-open="menu">‹ กลับเมนู</button></div>`+html;pn.innerHTML=html;pvCtx=null;mapPinCtx=null;const pv=$('#pv');if(pv)pvCtx=pv.getContext('2d');const mp=$('#mapHeroCv');if(mp){mapPinCtx=mp.getContext('2d');drawMapHeroPin();}
     const af=pn.querySelector('[autofocus]');if(af)af.focus();else if(key){const el=Nav.items().find(e=>Nav.key(e)===key);if(el)el.focus();}},
   rerender(){if(this.cur)this.render();},
@@ -331,8 +333,9 @@ const UI={
     const slots=C.slots.map(s=>s&&{...s}),boost=C.boost;
     setTimeout(()=>{const r=Craft.attempt(slots,boost,true);Craft.busy=false;C.boost=false;
       if(r.ok){C.phase='success';C.res=r;SFX.craft();
+        if(G.stats.crafts===1&&!(G.flags&&G.flags.boroFirstCraftSay))G.flags.pendingBoroCraftDlg=1;
         if(r.item&&BASES[r.item.base].type==='weapon'&&G.q.main1.step===1){Quest.advance('main1',2);if(!G.eq.weapon)Equip.equip(r.item);}}
-      else if(r.failed){C.phase='fail';C.res=r;SFX.fail();}
+      else if(r.failed){C.phase='fail';C.res=r;SFX.fail();if(G.stats.crafts===1&&!(G.flags&&G.flags.boroFirstCraftSay))G.flags.pendingBoroCraftDlg=1;}
       else{C.phase='idle';toast(r.err);}
       if(this.cur==='craft')this.rerender();this.hud();},1100);
     return true;
