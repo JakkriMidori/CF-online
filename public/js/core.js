@@ -5,6 +5,8 @@
 const $=s=>document.querySelector(s);
 const wrap=$('#wrap'),cv=$('#c'),D=cv.getContext('2d');
 const W=480,H=270,S=2,GY=236,GRAV=.34,FPS=60;
+const BZ=.56,BW=Math.round(W/BZ);   // กล้องฉากต่อสู้: ซูมออก (สเกล 0.56) → พื้นที่ต่อสู้กว้างขึ้นเป็น ~857
+const bsx=x=>x*BZ,bsy=y=>GY+(y-GY)*BZ;   // แปลงพิกัดโลกการต่อสู้ → พิกัดจอ
 const mk=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c;};
 const RES=2,mkR=()=>{const c=document.createElement('canvas');c.width=W*RES;c.height=H*RES;return c;};   // บัฟเฟอร์ความละเอียด 2 เท่า (ภาพ AI คมขึ้น) · โค้ดวาดยังใช้พิกัด 480×270 เหมือนเดิม
 const low=mkR(),g=low.getContext('2d'),lc=mk(),L=lc.getContext('2d'),bgC=mkR(),B=bgC.getContext('2d'),bbC=mkR(),BB=bbC.getContext('2d');
@@ -87,24 +89,38 @@ function tone(f,d,type='square',v=.06,slide=1){if(!AC||(typeof SND!=='undefined'
 function noise(d,v=.12,hp=800){if(!AC||(typeof SND!=='undefined'&&SND.vol<=0))return;try{if(!NB){NB=AC.createBuffer(1,AC.sampleRate*.5|0,AC.sampleRate);const a=NB.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;}
   const t=AC.currentTime,s=AC.createBufferSource(),f=AC.createBiquadFilter(),gn=AC.createGain();s.buffer=NB;f.type='highpass';f.frequency.value=hp;gn.gain.setValueAtTime(v,t);gn.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(gn);gn.connect(_dst());s.start(t);s.stop(t+d+.02);}catch(e){}}
 const SFX={
-  swing:()=>noise(.08,.05,2500),
-  hit:big=>{noise(big?.18:.1,big?.2:.13,400);tone(big?90:150,big?.2:.12,'square',.07,.5);},
-  crit:()=>{noise(.2,.2,300);tone(80,.25,'square',.09,.4);tone(1400,.08,'square',.04);},
-  block:()=>{tone(700,.06,'square',.05,.8);noise(.05,.06,3000);},
-  parry:()=>{tone(1200,.15,'triangle',.1,1.5);tone(1800,.22,'sine',.06);},
-  perfect:()=>{tone(880,.07,'square',.05);setTimeout(()=>tone(1320,.12,'square',.05),60);},
-  pick:()=>{tone(660,.07,'square',.05);setTimeout(()=>tone(990,.1,'square',.05),70);},
+  swing:()=>{noise(.07,.06,2200);tone(280,.06,'triangle',.03,.6);},
+  hit:big=>{noise(big?.22:.11,big?.24:.15,350);tone(big?85:145,big?.22:.13,'square',.08,.45);if(big)tone(55,.26,'sine',.09,.5);},
+  crit:()=>{noise(.24,.24,260);tone(75,.28,'sawtooth',.09,.35);tone(1320,.09,'triangle',.05,1.2);setTimeout(()=>tone(1760,.12,'sine',.04),35);},
+  trueDmg:()=>{tone(1046,.12,'triangle',.07,1.4);tone(1568,.18,'sine',.06);noise(.14,.12,2400);},
+  block:()=>{tone(680,.07,'square',.06,.75);tone(340,.08,'triangle',.04,.8);noise(.06,.08,3200);},
+  parry:()=>{tone(1180,.16,'triangle',.11,1.5);tone(1760,.24,'sine',.08,1.1);setTimeout(()=>tone(2350,.22,'sine',.05),40);},
+  perfect:()=>{tone(880,.07,'square',.05);setTimeout(()=>tone(1320,.12,'triangle',.06),55);},
+  pick:()=>{tone(660,.07,'square',.05);setTimeout(()=>tone(990,.1,'triangle',.05),65);},
   craft:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.12,'triangle',.07),i*70)),
   fail:()=>tone(170,.25,'sawtooth',.05,.6),
-  dodge:()=>noise(.12,.05,1500),
+  dodge:()=>{noise(.13,.07,1400);tone(440,.09,'sine',.04,1.6);},
   jump:()=>tone(300,.12,'square',.04,2),
   talk:()=>tone(520+Math.random()*80,.03,'square',.025),
-  ko:()=>{tone(220,.8,'sawtooth',.08,.25);noise(.5,.15,200);},
-  win:()=>[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,.18,'square',.05),i*90)),
+  ko:()=>{tone(220,.85,'sawtooth',.09,.22);tone(110,.9,'sine',.08,.3);noise(.55,.18,180);},
+  win:()=>[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,.18,'triangle',.06),i*90)),
   level:()=>[392,523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone(f,.15,'triangle',.07),i*80)),
-  smash:()=>{noise(.35,.2,200);tone(70,.35,'square',.08,.5);},
-  flash:()=>{tone(200,.5,'sawtooth',.06,4);noise(.4,.1,1200);},
-  fire:()=>{tone(400,.2,'square',.05,.4);noise(.2,.07,900);},
+  smash:()=>{noise(.38,.24,180);tone(65,.38,'square',.09,.45);tone(48,.42,'sine',.08,.5);},
+  explosion:()=>{noise(.36,.26,160);tone(95,.34,'sawtooth',.09,.3);tone(55,.42,'sine',.1,.4);},
+  flash:()=>{tone(220,.55,'sawtooth',.07,3.8);tone(440,.45,'triangle',.05,2.2);noise(.42,.12,1200);},
+  beam:()=>{tone(180,.4,'sawtooth',.06,2.2);tone(720,.45,'sine',.05,.9);noise(.35,.1,1800);},
+  fire:()=>{tone(380,.22,'sawtooth',.05,.4);noise(.22,.09,900);},
+  heal:()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.14,'sine',.06,1.08),i*55)),
+  mana:()=>[587,740,880,1175].forEach((f,i)=>setTimeout(()=>tone(f,.14,'triangle',.055,1.1),i*50)),
+  root:()=>{tone(988,.15,'triangle',.06,.7);setTimeout(()=>tone(659,.22,'sine',.05,.8),60);},
+  magic:el=>{
+    if(el==='fire'){tone(340,.22,'sawtooth',.05,.5);noise(.18,.08,800);}
+    else if(el==='lightning'){tone(920,.12,'square',.05,.4);noise(.14,.1,3200);}
+    else if(el==='ice'){tone(1200,.16,'sine',.05,1.3);tone(1600,.14,'triangle',.04,.8);}
+    else if(el==='holy'){tone(784,.18,'sine',.06,1.25);setTimeout(()=>tone(1175,.2,'triangle',.05),45);}
+    else if(el==='shadow'||el==='poison'){tone(240,.22,'sawtooth',.05,.65);tone(160,.24,'sine',.05,.5);}
+    else{tone(520,.16,'triangle',.05,1.4);tone(780,.14,'sine',.04);}
+  },
   status:()=>tone(300,.1,'triangle',.05,1.6),
   loot:r=>{const n={normal:1,rare:2,legendary:3,god:5}[r]||1;for(let i=0;i<n;i++)setTimeout(()=>tone(700+i*200,.1,'triangle',.06),i*70);}
 };
@@ -120,7 +136,7 @@ const GOLEM=["......rrrrrr......","....rrrrrrrrrr....","...rrrRRRRRRrrr...","...
 "....rrrrrrrrrr....","....rrrr..rrrr....","....rrrr..rrrr....","...RRRRR..RRRRR..."];
 const PAL={
   smith:{h:'#cfcfd4',s:'#e0b088',e:'#1a1020',c:'#6b3d22',b:'#3a2a20',p:'#3a3040',f:'#2a1e16'},
-  girl:{h:'#e87aa0',s:'#f6d2b2',e:'#1a1020',c:'#4f9a6a',b:'#e8d8a0',p:'#3a5a48',f:'#5a3a2a'},
+  girl:{h:'#bfa688',s:'#fbe0c8',e:'#2b3a4a',c:'#f4f7f8',b:'#10767e',p:'#f2ebe2',f:'#3e2824'},
   kage:{h:'#24243a',s:'#e6bfa0',e:'#c94a3a',c:'#2a2240',b:'#c94a3a',p:'#1a1626',f:'#111018'},
   shade:{h:'#3a1a4a',s:'#c8a8c0',e:'#ff4af0',c:'#2a1030',b:'#9a3aff',p:'#1a0a20',f:'#0a0410'},
   rat:{g:'#8d8a96',d:'#5a5866',e:'#ff4060',n:'#f0a0b0',t:'#c09098'},
@@ -141,7 +157,6 @@ const WOLF=["..............o.o.", ".............owow.", "............owwwwo", "o
 const SPR={RAT,GOLEM,ANGEL,SLIME,WOLF};
 function spr(ctx,map,pal,x,y,sc,flip,tint,f){
   if(map===GOLEM&&typeof RIG_HD!=='undefined'&&RIG_HD.on)return drawGolemHD(ctx,pal,x,y,sc,flip,tint,f);
-  if(map===ANGEL&&typeof RIG_HD!=='undefined'&&RIG_HD.on)return drawSeraphHD(ctx,pal,x,y,sc,flip,tint,f);
   const h=map.length,w=map[0].length,ox=Math.round(x-w*sc/2),oy=Math.round(y-h*sc);
   for(let r=0;r<h;r++){const row=map[r];for(let c=0;c<w;c++){const ch=row[c];if(ch==='.')continue;
     ctx.fillStyle=tint||pal[ch]||'#f0f';ctx.fillRect(ox+(flip?w-1-c:c)*sc,oy+r*sc,sc,sc);}}
@@ -190,9 +205,24 @@ function drawWeaponShape(Wp,h,a,o,O,C,seg,blk,tint,K){
       if(glow){const r=3+Math.sin(t*.15),q=pt(L+2.5);blk(q[0],q[1],r+4,r,'rgba(190,150,255,.3)');blk(q[0],q[1],r,r+4,'rgba(190,150,255,.3)');}B(L+2.5,0,4,4,col);if(glow)B(L+2,-1,1,1,'#ffffff');break;
     case'wand':S(-2.5,0,L-2,0,1.5,'#6a4426');B(L-1.5,0,2,3,'#d8b050');B(L,0,3,3,col);B(L+1.5,0,1,1,col);
       if(glow){B(L,-.5,1,1,'#ffffff');if(t%24<12)B(L+2,-2.5,1,1,fx);else B(L+1,2.5,1,1,fx);}break;
+    case'chaosblade':grip(4,'#0b0714');B(-2.2,0,1.1,2.1,'#4a2a80');B(-.8,0,1.1,2.1,'#4a2a80');
+      B(-4.8,0,3.4,3.8,'#07040d');B(-4.8,0,2.2,2.4,'#7a3fd0');B(-4.8,0,1.2,1.2,glow?'#e2b3ff':'#a64df0');
+      S(0,-5.4,0,5.4,2.8,'#07040d');S(.3,-4.8,.3,4.8,1,'#7a3fd0');
+      B(.6,-3.8,3.4,3.2,'#07040d');B(.6,3.8,3.4,3.2,'#07040d');B(.6,-3.8,1.8,1.8,'#7a3fd0');B(.6,3.8,1.8,1.8,'#7a3fd0');
+      B(.6,0,2.4,2.4,'#7a3fd0');B(.6,0,1.2,1.2,'#e2b3ff');
+      S(1.8,0,L-2.5,0,4.2,'#0a0610');S(L-2.5,0,L+1.8,0,2.2,'#0a0610');
+      S(1.8,0,L-2.5,0,3.2,'#28144a');S(1.8,0,L-4,0,2.2,'#3a2268');S(L-2.5,0,L+1.2,0,1.4,'#150b27');
+      if(glow){S(2.4,-1.1,L-2.4,-.9,.55,'#c77dff');
+        S(2,0,5,.45,.9,'#a64df0');S(5,.45,8,-.45,.9,'#c77dff');S(8,-.45,11,.35,.9,'#c77dff');S(11,.35,L-1.5,0,.85,'#e2b3ff');
+        for(const u of[4.5,8.5,12.5]){S(u,0,u+2,-1.6,.85,'#5ff0ff');S(u+1.2,0,u+3.2,1.6,.85,'#35d6e6');}
+        B(6,-2.3+Math.sin(t*.4)*.5,1.5,1.5,'#5ff0ff');B(11,2.3-Math.cos(t*.4)*.5,1.5,1.5,'#e2b3ff');
+      }else S(2,0,L-1.5,0,.9,'#a64df0');break;
     case'scythe':S(-8,0,L,0,1.5,'#3a2a3a');S(L-8,0,L-8,2.5,1,'#6a4a5a');   // ด้าม + มือจับรอง
       for(let k=0;k<=12;k++){const tt=k/12,u=L-.5-4.5*tt*tt,v=1+11*tt,w=tt<.4?3:tt<.8?2:1;B(u,v,w,w,col);}
       if(glow)for(let k=1;k<=11;k+=2){const tt=k/12;B(L-1.5-4.5*tt*tt,1+11*tt,1,1,fx);}break;
+    case'axe':grip(5,'#4a3020');S(-5,0,L-1,0,1.8,'#3a4858');B(L-3,0,4,3,'#2a3a4a');
+      S(L-3,-4.5,L,-1.5,3,col);S(L-3,4.5,L,1.5,3,col);B(L-1,-4.5,2,5,col);B(L-1,4.5,2,5,col);
+      if(glow){S(L-2,-5.5,L+1.2,-2,1,fx);S(L-2,5.5,L+1.2,2,1,fx);}break;
     case'gaunt':B(.5,0,4,4,col);B(2,-1.5,1,1,'#d8f6ff');B(2,1.5,1,1,'#d8f6ff');if(glow&&t%10<5){B(3.5,-3,1,2,fx);B(4.5,2.5,1,2,fx);}break;
     default:grip(2.5);S(0,-2.5,0,2.5,1,'#8a8f9a');S(1,0,L-2,0,2,col);S(L-2,0,L,0,1,col);shine(2,L-2);
   }
@@ -342,7 +372,9 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
   const limbB=(a,j,e,r1,r2,r3,col)=>{cap(a,j,r1,r2,col,Dk(col,.6));cap(j,e,r2,r3,col,Dk(col,.6));};
   const armSkinB=K.outfit&&!K.robe&&!K.sleeve?Dk(K.skin,.75):Dk(K.sleeve||K.body,.72);
   limbB(J.bs,J.be.j,J.be.end,1.25,1.05,.95,armSkinB);cap(J.be.j,J.be.end,1.05,.95,Dk(K.bracer||K.gloves||K.skin,.72));ell(J.be.end[0],J.be.end[1],1.3,1.3,Dk(K.skin,.72));
-  const boot=(e,col)=>{poly([ad(e,-1.5,OF?-4.8:-3.4),ad(e,1.3,OF?-4.8:-3.4),ad(e,1.5,-1.7),ad(e,3.3,-1.1),ad(e,3.6,.4),ad(e,-1.7,.4)],col,Dk(col,.55));
+  const boot=(e,col)=>{const th=OF?4.8:(K.arch==='elf_knight'||K.arch==='sash'?5.2:3.4);
+    poly([ad(e,-1.5,-th),ad(e,1.3,-th),ad(e,1.5,-1.7),ad(e,3.3,-1.1),ad(e,3.6,.4),ad(e,-1.7,.4)],col,Dk(col,.55));
+    if(K.cuffCol&&!T){poly([ad(e,-1.9,-th-.7),ad(e,1.7,-th-.7),ad(e,1.6,-th+1.1),ad(e,-1.8,-th+1.1)],C(K.cuffCol),Dk(K.cuffCol,.55));}
     if(OF){ctx.fillStyle=K.bootStraps;for(const sy of[-4.2,-3,-1.8])ctx.fillRect(e[0]-1.4,e[1]+sy,2.8,.62);poly([ad(e,1.4,-1.3),ad(e,3.3,-1.1),ad(e,3.6,.4),ad(e,1.2,.4)],K.toeCap,shade(K.toeCap,.55));}
     if(!T){ctx.fillStyle=shade(col,.5);ctx.fillRect(e[0]-1.7,e[1]-.15,5.3,.55);ctx.fillStyle=shade(col,1.35);ctx.fillRect(e[0]-1.2,e[1]-3.3,2.2,.45);}};
   const leg=(hipP,kn,ft,col,bc,front)=>{cap(hipP,kn,1.75,1.45,col,Dk(col,.6));if(OF&&front)ell((hipP[0]+kn[0])/2+.5,(hipP[1]+kn[1])/2,.9,1.55,K.knee);cap(kn,ad(ft,0,-1.8),1.45,1.15,col,Dk(col,.6));boot(ft,bc);};
@@ -388,7 +420,38 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
       ctx.fillStyle=K.hemStuds;for(let k=0;k<4;k++){const u2=(k+.4)/4;ctx.fillRect(H[0]-4.1+cw*(1-u2)+u2*5.0-.4,H[1]+5.9+Math.sin(u2*Math.PI)*1.3-.4,.8,.8);}
     }
   }
-  else poly([tp(.12,bw[0]+.1),tp(-.32,bw[0]+1.2),tp(-.4,1.2),tp(-.28,0),tp(-.4,-1.4),tp(-.32,-bw[0]-1),tp(.12,-bw[0]-.1)],Dk(K.body,.86),bd);
+  else if(K.arch==='furcoat'){
+    const H=J.hip,co=C(K.coatCol||'#ba241d'),cd=Dk(K.coatCol||'#ba241d',.58);
+    poly([tp(.1,2.6),tp(.1,-2.2),[H[0]-6.4+cw,H[1]+8.4],[H[0]-1.8+cw*.4,H[1]+9.8],[H[0]+4.2,H[1]+8.4],[H[0]+2.6,H[1]+1.5]],co,cd);
+    if(!T){poly([[H[0]-3.6+cw*.5,H[1]+8.8],[H[0]-2.0+cw*.4,H[1]+9.4],[H[0]-1.4,H[1]+1.8]],Dk(co,.75));
+      ctx.fillStyle=cd;ctx.fillRect(H[0]+.8,H[1]+3.5,2.4,2.4);
+      if(K.furCol)poly([tp(.88,3.2),tp(1.06,1.2),tp(1.06,-2.4),tp(.84,-3.2),tp(.72,0)],C(K.furCol),Dk(K.furCol,.62));}
+  }else if(K.arch==='sash'){
+    const H=J.hip,sc=C(K.sashCol||'#c83424'),sd2=Dk(K.sashCol||'#c83424',.58);
+    poly([tp(.12,bw[0]+.1),tp(-.26,bw[0]+.8),tp(-.22,-bw[0]-.8),tp(.12,-bw[0]-.1)],Dk(K.body,.86),bd);
+    if(!T){poly([tp(.96,-1.4),tp(1.02,-2.4),tp(.12,2.4),tp(.18,1.3)],sc,sd2);
+      poly([[H[0]+.8,H[1]+.6],[H[0]+2.2,H[1]+.6],[H[0]+2.5,H[1]+7.6],[H[0]+1.1,H[1]+7.6]],sc,sd2);
+      ctx.fillStyle='#f0a838';ctx.fillRect(H[0]+1.2,H[1]+1.6,1.0,5.2);
+      poly([[H[0]-2.4,H[1]+.8],[H[0]-6.2+cw,H[1]+5.2],[H[0]-4.6+cw,H[1]+6.4],[H[0]-1.6,H[1]+2.2]],sd2,Dk(sc,.45));}
+  }else if(K.arch==='elf_knight'){
+    const H=J.hip,co=C(K.coatCol||'#522428'),oc=C(K.obiCol||'#1b6a6c');
+    poly([tp(.02,2.6),tp(.02,-2.6),[H[0]-5.2+cw,H[1]+7.4],[H[0]-1.2,H[1]+8.4],[H[0]+1.2,H[1]+4.2]],co,Dk(co,.55));
+    poly([tp(.04,bw[0]+.3),tp(.36,bw[1]+.5),tp(.36,-bw[1]-.5),tp(.04,-bw[0]-.3)],oc,Dk(oc,.55));
+  }else if(K.arch==='elf_cleric'){
+    const H=J.hip,co=C(K.coatCol||'#10767e'),cd=Dk(K.coatCol||'#10767e',.56);
+    poly([tp(.08,1.8),tp(.08,-2.8),[H[0]-5.8+cw,H[1]+10.2],[H[0]-1.4+cw*.4,H[1]+11.2],[H[0]+1.8,H[1]+9.2],[H[0]+2.4,H[1]+1.4]],co,cd);
+    if(!T){ctx.fillStyle=Dk(co,1.35);ctx.fillRect(H[0]+1.1,H[1]+2,1.1,6.5);}
+  }else if(K.arch==='knight'){
+    const H=J.hip,co=C(K.coatCol||'#6a788c'),pl=C(K.plateCol||'#b8c4d4');
+    poly([tp(.1,2.6),tp(.1,-2.6),[H[0]-5.2+cw,H[1]+6.6],[H[0]-1.0,H[1]+7.2],[H[0]+3.8,H[1]+5.2]],co,Dk(co,.55));
+    poly([tp(.36,2.8),tp(.94,3.0),tp(.98,0),tp(.94,-1.4),tp(.36,-1.2)],pl,Dk(pl,.55));
+    if(!T){ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillRect(tp(.75,1.8)[0]-.5,tp(.75,1.8)[1]-1,.8,2.6);}
+  }else if(K.arch==='mage_dress'){
+    const H=J.hip,co=C(K.coatCol||'#3a78c8'),cd=Dk(co,.56);
+    poly([tp(.12,2.8),tp(.12,-2.6),[H[0]-6.4+cw,H[1]+8.4],[H[0]-2.8+cw*.5,H[1]+9.8],[H[0]+3.6,H[1]+4.2]],co,cd);
+    poly([tp(.08,3.2),[H[0]+4.2,H[1]+4.2],[H[0]-1.5,H[1]+4.6],tp(.08,-2.6)],bc,bd);
+    if(!T){ctx.fillStyle='#f2d070';ctx.fillRect(H[0]-1.2,H[1]+2.2,3.4,.8);}
+  }else poly([tp(.12,bw[0]+.1),tp(-.32,bw[0]+1.2),tp(-.4,1.2),tp(-.28,0),tp(-.4,-1.4),tp(-.32,-bw[0]-1),tp(.12,-bw[0]-.1)],Dk(K.body,.86),bd);
   // เข็มขัด เกราะอก
   if(OF){poly([tp(.96,2.4),tp(1.08,.8),tp(.82,.6),tp(.78,2.6)],K.lapel,shade(K.lapel,.55));for(const t2 of[.52,.74]){poly([tp(t2,-1.8),tp(t2,3.1),tp(t2+.1,3.1),tp(t2+.1,-1.8)],K.chestStraps);const q=tp(t2+.05,1.8);ctx.fillStyle=K.strapBuckle;ctx.fillRect(q[0]-.55,q[1]-.42,1.1,.84);}}   // ปกเสื้อ + สายหนังคาดอก 2 เส้น
   if(!T){const bl=K.belt||K.trim;if(bl){poly([tp(.05,bw[0]+.15),tp(.19,bw[1]+.4),tp(.19,-bw[1]-.4),tp(.05,-bw[0]-.15)],bl,shade(bl,.55));const q=tp(.12,1.3);ctx.fillStyle='#e8c060';ctx.fillRect(q[0]-.5,q[1]-.55,1.1,1.1);}
@@ -404,7 +467,7 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
   ell(Hc[0],Hc[1],4.5,4.6,skin,skd);poly([hp(-2,2),hp(4.4,1),hp(3.4,4.2),hp(1.4,5.1),hp(-1.6,4.4)],skin);
   if(!T){ctx.strokeStyle=skd;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(...hp(4.4,1));ctx.lineTo(...hp(3.4,4.2));ctx.lineTo(...hp(1.4,5.1));ctx.stroke();}
   if(notBald)poly([hp(-5.6,-2.6),hp(-1.8,-4.8),hp(-.9,-1.4),hp(-1.1,1.8),hp(-2.4,3.8),hp(-4.8,3.6),hp(-6,.6)],hc,hcd);   // ผมด้านหลังศีรษะ (มุมสามส่วนสี่)
-  if(!T&&!helm)ell(Hc[0]-1.25,Hc[1]+1.3,.62,.95,shade(K.skin,.9),skd);   // หู
+  if(!T&&!helm){if(K.elfEars)poly([hp(-1.4,.9),hp(-6.0,-.4),hp(-2.0,2.2)],skin,skd);else ell(Hc[0]-1.25,Hc[1]+1.3,.62,.95,shade(K.skin,.9),skd);}   // หู (ปกติ หรือ หูเอลฟ์แหลม)
   // ใบหน้า
   if(!T&&!helm){const ec=K.eyec&&K.eyec!=='#1a1020'?K.eyec:'#3a5a9a',E1=hp(1.9,.9),E2=hp(4.05,.9);
     ell(E1[0],E1[1],.78,1.2,'#1a1020');ell(E1[0]+.05,E1[1]+.3,.55,.78,ec);ell(E1[0]+.05,E1[1]+.65,.4,.35,shade(ec,1.6));ctx.fillStyle='#fff';ctx.fillRect(E1[0]-.45,E1[1]-.75,.5,.5);
@@ -419,7 +482,7 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
       const cr=hp(-1.2,-1.6);for(const[a,l]of spk){const r=a*Math.PI/180,b=[cr[0]+Math.cos(r)*3.6,cr[1]+Math.sin(r)*3.6],tip=[cr[0]+Math.cos(r)*(3.6+l),cr[1]+Math.sin(r)*(3.6+l)+(a<-160?wv*.3:0)],n=[-Math.sin(r)*1.5,Math.cos(r)*1.5];
         poly([ad(b,n[0],n[1]),tip,ad(b,-n[0],-n[1])],hc,hcd);}
       // ปอยผมโค้งด้านบน (Curved Ahoge ตามภาพที่ 1, 2, 3)
-      if(hs==='spiky'||hs==='short')poly([hp(.2,-5.1),hp(2.6,-6.8),hp(4.4,-5.4),hp(2.5,-5.0),hp(1.0,-4.2)],hcl,hcd);
+      if(hs==='spiky'||hs==='short'||K.ahoge)poly([hp(.2,-5.1),hp(2.6,-6.8),hp(4.4,-5.4),hp(2.5,-5.0),hp(1.0,-4.2)],hcl,hcd);
       if(hs==='curly')for(let k=0;k<9;k++){const a=Math.PI*(1.0+k/8*1.05),q=[Hc[0]-1+Math.cos(a)*5,Hc[1]-1+Math.sin(a)*4.8];ell(q[0],q[1],1.5,1.4,k%2?hc:hcd,hcd);}
       if(hs==='bun'){const q=hp(-2.2,-6);ell(q[0],q[1],2.2,1.9,hc,hcd);}
       // หน้าม้า: ปอยแหลมห้อยลงมาถึงระดับตา
@@ -439,6 +502,7 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
       if(K.horns)for(const sd of[-1,1])poly([hp(sd*2.6,-3.6),hp(sd*5.6,-8.4),hp(sd*4.2,-3.2)],C(K.horns),Dk(K.horns,.6));}
     else if(K.head==='band'||K.head==='hood'){poly([hp(-4.8,-3.2),hp(4.7,-3.2),hp(4.7,-2.1),hp(-4.8,-2)],hc1,Dk(K.hc,.6));poly([hp(-4.6,-3),hp(-10,-1.6+wv*1.5),hp(-9.4,-.6+wv*1.4),hp(-4.6,-2)],hc1);poly([hp(-4.6,-2.6),hp(-8.6,1+wv),hp(-8,1.8+wv),hp(-4.4,-1.8)],Dk(K.hc,.8));
       if(!T){ctx.fillStyle=hc2;ctx.fillRect(Hc[0]+1.4,Hc[1]-3.1,1.6,.9);}}
+    else if(K.head==='cowl'){poly([hp(-5.4,1.8),hp(-5.5,-3.6),hp(-1.8,-6.2),hp(3.2,-5.6),hp(5.2,-2.4),hp(1.8,-2.2),hp(-1.4,-.6),hp(-1.6,2.8),hp(-4.4,3.2)],hc1,Dk(K.hc,.58));poly([hp(-5.2,.8),hp(-8.2,1.6+wv*.7),hp(-7.2,3.2+wv*.6),hp(-4.6,2.4)],hc2,Dk(K.hc2||K.hc,.55));if(!T){ctx.fillStyle=hc2;ctx.fillRect(Hc[0]-4.6,Hc[1]-4.2,1.4,1.4);}}
     else if(K.head==='horns'){for(const sd of[-1,1])poly([hp(sd*1.6-.6,-4.2),hp(sd*3.6-.6,-10),hp(sd*2.6+.6,-3.8)],sd>0?hc1:Dk(K.hc,.75),Dk(K.hc,.55));}
     else if(K.head==='cap'){poly([hp(-5,-1.6),hp(-4.4,-5),hp(0,-6.6),hp(4.2,-4.8),hp(4.6,-2.4)],hc1,Dk(K.hc,.6));poly([hp(3,-2.6),hp(7.4,-2),hp(7.2,-1.2),hp(3.2,-1.6)],hc2,Dk(K.hc2||K.hc,.6));}
     else if(K.head==='wizard'){poly([hp(-7,-2.2),hp(7,-2.8),hp(6,-1.6),hp(-6.4,-1.2)],hc1,Dk(K.hc,.6));poly([hp(-4,-2.4),hp(4,-2.6),hp(0,-8),hp(-4.2+wv*.4,-12),hp(-6.4+wv*.6,-11.4),hp(-3,-8)],hc1,Dk(K.hc,.6));if(!T){ctx.fillStyle=hc2;ctx.fillRect(Hc[0]-3.8,Hc[1]-3.6,7.6,.8);}}
@@ -450,14 +514,18 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
     cap(J.fs,J.fe.j,1.4,1.2,skin,skd);
     cap(J.fe.j,J.fe.end,1.2,1.08,C(K.bracer||'#382e28'),Dk(K.bracer||'#382e28',.55));
   }else{
-    const sl2=C(K.sleeve||K.body),gl=C(K.gloves||K.skin);
-    cap(J.fs,J.fe.j,1.3,1.1,sl2,Dk(K.sleeve||K.body,.6));cap(J.fe.j,J.fe.end,1.1,1,K.gloves?gl:sl2,Dk(K.gloves||K.sleeve||K.body,.6));
-    if(!K.gloves&&!T){const m=[(J.fe.j[0]*.35+J.fe.end[0]*.65),(J.fe.j[1]*.35+J.fe.end[1]*.65)];cap(m,J.fe.end,1,.95,skin,skd);}
+    const sl2=K.arch==='furcoat'?C(K.coatCol||'#ba241d'):C(K.sleeve||K.body),gl=C(K.gloves||K.skin);
+    cap(J.fs,J.fe.j,K.arch==='elf_cleric'?1.55:1.3,1.1,sl2,Dk(sl2,.6));
+    if(K.arch==='sash')cap(J.fe.j,J.fe.end,1.05,.95,skin,skd);
+    else cap(J.fe.j,J.fe.end,1.1,1,K.gloves?gl:sl2,Dk(K.gloves||sl2,.6));
+    if(!K.gloves&&!T&&K.arch!=='sash'){const m=[(J.fe.j[0]*.35+J.fe.end[0]*.65),(J.fe.j[1]*.35+J.fe.end[1]*.65)];cap(m,J.fe.end,1,.95,skin,skd);}
   }
   const Wp=K.weapon&&WEAPONS[K.weapon]&&(WEAPONS[K.weapon].len||WEAPONS[K.weapon].shape)?WEAPONS[K.weapon]:null;
   if(Wp&&!K.sheathe){const blkU=(cx,cy,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(cx-w/2,cy-h/2,w,h);},segU=(a,b,w,col)=>{const dx=b[0]-a[0],dy=b[1]-a[1],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)*2.4));for(let k=0;k<=n;k++)blkU(a[0]+dx*k/n,a[1]+dy*k/n,w,w,col);};
     drawWeaponShape(Wp,J.fe.end,P.wa,0,false,C,segU,blkU,tint,K);}
   ell(J.fe.end[0],J.fe.end[1],1.4,1.32,C(K.gloves||K.skin),Dk(K.gloves||K.skin,.6));
+  if(!T&&K.orbCol&&!Wp){const ox2=J.fe.end[0]+1.8,oy2=J.fe.end[1]-4.2+wv*.7;
+    ell(ox2,oy2,2.1,2.2,C(K.orbCol),Dk(K.orbCol,.6));ell(ox2-.2,oy2-1.8,1.1,1.3,'#ffd84a');ell(ox2,oy2,.9,.9,'#fffbe6');}
   if(OF){
     const fdx=J.fe.end[0]-J.fe.j[0],fdy=J.fe.end[1]-J.fe.j[1],fa=Math.atan2(fdy,fdx)+Math.PI/2;
     const m1=[J.fe.j[0]*.62+J.fe.end[0]*.38,J.fe.j[1]*.62+J.fe.end[1]*.38],m2=[J.fe.j[0]*.32+J.fe.end[0]*.68,J.fe.j[1]*.32+J.fe.end[1]*.68];
@@ -492,14 +560,19 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
     if(hair==='twin')both([hp(4.2,-2.4),hp(7.4,1),hp(7.6,8+wv*.5),hp(5.8,8.6+wv*.5),hp(4.8,2)],hc,hcd);
   }
   // ---- ขา + รองเท้า ----
-  const leg=(sx,lift,col,bc)=>{const top=[sx*1.45,hipY+.6],ft=[sx*1.6,-1.3+lift];cap(top,ft,1.75,1.3,col,Dk(col,.6));
-    const OFb=K.outfit&&!T;if(OFb&&!back)ell(sx*1.6,hipY+2.6,.8,1.4,K.knee);
-    poly([[ft[0]-1.6,ft[1]-(OFb?4.4:1.6)],[ft[0]+1.6,ft[1]-(OFb?4.4:1.6)],[ft[0]+1.8,ft[1]+1.3],[ft[0]-1.8,ft[1]+1.3]],bc,Dk(bc,.55));
+  const leg=(sx,lift,col,bc)=>{const OFb=K.outfit&&!T,top=[sx*1.45,hipY+.6],ft=[sx*1.6,-1.3+lift],th=OFb?4.4:(K.arch==='elf_knight'||K.arch==='sash'?4.8:1.6);
+    cap(top,ft,1.75,1.3,col,Dk(col,.6));
+    if(OFb&&!back)ell(sx*1.6,hipY+2.6,.8,1.4,K.knee);
+    poly([[ft[0]-1.6,ft[1]-th],[ft[0]+1.6,ft[1]-th],[ft[0]+1.8,ft[1]+1.3],[ft[0]-1.8,ft[1]+1.3]],bc,Dk(bc,.55));
+    if(K.cuffCol&&!T){poly([[ft[0]-2.0,ft[1]-th-.5],[ft[0]+2.0,ft[1]-th-.5],[ft[0]+1.9,ft[1]-th+1.0],[ft[0]-1.9,ft[1]-th+1.0]],C(K.cuffCol),Dk(K.cuffCol,.55));}
     if(OFb){ctx.fillStyle=K.bootStraps;for(const sy of[-3.8,-2.6,-1.4])ctx.fillRect(ft[0]-1.6,ft[1]+sy,3.2,.62);if(!back)poly([[ft[0]-1.75,ft[1]+.1],[ft[0]+1.75,ft[1]+.1],[ft[0]+1.85,ft[1]+1.3],[ft[0]-1.85,ft[1]+1.3]],K.toeCap,shade(K.toeCap,.55));}
     if(!T){ctx.fillStyle=shade(bc,.5);ctx.fillRect(ft[0]-1.8,ft[1]+.9,3.6,.5);ctx.fillStyle=shade(bc,1.35);ctx.fillRect(ft[0]-1,ft[1]-1.5,1.4,.45);}};
   leg(-1,lL,C(K.pants),C(K.boots));leg(1,lR,Dk(K.pants,.9),Dk(K.boots,.9));
   // ---- แขน (หลังลำตัวเล็กน้อย) ----
-  const arm=(sx,swing,sleeve,hand)=>{const a=[sx*3.3,shY+1],e=[sx*3.45,shY+4.5+swing*.4],h=[sx*3.5,shY+7.8+swing];cap(a,e,1.3,1.1,sleeve,Dk(K.sleeve||K.body,.6));cap(e,h,1.1,1,K.gloves?hand:sleeve,Dk(K.gloves||K.sleeve||K.body,.6));if(K.outfit&&!T){ctx.fillStyle=K.bracerBands[0];ctx.fillRect(e[0]-1.1,e[1]+.4,2.2,.65);ctx.fillStyle=K.bracerBands[1];ctx.fillRect(e[0]-1.1,e[1]+1.4,2.2,.55);}ell(h[0],h[1],1.3,1.25,hand,Dk(K.gloves||K.skin,.6));
+  const arm=(sx,swing,sleeve,hand)=>{const a=[sx*3.3,shY+1],e=[sx*3.45,shY+4.5+swing*.4],h=[sx*3.5,shY+7.8+swing],sCol=K.arch==='furcoat'?C(K.coatCol||'#ba241d'):sleeve;
+    cap(a,e,K.arch==='elf_cleric'?1.6:1.3,1.1,sCol,Dk(sCol,.6));
+    if(K.arch==='sash')cap(e,h,1.05,.95,skin,skd);else cap(e,h,1.1,1,K.gloves?hand:sCol,Dk(K.gloves||sCol,.6));
+    if(K.outfit&&!T){ctx.fillStyle=K.bracerBands[0];ctx.fillRect(e[0]-1.1,e[1]+.4,2.2,.65);ctx.fillStyle=K.bracerBands[1];ctx.fillRect(e[0]-1.1,e[1]+1.4,2.2,.55);}ell(h[0],h[1],1.3,1.25,hand,Dk(K.gloves||K.skin,.6));
     if(K.outfit&&!T){const R2=back?sx>0:sx<0,pc=R2?K.pauldronR:K.pauldronL;ell(sx*3.7,shY+1.1,2.3,1.8,pc,shade(pc,.55),sx*.18);ell(sx*3.55,shY+.5,1.15,.5,shade(pc,1.4));if(R2){ctx.fillStyle=K.pauldronRTrim;ctx.fillRect(sx*4.2-.42,shY+1.1,.85,.85);}else{ctx.fillStyle=K.pauldronLStitch[0];ctx.fillRect(sx*3.5-.5,shY+.7,1,.75);ctx.fillStyle=K.pauldronLStitch[1];ctx.fillRect(sx*4.2-.4,shY+1.3,.8,.75);}}return h;};
   // ---- ลำตัว ----
   const bc=C(K.body),bd=Dk(K.body,.6),wst=F?2.3:2.7,chs=F?3.1:3.4;
@@ -512,7 +585,41 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
         poly([[-1.6,hipY+.3],[-.6,hipY+.3],[-.9,hipY+8.6],[-1.9,hipY+8.6]],cd);poly([[.6,hipY+.3],[1.6,hipY+.3],[1.9,hipY+8.6],[.9,hipY+8.6]],cd);
         ctx.fillStyle=K.hemStuds;ctx.fillRect(-2.6,hipY+5.2,.8,1.2);ctx.fillRect(1.8,hipY+5.2,.8,1.2);
         for(const sd of[-1,1]){poly([[sd*5.5,hipY+7.2],[sd*3.7,hipY+8.2],[sd*4.5,hipY+6.1]],hm,shade(hm,.6));poly([[sd*3.2,hipY+8.2],[sd*2.1,hipY+9.6],[sd*1.1,hipY+8.2]],hm,shade(hm,.6));}}}
-    else poly([[-3,hipY-.6],[3,hipY-.6],[3.8,hipY+2.6],[1,hipY+2.2],[0,hipY+2.8],[-1,hipY+2.2],[-3.8,hipY+2.6]],Dk(K.body,.86),bd);
+    else if(K.arch==='furcoat'){
+      const co=C(K.coatCol||'#ba241d'),cd=Dk(co,.58),w2=wv*.25;
+      poly([[-2.7,hipY-1],[2.7,hipY-1],[3.4,hipY+4.5],[-3.4,hipY+4.5]],bc,bd);
+      if(!back)for(const sd of[-1,1]){poly([[sd*1.6,shY+1],[sd*3.4,shY+1],[sd*(6.2+w2),hipY+8.4],[sd*2.1,hipY+8.8]],co,cd);
+        if(!T){ctx.fillStyle=cd;ctx.fillRect(sd*3.2-1,hipY+3,2,2.2);}}
+      else poly([[-3.1,shY+1],[3.1,shY+1],[6.2+w2,hipY+8.8],[-6.2+w2,hipY+8.8]],co,cd);
+      if(K.furCol&&!T)poly([[-3.5,shY+.4],[3.5,shY+.4],[2.8,shY+2.4],[-2.8,shY+2.4]],C(K.furCol),Dk(K.furCol,.62));
+    }else if(K.arch==='sash'){
+      const sc=C(K.sashCol||'#c83424'),sd2=Dk(sc,.58);
+      if(!T){poly([[-2.7,shY+.2],[-1.7,shY+.2],[2.6,hipY-1],[1.6,hipY-1]],sc,sd2);
+        if(!back)for(const sx of[-1.6,1.6]){poly([[sx-.7,hipY-.4],[sx+.7,hipY-.4],[sx+.8,hipY+6.8],[sx-.8,hipY+6.8]],sc,sd2);ctx.fillStyle='#f0a838';ctx.fillRect(sx-.35,hipY+.6,.7,5.2);}
+        else poly([[1.5,hipY],[3.5,hipY+5.2],[2.2,hipY+6.2],[.8,hipY+.4]],sd2,Dk(sc,.45));}
+    }else if(K.arch==='elf_knight'){
+      const co=C(K.coatCol||'#522428'),oc=C(K.obiCol||'#1b6a6c');
+      poly([[-3.0,hipY-3.2],[3.0,hipY-3.2],[3.2,hipY+.6],[-3.2,hipY+.6]],oc,Dk(oc,.55));
+      if(!back)poly([[-3.3,hipY-.4],[-1.5,hipY-.2],[-1.8,hipY+7.6],[-4.4,hipY+6.8]],co,Dk(co,.55));
+      else poly([[-3.3,hipY-.4],[3.3,hipY-.4],[4.6,hipY+7.2],[-4.6,hipY+7.2]],co,Dk(co,.55));
+    }else if(K.arch==='elf_cleric'){
+      const co=C(K.coatCol||'#10767e'),cd=Dk(co,.56),w2=wv*.28;
+      poly([[-2.6,hipY-1],[2.6,hipY-1],[3.6,hipY+4.2],[-3.6,hipY+4.2]],bc,bd);
+      if(!back)for(const sd of[-1,1]){poly([[sd*1.8,hipY-.4],[sd*3.4,hipY-.2],[sd*(6.4+w2),hipY+10.5],[sd*2.8,hipY+10.2],[sd*2.0,hipY+1.6]],co,cd);}
+      else poly([[-3.2,hipY-.4],[3.2,hipY-.4],[6.4+w2,hipY+10.6],[-6.4+w2,hipY+10.6]],co,cd);
+    }else if(K.arch==='knight'){
+      const co=C(K.coatCol||'#243e78'),cd=Dk(co,.55),tm=C(K.trim||'#d8b050');
+      poly([[-3.1,shY+.4],[3.1,shY+.4],[2.6,hipY-.6],[-2.6,hipY-.6]],bc,bd);
+      for(const sd of[-1,1])poly([[sd*2.6,shY],[sd*5.0,shY+.6],[sd*4.6,shY+2.6],[sd*2.8,shY+2]],C(K.armor||K.body),bd);
+      poly([[-3.3,hipY-.4],[3.3,hipY-.4],[4.2,hipY+4.8],[-4.2,hipY+4.8]],co,cd);
+      if(!T&&!back){ctx.fillStyle=tm;ctx.fillRect(-.7,shY+1.2,1.4,4.2);ctx.fillRect(-3.1,hipY-1.1,6.2,1.1);}
+    }else if(K.arch==='mage_dress'){
+      const co=C(K.coatCol||'#2d6fb8'),cd=Dk(co,.56),tm=C(K.trim||'#e2d4a0'),w2=wv*.3;
+      poly([[-2.7,hipY-.6],[2.7,hipY-.6],[5.2,hipY+5.2],[-5.2,hipY+5.2]],co,cd);
+      if(!back)for(const sd of[-1,1])poly([[sd*2.2,hipY-.2],[sd*3.6,hipY],[sd*(6.0+w2),hipY+8.8],[sd*3.4,hipY+8.6]],Dk(co,.82),cd);
+      else poly([[-3.6,hipY-.2],[3.6,hipY-.2],[6.2+w2,hipY+9.2],[-6.2+w2,hipY+9.2]],Dk(co,.82),cd);
+      if(!T){ctx.fillStyle=tm;ctx.fillRect(-4.6,hipY+4.2,9.2,.9);}
+    }else poly([[-3,hipY-.6],[3,hipY-.6],[3.8,hipY+2.6],[1,hipY+2.2],[0,hipY+2.8],[-1,hipY+2.2],[-3.8,hipY+2.6]],Dk(K.body,.86),bd);
     if(T)return;
     if(K.robe){ctx.fillStyle=K.trim||shade(K.robe,1.4);ctx.fillRect(-4.9,-2.2,9.8,.7);ctx.fillStyle=shade(K.robe,.78);ctx.fillRect(-.25,hipY,.5,hipY*-1-2.5);}
     const bl=K.belt||K.trim;if(bl){ctx.fillStyle=bl;ctx.fillRect(-2.95,hipY-1.4,5.9,1.2);if(!back){ctx.fillStyle='#e8c060';ctx.fillRect(-.55,hipY-1.5,1.1,1.4);}}
@@ -534,7 +641,8 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
     if(Wp&&bigW)onBack();}
   else{arm(-1,sw*1.2,sl,hd);const hR=arm(1,-sw*1.2,Dk(K.sleeve||K.body,.92),Dk(K.gloves||K.skin,.92));torso();
     if(Wp&&!bigW){const up=['staff','wand','spear','scythe'].includes(Wp.shape);drawWeaponShape(Wp,[-4.3,shY+7.6+sw*1.2],up?-Math.PI/2-.18:Math.PI/2+.32,0,false,C,segU,blkU,tint,K);}   // ไม้เท้า/หอก ถือตั้งขึ้น · ดาบสั้นถือลง
-    {const h=[-4.3,shY+7.6+sw*1.2];ell(h[0],h[1],1.3,1.25,hd,Dk(K.gloves||K.skin,.6));}}
+    {const h=[-4.3,shY+7.6+sw*1.2];ell(h[0],h[1],1.3,1.25,hd,Dk(K.gloves||K.skin,.6));}
+    if(!T&&K.orbCol&&!Wp){const ox2=5.8,oy2=shY+3.6+wv*.7;ell(ox2,oy2,2.0,2.2,C(K.orbCol),Dk(K.orbCol,.6));ell(ox2,oy2-1.8,1.0,1.2,'#ffd84a');ell(ox2,oy2,.85,.85,'#fffbe6');}}
   if(K.pads&&!T&&!K.outfit){const pc=K.trim||'#8a8f9a';for(const sx of[-1,1]){ell(sx*3.5,shY+.9,K.plate?2.3:1.9,K.plate?1.7:1.4,pc,shade(pc,.5));ell(sx*3.5-.3,shY+.3,1,.4,shade(pc,1.5));}}
   // ---- หัว ----
   cap([0,shY+.4],[0,Hc[1]+3.2],1.05,1.05,skd);
@@ -543,6 +651,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
   if(back){
     if(notBald){ell(Hc[0],Hc[1]-.4,5.2,5.2,hc,hcd);poly([hp(-5,0),hp(5,0),hp(4.2,4.2),hp(2,3.6),hp(0,4.6),hp(-2,3.6),hp(-4.2,4.2)],hc,hcd);}
     else if(hair!=='none'){ell(Hc[0],Hc[1],4.5,4.6,skin,skd);}
+    if(!T&&K.elfEars&&!helm)both([hp(-4.2,.1),hp(-7.2,-.6),hp(-4.4,1.9)],skin,skd);
     if(!T&&notBald){ctx.strokeStyle=hcl;ctx.lineWidth=lw*1.3;for(const sx of[-2.6,0,2.4]){ctx.beginPath();ctx.moveTo(...hp(sx*.6,-5));ctx.quadraticCurveTo(...hp(sx,-2),...hp(sx*1.1,1.5));ctx.stroke();}}
     if(hair==='long'||hair==='hime')poly([hp(-5.4,1),hp(5.4,1),hp(5.8,10),hp(0,11),hp(-5.8,10)],hc,hcd);
     if(hair==='ponytail'){ell(...hp(0,-2),1,1,C(K.trim||'#c94a3a'));poly([hp(-1.2,-1.4),hp(1.2,-1.4),hp(1.6+wv*.4,8),hp(-.4+wv*.4,9)],hc,hcd);}
@@ -556,7 +665,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
   }else{
     ell(Hc[0],Hc[1],4.5,4.6,skin,skd);poly([hp(-3.6,1.4),hp(3.6,1.4),hp(2.4,4.4),hp(0,5.2),hp(-2.4,4.4)],skin);
     if(!T){ctx.strokeStyle=skd;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(...hp(-3.6,1.6));ctx.lineTo(...hp(-2.4,4.4));ctx.lineTo(...hp(0,5.2));ctx.lineTo(...hp(2.4,4.4));ctx.lineTo(...hp(3.6,1.6));ctx.stroke();
-      for(const sx of[-1,1])ell(...hp(sx*4.5,1),.6,1,shade(K.skin,.9),skd);}
+      if(K.elfEars&&!helm)both([hp(-4.2,.1),hp(-7.2,-.6),hp(-4.4,1.9)],skin,skd);else for(const sx of[-1,1])ell(...hp(sx*4.5,1),.6,1,shade(K.skin,.9),skd);}
     if(!T&&!helm){const ec=K.eyec&&K.eyec!=='#1a1020'?K.eyec:'#3a5a9a';
       for(const sx of[-1,1]){const E=hp(sx*1.8,.9);ell(E[0],E[1],.72,1.15,'#1a1020');ell(E[0],E[1]+.3,.52,.75,ec);ell(E[0],E[1]+.62,.38,.32,shade(ec,1.6));ctx.fillStyle='#fff';ctx.fillRect(E[0]-.45,E[1]-.7,.45,.45);
         ctx.fillStyle='#1a1020';ctx.fillRect(E[0]-.9,E[1]-1.42,1.8,.5);if(F)ctx.fillRect(E[0]+sx*.7,E[1]-1.65,.55,.45);}
@@ -568,6 +677,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
         for(const[a,l]of spk){const r=a*Math.PI/180,b=[Hc[0]+Math.cos(r)*4.2,Hc[1]-1.4+Math.sin(r)*4.2],tip=[Hc[0]+Math.cos(r)*(4.2+l),Hc[1]-1.4+Math.sin(r)*(4.2+l)],n=[-Math.sin(r)*1.5,Math.cos(r)*1.5];poly([[b[0]+n[0],b[1]+n[1]],tip,[b[0]-n[0],b[1]-n[1]]],hc,hcd);}
         if(hair==='curly')for(let k=0;k<9;k++){const a=Math.PI*(1.0+k/8),q=[Hc[0]+Math.cos(a)*5,Hc[1]-1+Math.sin(a)*4.8];ell(q[0],q[1],1.5,1.4,k%2?hc:hcd,hcd);}
         if(hair==='bun')ell(...hp(0,-6.2),2.2,1.9,hc,hcd);
+        if(K.ahoge)poly([hp(-1.4,-5.1),hp(0,-7.4),hp(1.8,-6.0),hp(.2,-5.0)],hcl,hcd);
         const fr=hair==='hime'?[[-4.8,-1.2],[-2.4,-1.4],[0,-1.3],[2.4,-1.4],[4.8,-1.2]]:[[-4.9,-.4],[-3.4,-2.6],[-2,-1],[-.8,-2.8],[.4,-1.2],[1.8,-2.6],[3,-1],[4.2,-2.6],[4.9,-.4]];
         poly([hp(-5,-3.6),hp(-2.2,-5.6),hp(2.2,-5.6),hp(5,-3.6),...fr.slice().reverse().map(([a,b])=>hp(a,b))],hc,hcd);
         const side=hair==='bob'||hair==='hime'||hair==='long'?4.6:hair==='twin'||hair==='braid'||hair==='ponytail'?2.4:1.8;
@@ -583,6 +693,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
       if(K.plume)poly([hp(-.6,-5.6),hp(.6,-5.6),hp(1.8+wv,-9),hp(-1+wv,-9.6)],C(K.plume),Dk(K.plume,.6));
       if(K.horns)both([hp(-3,-3.4),hp(-6,-8.4),hp(-4.6,-3)],C(K.horns),Dk(K.horns,.6));}
     else if(K.head==='band'||K.head==='hood'){poly([hp(-5,-3.3),hp(5,-3.3),hp(5,-2.1),hp(-5,-2.1)],h1,hd1);if(back){poly([hp(-.4,-2.8),hp(.6,-2.8),hp(2.6+wv,3),hp(1.4+wv,3.4)],h1);poly([hp(-.6,-2.6),hp(.4,-2.6),hp(-1.6+wv,2.6),hp(-2.6+wv,2.2)],Dk(K.hc,.8));}else if(!T){ctx.fillStyle=h2;ctx.fillRect(Hc[0]-.9,Hc[1]-3.2,1.8,1);}}
+    else if(K.head==='cowl'){poly([hp(-5.6,2.2),hp(-5.5,-3.8),hp(0,-6.4),hp(5.5,-3.8),hp(5.6,2.2),...(back?[hp(4,3.6),hp(-4,3.6)]:[hp(4,-1.8),hp(0,-3),hp(-4,-1.8)])],h1,hd1);if(back)poly([hp(-2.2,1.8),hp(2.2,1.8),hp(1.2+wv*.6,5.2),hp(-1.2+wv*.6,5.2)],h2,Dk(K.hc2||K.hc,.55));}
     else if(K.head==='horns')both([hp(-2.4,-4),hp(-4.4,-10),hp(-1.2,-4.2)],h1,hd1);
     else if(K.head==='cap'){poly([hp(-5,-1.8),hp(-4.4,-5),hp(0,-6.6),hp(4.4,-5),hp(5,-1.8)],h1,hd1);if(!back)poly([hp(-4.2,-2.2),hp(4.2,-2.2),hp(3.6,-.8),hp(-3.6,-.8)],h2,Dk(K.hc2||K.hc,.6));}
     else if(K.head==='wizard'){poly([hp(-7,-2.4),hp(7,-2.4),hp(6,-1.2),hp(-6,-1.2)],h1,hd1);poly([hp(-4,-2.4),hp(4,-2.4),hp(1,-8),hp(-1.6+wv*.5,-12),hp(-3.2+wv*.6,-11.4),hp(-1.4,-8)],h1,hd1);if(!T){ctx.fillStyle=h2;ctx.fillRect(Hc[0]-3.8,Hc[1]-3.6,7.6,.8);}}
@@ -808,96 +919,68 @@ function drawSeraphChibi(ctx,ox,oy,px,pal,P,tint){
   const cap=(a,b,ra,rb,col,edge)=>{const dx=b[0]-a[0],dy=b[1]-a[1],an=Math.atan2(dy,dx),H=Math.PI/2;ctx.beginPath();ctx.arc(a[0],a[1],ra,an+H,an+3*H);ctx.arc(b[0],b[1],rb,an-H,an+H);ctx.closePath();fill(col,edge);};
 
   const wg=P.wg||0,atk=P.atk||0,beam=P.beam||0,weak=P.weak||0,dir=P.dir||-1;
-  const spread=atk===1?1.15:atk===2?1.25:1.0,flap=wg*.8;
+  const spread=atk===1?1.12:atk===2?1.2:1.0,flap=wg*.6;
 
-  // 1) วงรัศมีศักดิ์สิทธิ์ด้านหลัง (Celestial Halo & Outer Ring)
-  if(!T){
-    ctx.strokeStyle=cGold;ctx.lineWidth=lw*1.4;
-    ctx.beginPath();ctx.ellipse(0,-27.2,5.6,1.5,0,0,7);ctx.stroke();
-    ctx.strokeStyle='#fff8d8';ctx.lineWidth=lw*.9;
-    ctx.beginPath();ctx.ellipse(0,-27.2,4.4,1.0,0,0,7);ctx.stroke();
-    ctx.strokeStyle=cGoldD;ctx.lineWidth=lw*1.1;
-    ctx.beginPath();ctx.arc(0,-17.5,9.5,-.6,Math.PI+.6);ctx.stroke();
-  }
-
-  // 2) ปีกเทวทูต 2 คู่ (ปีกบนกว้างสง่า + ปีกล่างโอบล้อม)
+  // 1) ปีกขนนกคู่ใหญ่โค้งด้านข้าง (ตามภาพต้นแบบ: ปีกเดียวโค้งสูงข้างศีรษะและไล่ชั้นขนนก)
   for(const sd of[-1,1]){
-    // ปีกบนหลัก (Upper Primary Wing)
-    const wx=sd*4.5,wy=-16.5;
-    const tipX=sd*(16.2*spread),tipY=-24.2-flap*1.2;
-    const midX=sd*(14.8*spread),midY=-13.5-flap*.5;
-    poly([[wx,wy],[sd*9.2,-24.5-flap*.8],[tipX,tipY],[midX,midY],[sd*8.5,-9.5],[wx,wy+4.5]],cWgD,cOut);
-    poly([[wx,wy+.4],[sd*8.8,-23.2-flap*.8],[tipX-sd*1.2,tipY+1.4],[midX-sd*1.4,midY-.6],[sd*7.6,-10.5]],cWgM);
-    // ขนนกชั้นในสว่าง + ขนนกปลายปีก 4 แฉก
-    poly([[wx,wy+1.0],[sd*7.8,-20.5-flap*.6],[sd*12.5*spread,-21.0-flap],[sd*11.2*spread,-14.2],[sd*6.5,-11.5]],cWg);
-    for(let i=0;i<4;i++){
-      const fy=-22.5+i*2.8-flap*(1-i*.2),fx=sd*(13.8-i*.8)*spread;
-      poly([[fx-sd*2.4,fy],[fx+sd*1.6,fy-.8],[fx+sd*.6,fy+1.6]],i%2?cWg:cWgM,cOut);
+    const wx=sd*4.2,wy=-15.5;
+    const topX=sd*(11.2*spread),topY=-22.5-flap*.8;
+    const outX=sd*(14.5*spread),outY=-12.0-flap*.4;
+    const botX=sd*(12.2*spread),botY=-4.2+flap*.3;
+    poly([[wx,wy],[sd*7.6,-21.8-flap*.6],[topX,topY],[outX,outY],[botX,botY],[sd*7.2,-6.5],[wx,wy+5.0]],cWgD,cOut);
+    poly([[wx,wy+.5],[sd*7.4,-20.8-flap*.6],[topX-sd*.9,topY+1.1],[outX-sd*1.2,outY-.4],[botX-sd*1.2,botY-.9],[sd*6.8,-7.4]],cWgM);
+    poly([[wx+.2*sd,wy+1.0],[sd*7.0,-19.2-flap*.5],[topX-sd*2.0,topY+2.4],[outX-sd*2.6,outY-.6],[sd*9.2*spread,-8.2],[sd*6.0,-8.8]],cWg);
+    for(let i=0;i<5;i++){
+      const fy=-19.8+i*3.0-flap*(1-i*.15),fx=sd*(12.8-i*.35)*spread;
+      poly([[fx-sd*2.4,fy],[fx+sd*1.0,fy-.7],[fx+sd*.2,fy+1.5]],i%2?cWg:cWgM,cOut);
     }
-    // ปีกล่างรอง (Lower Secondary Wing)
-    const lx=sd*4.2,ly=-10.2;
-    poly([[lx,ly],[sd*12.2*spread,-10.5+flap*.4],[sd*11.0*spread,-2.8+flap*.6],[sd*6.4,-3.2],[lx,ly+4.0]],cWgM,cOut);
-    poly([[lx,ly+.6],[sd*10.4*spread,-9.2+flap*.4],[sd*9.2*spread,-4.2+flap*.5],[sd*5.6,-4.2]],cWg);
   }
 
-  // 3) อาภรณ์วิหารยาวและชายผ้าปลิว (Cathedral Vestments)
-  const rSway=wg*.6;
-  poly([[-3.6,-13.8],[3.6,-13.8],[5.6,-5.5],[6.4+rSway,-.4],[3.0,.4],[0,-.3],[-3.0,.4],[-6.4+rSway,-.4],[-5.6,-5.5]],cIv,cOut);
-  // รอยพับเงาด้านข้างและชายชุด
-  poly([[-5.4,-5.5],[-3.6,-13.6],[-2.2,-13.6],[-3.2,-5.5],[-4.4,-.2],[-6.1+rSway,-.5]],cCr);
-  poly([[5.4,-5.5],[3.6,-13.6],[2.2,-13.6],[3.2,-5.5],[4.4,-.2],[6.1+rSway,-.5]],cSh);
-  // ขลิบทองชายกระโปรง
-  poly([[-6.1+rSway,-1.3],[6.1+rSway,-1.3],[6.3+rSway,-.3],[0,-.2],[-6.3+rSway,-.3]],cGold,cGoldD);
-
-  // ผ้าพาดเอวและสโตลวิหารกลางอก (Central Golden Stole)
-  poly([[-1.6,-13.6],[1.6,-13.6],[2.1,-1.0],[0,-.3],[-2.1,-1.0]],cCr,cSh);
-  poly([[-1.1,-13.5],[1.1,-13.5],[1.4,-1.2],[0,-.6],[-1.4,-1.2]],cIv);
+  // 2) เสื้อคลุมยาวสีครีม (ทรงเอ-ไลน์ เรียบ มีสาบเสื้อกลางและกระดุม 2 เม็ด)
+  const rSway=wg*.4;
+  poly([[-3.8,-14.2],[3.8,-14.2],[5.8,-5.0],[6.4+rSway,-.4],[3.2,.3],[0,-.2],[-3.2,.3],[-6.4+rSway,-.4],[-5.8,-5.0]],cIv,cOut);
+  poly([[-5.5,-5.2],[-3.8,-14.0],[-2.5,-14.0],[-3.6,-5.2],[-4.6,-.2],[-6.1+rSway,-.5]],cCr);
+  poly([[5.5,-5.2],[3.8,-14.0],[2.5,-14.0],[3.6,-5.2],[4.6,-.2],[6.1+rSway,-.5]],cSh);
   if(!T){
-    ctx.strokeStyle=cGold;ctx.lineWidth=lw*1.2;
-    ctx.beginPath();ctx.moveTo(-1.1,-13.3);ctx.lineTo(-1.4,-1.2);ctx.moveTo(1.1,-13.3);ctx.lineTo(1.4,-1.2);ctx.stroke();
-    // ตราวิหารกลางอกและเข็มกลัดทอง
-    poly([[0,-11.5],[1.3,-9.8],[0,-8.1],[-1.3,-9.8]],cGold,cGoldD);
-    ctx.fillStyle=weak?'#7af0c0':'#8ae0d0';ctx.fillRect(-.45,-10.2,.9,.9);
+    // สาบเสื้อกลาง + กระดุม 2 เม็ดด้านขวาของสาบ
+    ctx.strokeStyle=cSh;ctx.lineWidth=lw*.95;
+    ctx.beginPath();ctx.moveTo(0,-13.4);ctx.lineTo(0,-.3);ctx.stroke();
+    for(const by of[-10.4,-7.0]){
+      ell(1.3,by,.75,.75,cIv,cOut);
+    }
   }
 
-  // ผ้าคลุมไหล่ (Mantle)
-  poly([[-5.0,-13.4],[0,-14.6],[5.0,-13.4],[4.2,-10.5],[0,-9.6],[-4.2,-10.5]],cWg,cOut);
-  poly([[-4.6,-11.2],[0,-10.1],[4.6,-11.2],[4.2,-10.4],[0,-9.4],[-4.2,-10.4]],cGold);
+  // ปกคอเสื้อทรงกลม
+  poly([[-4.2,-14.6],[0,-15.2],[4.2,-14.6],[4.0,-13.0],[0,-12.5],[-4.0,-13.0]],cCr,cOut);
+  poly([[-3.6,-14.3],[0,-14.8],[3.6,-14.3],[3.4,-13.4],[0,-13.0],[-3.4,-13.4]],cIv);
 
-  // 4) แขนและมือร่ายเวท (ขยับตามท่าโจมตี)
+  // 3) แขนเสื้อยาวและมือสีเนื้อโผล่ปลายแขน
   for(const sd of[-1,1]){
-    const sh=[sd*3.8,-12.5];
-    const hd=atk===1?[sd*6.4,-15.5]:atk===2?[sd*7.6,-10.2]:[sd*6.0,-7.0+wg*.4];
-    cap(sh,hd,1.5,1.8,cIv,cOut);
-    poly([[hd[0]-sd*1.5,hd[1]-1.2],[hd[0]+sd*1.5,hd[1]-1.2],[hd[0]+sd*1.8,hd[1]+.6],[hd[0]-sd*1.6,hd[1]+.6]],cGold,cGoldD);
+    const sh=[sd*3.9,-12.8];
+    const hd=atk===1?[sd*6.5,-14.8]:atk===2?[sd*7.5,-9.6]:[sd*6.2,-6.5+wg*.3];
     ell(hd[0],hd[1]+1.1,1.15,1.15,cSkin,cOut);
+    cap(sh,hd,1.55,1.85,cIv,cOut);
     if(!T&&(atk===1||beam)){
-      ell(hd[0],hd[1]+1.1,1.6,1.6,'rgba(255,242,168,.45)');
+      ell(hd[0],hd[1]+1.1,1.5,1.5,'rgba(255,242,168,.4)');
     }
   }
 
-  // 5) ศีรษะและดวงตาเทวทูต (All-Seeing Seraphic Eye)
-  const hy=-18.8;
-  // หมวกผ้าคลุมศีรษะทรงโดมศักดิ์สิทธิ์
-  poly([[-4.4,hy+3.8],[-5.0,hy],[-3.2,hy-4.6],[0,hy-5.6],[3.2,hy-4.6],[5.0,hy],[4.4,hy+3.8],[0,hy+4.8]],cIv,cOut);
-  poly([[1.2,hy-5.1],[3.2,hy-4.5],[4.8,hy],[4.2,hy+3.6],[1.6,hy+4.2],[2.6,hy]],cCr);
-  // ขอบทองประดับศีรษะ + แฉกมงกุฎหน้าผาก
-  poly([[-1.6,hy-4.8],[0,hy-6.5],[1.6,hy-4.8],[0,hy-3.8]],cGold,cGoldD);
+  // 4) ศีรษะกลมและดวงตาขนาดใหญ่กลางศีรษะ (ไม่มีรัศมีหรือมงกุฎ)
+  const hy=-19.4;
+  ell(0,hy,5.2,5.0,cIv,cOut);
   if(!T){
-    ctx.strokeStyle=cGold;ctx.lineWidth=lw*1.2;
-    ctx.beginPath();ctx.arc(0,hy,3.8,0,7);ctx.stroke();
+    ctx.fillStyle=cCr;ctx.beginPath();ctx.ellipse(.8,hy+.8,4.1,3.9,0,0,7);ctx.fill();
+    ctx.fillStyle=cIv;ctx.beginPath();ctx.ellipse(-.4,hy-.4,4.2,4.0,0,0,7);ctx.fill();
   }
-  // ดวงตาขนาดใหญ่กลางศีรษะ
-  ell(0,hy,3.25,3.35,'#ffffff',cOut);
-  ell(0,hy,2.55,2.65,weak?'#7af0c0':cIr);
-  ell(0,hy-.2,1.95,2.05,weak?'#c8fff0':cIrL);
-  // รูม่านตาแนวตั้ง (หันตาม dir เล็กน้อย · ขยายสว่างตอนยิงลำแสง)
-  const pxOff=dir*.25,pw=beam?1.15:.75,ph=beam?2.15:1.95;
+  ell(0,hy,3.35,3.45,'#e8e6dc',cOut);
+  ell(0,hy,2.75,2.85,weak?'#7af0c0':cIr,cOut);
+  ell(0,hy-.15,2.05,2.15,weak?'#c8fff0':cIrL);
+  const pxOff=dir*.2,pw=beam?1.15:.8,ph=beam?2.2:2.0;
   ell(pxOff,hy,pw,ph,cPup);
   if(!T){
     ctx.fillStyle='#ffffff';
-    ctx.fillRect(-1.3,hy-1.5,1.0,1.0);
-    ctx.fillRect(.8,hy+.8,.5,.5);
+    ctx.fillRect(-1.4,hy-1.6,1.1,1.1);
+    ctx.fillRect(.8,hy+.9,.45,.45);
     if(beam||atk===1){
       ell(pxOff,hy,.45,1.1,'#e8fbff');
     }
@@ -946,9 +1029,13 @@ function poseIdle(t){const br=Math.sin(t*.09)*.6;return{lean:.08,hip:-14+br*.5,f
 /* drawing helpers on the hi-res canvas */
 function rrect(x,y,w,h,r){D.beginPath();if(D.roundRect)D.roundRect(x,y,w,h,r);else D.rect(x,y,w,h);}
 function outlineText(t,x,y,size,col,align='center',ctx=D){ctx.font=`800 ${size}px Sarabun,sans-serif`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.lineWidth=Math.max(3,size/6);ctx.lineJoin='round';ctx.strokeStyle='rgba(0,0,0,.9)';ctx.strokeText(t,x,y);ctx.fillStyle=col;ctx.fillText(t,x,y);}
-function pill(x,y,txt,col='#f3c969'){
-  D.font='700 15px Sarabun,sans-serif';const w=D.measureText(txt).width+16;x=Math.max(w/2+4,Math.min(D.canvas.width-w/2-4,x));D.fillStyle='rgba(15,10,18,.85)';D.strokeStyle=col;D.lineWidth=1.5;
-  rrect(x-w/2,y-12,w,24,12);D.fill();D.stroke();D.fillStyle='#fff';D.textAlign='center';D.textBaseline='middle';D.fillText(txt,x,y+1);
+function pill(x,y,txt,col='#7ad8ff'){
+  D.font='700 14px Kanit,Sarabun,sans-serif';const w=D.measureText(txt).width+22;x=Math.max(w/2+4,Math.min(D.canvas.width-w/2-4,x));
+  const pg=D.createLinearGradient(0,y-13,0,y+13);pg.addColorStop(0,'rgba(18,44,104,.94)');pg.addColorStop(1,'rgba(6,15,44,.96)');
+  D.fillStyle=pg;rrect(x-w/2,y-12,w,24,4);D.fill();
+  D.strokeStyle=col;D.lineWidth=1.4;rrect(x-w/2,y-12,w,24,4);D.stroke();
+  D.strokeStyle='rgba(255,217,138,.35)';D.lineWidth=1;rrect(x-w/2+2,y-10,w-4,20,3);D.stroke();
+  D.fillStyle='#f4f9ff';D.textAlign='center';D.textBaseline='middle';D.fillText(txt,x,y+1);
 }
 function lighting(ls,dark){
   L.globalCompositeOperation='source-over';L.clearRect(0,0,W,H);L.fillStyle=dark;L.fillRect(0,0,W,H);

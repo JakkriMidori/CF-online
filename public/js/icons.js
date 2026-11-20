@@ -47,6 +47,7 @@ const ICO_PATHS={
   dagger:'<path d="M6 18l9-9 4-5-5 4-9 9"/><path d="M4 15l5 5"/><path d="M3 21l2-2"/>',
   wand:'<path d="M4 20L14 10"/><path d="M17 3l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/>',
   scythe:'<path d="M8 21L15 3"/><path d="M15 3C10 2 5 4 3 9c3-2 7-2.4 11-1.4"/>',
+  axe:'<path d="M5 19L19 5"/><path d="M12 4c3 0 6 2.5 7 6l-4 3-3-3z"/><path d="M9 7c-2 2.5-2 6 .5 8.5l3-3z"/>',
   // ---- หมวก / เกราะ / รองเท้า / เครื่องประดับ ----
   cap:'<path d="M4 15a8 8 0 0 1 16 0z"/><path d="M2.5 15h19"/><path d="M12 7v3"/>',
   band:'<path d="M3 10c6-2 12-2 18 0v3.5c-6-2-12-2-18 0z"/><path d="M18 13l3 6M16.5 12.6l-.5 6"/>',
@@ -79,7 +80,7 @@ const ICO_PATHS={
 };
 // ตัวจับคู่ประเภทไอเทม (type) → ไอคอน
 const TYPE_ICO={weapon:'sword',helmet:'helm',armor:'chest',gloves:'glove',pants:'pants',boots:'boot',ring:'ring',ring1:'ring',ring2:'ring',necklace:'amulet'};
-const TALENT_ICO={piercer:'sword',lucky:'clover',endurer:'equip',undying:'skull',hexweaver:'web',archmage:'orb'};
+const TALENT_ICO={piercer:'sword',lucky:'clover',endurer:'equip',undying:'skull',hexweaver:'web',archmage:'orb',sololeveling:'star',parryman:'equip',vampire:'skull'};
 function ico(name,size=20){
   const gn=typeof GI_MAP!=='undefined'&&GI_MAP[name];   // ไอคอนเงาทึบแบบเกม (game-icons.net) ถ้ามี
   if(gn&&GI[gn])return `<svg class="ico gi" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">${GI[gn]}</svg>`;
@@ -104,10 +105,11 @@ const BASE_ICO={
   p_cloth:['pants','#7a9ad0'],p_leather:['pants','#c8925a'],p_shadow:['pants','#9a8acc'],p_seraph:['pants','#fff2a8'],p_golem:['pants','#5fe0a0'],
   b_wind:['wingboot','#6ae0a0'],b_iron:['boot','#b8bfcc'],b_shadow:['boot','#9a8acc'],b_magma:['boot','#ff8a3a'],
   r_copper:['ring','#e0925a'],r_ruby:['ring','#ff4a6a'],r_luck:['clover','#6ae07a'],
-  n_fang:['fangneck','#f0e2c0'],n_crystal:['amulet','#7fd8ff'],n_god:['amulet','#ffd23a']
+  n_fang:['fangneck','#f0e2c0'],n_crystal:['amulet','#7fd8ff'],n_god:['amulet','#ffd23a'],
+  w_icesword:['sword','#8ee4ff'],w_iceaxe:['axe','#7ad8ff'],b_ice:['boot','#8ee4ff'],h_ice:['helm','#8ee4ff'],a_ice:['plate','#aeeeff'],g_ice:['glove','#8ee4ff'],p_ice:['pants','#7ad8ff']
 };
 const MAT_ICO={
-  wood:['log','#c8925a'],ore:['ore','#b8bfcc'],fire:['crystal','#ff7a2a'],thunder:['bolt','#9fe6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
+  wood:['log','#c8925a'],ore:['ore','#b8bfcc'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['bolt','#9fe6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
   potion:['potion','#ff5a6a'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
   sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],reset:['scroll','#e8d8b0']

@@ -45,7 +45,7 @@ const StatSync={
     S.critRate=clamp(S.critRate,0,CONFIG.critCap);S.critDmg=Math.min(CONFIG.critDmgCap,S.critDmg);
     S.dr=clamp(S.dr||0,0,CONFIG.drCap);S.apenPct=clamp(S.apenPct||0,0,1);S.mpenPct=clamp(S.mpenPct||0,0,1);
     S.pcritRes=clamp(S.pcritRes||0,0,.75);S.evasion=clamp(S.evasion||0,0,CONFIG.derived.evaCap);S.mcritRes=clamp(S.mcritRes||0,0,.75);
-    S.mods=(mods||[]).map(m=>({id:m.id,n:m.n,kind:m.kind,stat:m.stat,op:m.op,v:m.v,left:m.ttl}));
+    S.mods=(mods||[]).map(m=>({id:m.id,n:m.n,kind:m.kind,stat:m.stat,op:m.op,v:m.v,left:m.ttl,max:m.max||m.ttl}));
     return S;},
   /* ลายเซ็นของทุกแหล่งที่มีผลต่อค่าสถานะผู้เล่น — ไม่เปลี่ยน = ไม่ต้องคำนวณใหม่ */
   sig(){

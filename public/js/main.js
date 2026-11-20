@@ -3,11 +3,11 @@
    MAIN — game modes and loop
    ============================================================ */
 function newGame(talent){
-  Object.assign(G,{diff:CONFIG.diffLock||UI.diffSel||'normal',bloodstain:null,talent,level:1,xp:0,points:0,alloc:{str:0,agi:0,int:0,vit:0,luk:0},bag:[],mats:{potion:2,mp_s:3},gold:30,ult:0,mpAcc:0,potCD:0,known:new Set(),found:new Set(),mastery:{},ency:{},flags:{},uid:1,visited:{}});
+  Object.assign(G,{diff:CONFIG.diffLock||UI.diffSel||'normal',bloodstain:null,talent,level:1,xp:0,points:0,alloc:{str:0,agi:0,int:0,vit:0,luk:0},bag:[],mats:{potion:2,mp_s:3},gold:30,ult:0,mpAcc:0,potCD:0,known:new Set(),found:new Set(),mastery:{},ency:{},flags:{pendingIntroCS:1},uid:1,visited:{},guildRank:null,guildPromo:{}});
   for(const s of SLOTS)G.eq[s]=null;
   Skills.init(talent);Quest.init();
   const a=Inv.addItem(newItem('a_cloth','normal',1)),p=Inv.addItem(newItem('p_cloth','normal',1));Equip.equip(a);Equip.equip(p);
-  CAVE=makeCave();TOWN=makeTown();loadZone(TOWN);G.lootLog=[];G.pity={};const S=StatSync.invalidate('new')||Stats.player();G.hp=S.maxHP;G.mp=S.maxMP;
+  CAVE=makeCave();TOWN=makeTown();loadZone(TOWN,TOWN.southGateSpawn||TOWN.spawn);G.lootLog=[];G.pity={};const S=StatSync.invalidate('new')||Stats.player();G.hp=S.maxHP;G.mp=S.maxMP;
   UI.creating=0;UI.close();G.mode='explore';UI.hud();
   UI.sk.sel=2;UI.sk.modal=null;UI.open('skills');
   setTimeout(()=>toast(`${Diff.cur().ic} ${Diff.cur().n} · ${TALENTS[talent].ic} ${TALENTS[talent].n} — ผนึกสกิลเฉพาะตัวของคุณในช่อง 3 ก่อนออกผจญภัย`,3500),300);
@@ -44,12 +44,12 @@ ov.addEventListener('click',e=>{if(e.target===ov&&UI.cur!=='talent')UI.close();}
 
 const menuKeys=()=>({[KB.bag]:'bag',[KB.equip]:'equip',[KB.char]:'char',[KB.skills]:'skills',[KB.quests]:'quests',[KB.map]:'map',[KB.ency]:'ency',PageUp:'debug'});   // ทางลัดเมนู (ปรับได้จากปุ่มควบคุม)
 function update(){
-  if((G.mode==='explore'||G.mode==='battle')&&tap('KeyV')){FX.on=!FX.on;try{localStorage.setItem('cf_fx',FX.on?'1':'0');}catch(e){}toast(FX.on?'✨ ภาพ HD-2D: เปิด (กด V ปิด)':'ภาพ HD-2D: ปิด (กด V เปิด)',1600);}
   G.t++;pollPad();if(G.potCD>0&&G.mode!=='menu')G.potCD--;
   switch(G.mode){
     case'title':if(tap('Enter'))startFromTitle(Save.exists());break;
     case'explore':if(tap('PageUp')){UI.open('debug');break;}if(tap('Tab')){UI.open('menu');break;}Skills.tick();updExplore();if(P.moving&&G.t%15===0)SFX.step(Z.biomeAt(Math.floor(P.x/16)));break;
-    case'dialog':if(tap(KB.interact,'Enter','Space','PadA'))nextLine();break;
+    case'cutscene':if(typeof Cutscene!=='undefined')Cutscene.tick();break;
+    case'dialog':if(tap('Escape')&&typeof Cutscene!=='undefined'&&Cutscene.active){Cutscene.skip();break;}if(tap(KB.interact,'Enter','Space','PadA'))nextLine();break;
     case'menu':{
       if(tap('ArrowUp'))Nav.move(0,-1);if(tap('ArrowDown'))Nav.move(0,1);if(tap('ArrowLeft'))Nav.move(-1,0);if(tap('ArrowRight'))Nav.move(1,0);
       if(tap('PadA'))Nav.activate();
@@ -70,40 +70,34 @@ function update(){
   if(G.t%20===0&&G.talent&&G.mode!=='battle')UI.hud();
   if(G.t%3600===0&&G.talent&&G.mode==='explore')Save.save();
 }
-/* ---------- HD-2D post-process: tilt-shift · bloom · color grade · light shafts · dust motes · vignette ----------
-   กด V เปิด/ปิด (จำค่าไว้) */
-const FX={on:(()=>{try{return localStorage.getItem('cf_fx')!=='0';}catch(e){return true;}})(),motes:[]};
+/* ---------- HD-2D post-process: bloom · color grade · light shafts · dust motes · vignette ---------- */
+const FX={on:true,motes:[]};
 const fxC=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
-const tiltC=fxC(W/2,H/2),TX=tiltC.getContext('2d'),tilt2C=fxC(W/2,H/2),TX2=tilt2C.getContext('2d'),bloomC=fxC(W/4,H/4),BX=bloomC.getContext('2d'),blurC=fxC(W/4,H/4),BL=blurC.getContext('2d');   // เบลอบนภาพเล็ก = เร็ว
-const GRADE={town:'rgba(255,196,120,.30)',cave:'rgba(255,170,90,.26)',crystal:'rgba(140,120,255,.28)',lava:'rgba(255,110,40,.34)',ice:'rgba(120,200,255,.32)',
-  sanctum:'rgba(170,230,255,.30)',tower:'rgba(120,255,190,.24)',lavaboss:'rgba(255,90,30,.34)',cathedral:'rgba(190,230,255,.30)',frost:'rgba(120,200,255,.32)',stone:'rgba(255,190,120,.24)',arena:'rgba(255,200,130,.30)'};
-let vig=null,tiltMask=null;
+const bloomC=fxC(W/4,H/4),BX=bloomC.getContext('2d'),blurC=fxC(W/4,H/4),BL=blurC.getContext('2d');
+const GRADE={town:'rgba(255,196,120,.18)',cave:'rgba(255,170,90,.16)',crystal:'rgba(140,120,255,.18)',lava:'rgba(255,110,40,.22)',ice:'rgba(120,200,255,.18)',
+  sanctum:'rgba(170,230,255,.18)',tower:'rgba(120,255,190,.14)',lavaboss:'rgba(255,90,30,.22)',cathedral:'rgba(190,230,255,.18)',frost:'rgba(120,200,255,.18)',stone:'rgba(255,190,120,.16)',arena:'rgba(255,200,130,.18)'};
+let vig=null;
 function fxBiome(inB){try{if(inB)return (typeof SCENE_OF!=='undefined'&&BT&&BT.e&&SCENE_OF[BT.e.kind])||(Z.biomeAt?Z.biomeAt(Math.floor(BT.e.x/16)):'cave');return Z.biomeAt?Z.biomeAt(Math.floor(P.x/16)):'town';}catch(e){return 'town';}}
 function present(){
-  D.imageSmoothingEnabled=false;D.globalCompositeOperation='source-over';D.drawImage(low,0,0,W*S,H*S);if(FX.on){D.globalCompositeOperation='soft-light';D.globalAlpha=.32;D.drawImage(low,0,0,W*S,H*S);D.globalAlpha=1;D.globalCompositeOperation='source-over';}   // เพิ่มคอนทราสต์+สีสด (ถูกกว่า filter)
-  if(!vig){vig=D.createRadialGradient(480,270,230,480,270,640);vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(1,'rgba(0,0,0,.66)');}
-  if(!canFilter||!FX.on){if(canFilter){D.save();D.filter='blur(7px)';D.globalCompositeOperation='lighter';D.globalAlpha=.2;D.drawImage(low,0,0,W*S,H*S);D.restore();}D.fillStyle=vig;D.fillRect(0,0,960,540);return;}
+  D.imageSmoothingEnabled=false;D.globalCompositeOperation='source-over';D.drawImage(low,0,0,W*S,H*S);D.globalCompositeOperation='soft-light';D.globalAlpha=.20;D.drawImage(low,0,0,W*S,H*S);D.globalAlpha=1;D.globalCompositeOperation='source-over';   // เพิ่มคอนทราสต์พอดี ไม่จ้า
+  if(!vig){vig=D.createRadialGradient(480,270,240,480,270,650);vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(1,'rgba(0,0,0,.64)');}
+  if(!canFilter){D.fillStyle=vig;D.fillRect(0,0,960,540);return;}
   const inB=BT&&(G.mode==='battle'||G.mode==='trans'),bio=fxBiome(inB);
-  // 1) ระยะชัดลึก (depth of field): ไกล (ขอบบน) เบลอมาก · ใกล้ (ขอบล่าง) เบลอน้อย
-  if(!tiltMask){const m=(c,stops)=>{const gr=c.createLinearGradient(0,0,0,H);for(const[o,a]of stops)gr.addColorStop(o,`rgba(0,0,0,${a})`);return gr;};
-    tiltMask={far:m(TX,[[0,1],[.2,.75],[.42,0],[1,0]]),near:m(TX2,[[0,0],[.8,0],[1,1]]),bfar:m(TX,[[0,1],[.5,.5],[.7,0],[1,0]])};}
-  const dof=(X,C,blur,mask)=>{X.globalCompositeOperation='source-over';X.clearRect(0,0,W/2,H/2);X.filter=`blur(${blur/2}px)`;X.drawImage(low,0,0,W/2,H/2);X.filter='none';
-    X.globalCompositeOperation='destination-in';X.save();X.scale(.5,.5);X.fillStyle=mask;X.fillRect(0,0,W,H);X.restore();X.globalCompositeOperation='source-over';D.drawImage(C,0,0,960,540);};
-  D.imageSmoothingEnabled=true;dof(TX,tiltC,inB?1.6:2.4,inB?tiltMask.bfar:tiltMask.far);dof(TX2,tilt2C,inB?.9:1.3,tiltMask.near);
-  // 2) bloom: เฉพาะส่วนสว่างฟุ้งออกอย่างนุ่มนวล ไม่แสบตา
-  BX.clearRect(0,0,W/4,H/4);BX.filter='brightness(.64) contrast(2.4) saturate(1.15)';BX.drawImage(low,0,0,W/4,H/4);BX.filter='none';
+  // 1) bloom แบบบางเบา (ลบเบลอขอบบน-ล่างออกแล้วเพื่อความคมชัดทั้งจอ)
+  D.imageSmoothingEnabled=true;
+  BX.clearRect(0,0,W/4,H/4);BX.filter='brightness(.56) contrast(2.2) saturate(1.1)';BX.drawImage(low,0,0,W/4,H/4);BX.filter='none';
   BL.clearRect(0,0,W/4,H/4);BL.filter='blur(2px)';BL.drawImage(bloomC,0,0);BL.filter='none';
-  D.save();D.globalCompositeOperation='screen';D.globalAlpha=.11;D.drawImage(blurC,0,0,960,540);D.globalAlpha=.025;D.drawImage(bloomC,0,0,960,540);D.restore();
-  // 3) color grade ตามโซน
+  D.save();D.globalCompositeOperation='screen';D.globalAlpha=.025;D.drawImage(blurC,0,0,960,540);D.globalAlpha=.008;D.drawImage(bloomC,0,0,960,540);D.restore();
+  // 2) color grade ตามโซน
   D.save();D.globalCompositeOperation='soft-light';D.fillStyle=GRADE[bio]||GRADE.town;D.fillRect(0,0,960,540);D.restore();
-  // 4) แสงส่องเฉียงจากด้านบน ตามโซน (ถ้ำก็มีแสงจากช่องเพดาน)
+  // 3) แสงส่องเฉียงจากด้านบน (โทนจางสบายตา)
   HD.rays(D,bio);
-  // 5) ฝุ่นละอองเอเธอร์ลอยในแสง (โทนละมุน)
-  if(FX.motes.length<30)FX.motes.push({x:Math.random()*960,y:Math.random()*540,vx:(Math.random()-.5)*.22,vy:-.10-Math.random()*.18,p:Math.random()*7});
+  // 4) ฝุ่นละอองเอเธอร์ลอยในแสง
+  if(FX.motes.length<24)FX.motes.push({x:Math.random()*960,y:Math.random()*540,vx:(Math.random()-.5)*.22,vy:-.10-Math.random()*.18,p:Math.random()*7});
   D.save();D.globalCompositeOperation='screen';const mc=bio==='lava'||bio==='lavaboss'?'245,148,72':bio==='ice'||bio==='frost'||bio==='sanctum'?'195,232,255':bio==='tower'?'145,240,195':'248,225,175';
-  for(const m of FX.motes){m.x+=m.vx;m.y+=m.vy;m.p+=.026;if(m.y<-6){m.y=546;m.x=Math.random()*960;}const a=Math.max(0,.06+Math.sin(m.p)*.045);
-    D.fillStyle=`rgba(${mc},${a*.45})`;D.fillRect(m.x-1,m.y-1,4,4);D.fillStyle=`rgba(${mc},${a})`;D.fillRect(m.x,m.y,2,2);}D.restore();
-  // 6) ขอบจอมืด
+  for(const m of FX.motes){m.x+=m.vx;m.y+=m.vy;m.p+=.026;if(m.y<-6){m.y=546;m.x=Math.random()*960;}const a=Math.max(0,.035+Math.sin(m.p)*.025);
+    D.fillStyle=`rgba(${mc},${a*.4})`;D.fillRect(m.x-1,m.y-1,4,4);D.fillStyle=`rgba(${mc},${a})`;D.fillRect(m.x,m.y,2,2);}D.restore();
+  // 5) ขอบจอมืด
   D.fillStyle=vig;D.fillRect(0,0,960,540);D.imageSmoothingEnabled=false;
 }
 function render(){
@@ -112,6 +106,8 @@ function render(){
   if(inBattle)drawBattle();else drawExplore();
   present();
   if(inBattle)drawBattleUI();else drawExploreUI();
+  if(typeof Cutscene!=='undefined'&&Cutscene.fade>0){D.fillStyle=`rgba(0,0,0,${clamp(Cutscene.fade,0,1)})`;D.fillRect(0,0,960,540);}
+  if(typeof Cutscene!=='undefined'&&Cutscene.active&&G.mode==='cutscene'){outlineText('[ESC] ข้ามคัตซีน',944,522,11,'rgba(220,230,245,.75)','right');}
   if(G.mode==='trans'){const a=G.tt<22?G.tt/22:(44-G.tt)/22;D.fillStyle=`rgba(0,0,0,${clamp(a,0,1)})`;D.fillRect(0,0,960,540);
     for(let i=0;i<8;i++){const w=clamp(a*1.4,0,1)*960;D.fillStyle='#000';D.fillRect(i%2?960-w:0,i*68,w,68);}}
   if(G.mode==='menu')drawPreview();

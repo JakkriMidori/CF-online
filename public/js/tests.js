@@ -55,19 +55,19 @@ function runTests(){
     G.bag=sv.bag;G.gold=sv.gold;UI.close();return{ok:g1===2000&&g2===1500&&b1===1&&b2===1&&b&&b.disabled,info:`${g1} → ${g2} · ซื้อ ${b2} ชิ้น`};});
   T('AL1) นักเล่นแร่แปรธาตุ: ของชนิดเดียวกัน 2 ชิ้น → 1 ชิ้นค่าเสริมใหม่ ได้ระดับ/ตีบวกที่สูงกว่า',()=>{const sv=G.bag;G.bag=[];const a=Inv.addItem(newItem('w_sword','rare',3)),b=Inv.addItem(newItem('w_sword','normal',5));b.enh=4;
     const bad=Alchemy.fuse(a,Inv.addItem(newItem('w_club','rare',3)));const r=Alchemy.fuse(a,b);const ok=!bad.ok&&r.ok&&G.bag.filter(x=>x.base==='w_sword').length===1&&r.item.rar==='rare'&&r.item.ilvl===5&&r.item.enh===4;G.bag=sv;return{ok,info:r.ok?r.item.rar+' iLv'+r.item.ilvl+' +'+r.item.enh:'fail'};});
-  T('TW1) หอคอยนักแปรธาตุ: ประตูในเมือง 2 ชั้น + ห้องบอส Lv.45 · ศัตรู 3 ชนิด · แอ่งน้ำยา · ตารางดรอปครบ',()=>{const t=makeTown(),g=t.props.find(o=>o.inter==='towerdungeon'),a=makeDungeon(1,'tower'),b=makeDungeon(2,'tower'),r=makeBossRoom('homunculus');
+  T('TW1) หอคอยนักแปรธาตุ: ประตูในเมือง 2 ชั้น + ห้องบอส Lv.45 · ศัตรู 3 ชนิด · แอ่งน้ำยา · ตารางดรอปครบ',()=>{const t=makeTown(),g=t.props.find(o=>o.inter==='citygate'),a=makeDungeon(1,'tower'),b=makeDungeon(2,'tower'),r=makeBossRoom('homunculus');
     const kinds=new Set([...a.foes,...b.foes].map(f=>f.kind));return{ok:!!g&&a.id==='tower1'&&b.id==='tower2'&&[...kinds].every(k=>['mslime','homunc','gargoyle'].includes(k))&&Object.keys(a.puddles).length>0&&r.foes[0].kind==='homunculus'&&FOES.homunculus.fixedLv===45&&THEME_BOSS.tower==='homunculus'&&!!LOOT_TABLES.tower&&!!LOOT_TABLES.homunculus&&!LootManager.validateAll().some(x=>/tower|homunc/.test(x)),info:[...kinds].join(',')};});
   T('TW2) ชุดนักแปรธาตุ 4 ชิ้น: โอกาสติด +10% และ DoT +30% · ศิลานักปราชญ์ล็อกค่าเสริมได้',()=>{const L=[...['h_alch','a_alch','g_alch','b_alch'].map(k=>newItem(k,'normal',1))],sb=activeSetBonuses(L);const f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);Status.apply(f,'burn',1,{S:{dotPct:.3}});
     return{ok:sb.some(x=>x.b.statusChance===.1)&&sb.some(x=>x.b.dotPct===.3)&&Status.dps(f)===Math.round(CONFIG.dot.burn.base*1.3)&&!!MATS.philostone,info:'DoT '+Status.dps(f)};});
   T('HX1) Hexweaver ติดซ้ำ = เวลาต่อท้ายไม่มีเพดาน (สายอื่นรีเฟรช) · พุ่งหลบคูลดาวน์ 1.5 วิ · บอสไม่ล้ม',()=>{const H=Stats.derive(Object.assign({},BASE_ATTR),{},1,'hexweaver',new Set()),N=Stats.derive(Object.assign({},BASE_ATTR),{},1,'lucky',new Set());
     const mk=()=>{const f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);return f;},a=mk(),b=mk();for(let i=0;i<12;i++){Status.apply(a,'burn',1,{S:H});Status.apply(b,'burn',1,{S:N});}
     return{ok:a.st8.burn.t>b.st8.burn.t*10&&b.st8.burn.t===CONFIG.statusDur&&CONFIG.dashCD===90,info:(a.st8.burn.t/60).toFixed(1)+' วิ vs '+(b.st8.burn.t/60).toFixed(1)+' วิ'};});
-  T('BQ1) bbqy: ATK 234 และทุกการโจมตีเป็นเวท (ใช้ M.DEF หัก)',()=>{const d=FOES.duelist,E=Stats.enemy(d,100,false);G.mode='explore';BT=null;const sv=Z;
+  T('BQ1) bbqy: ATK 304 และทุกการโจมตีเป็นเวท (ใช้ M.DEF หัก)',()=>{const d=FOES.duelist,E=Stats.enemy(d,100,false);G.mode='explore';BT=null;const sv=Z;
     setupBattle(mkFoe('duelist',{x:300,y:150}));const b=BT;b.intro=0;let typ=null;const o=G.dmgLog.length;for(let i=0;i<8&&G.dmgLog.length===o;i++){b.p.state='idle';b.p.invuln=0;b.p.guardLeft=0;applyHit(b.e,b.p,WEAPONS.sword.light[0],1);}typ=G.dmgLog[0]&&G.dmgLog[0].type;BT=null;G.mode='explore';
-    return{ok:d.base.atk===234&&E.ap===234&&E.mpow===234&&d.allMagic&&typ==='magic',info:'ATK '+E.ap+' · '+typ};});
+    return{ok:d.base.atk===304&&E.ap===304&&E.mpow===304&&d.allMagic&&typ==='magic',info:'ATK '+E.ap+' · '+typ};});
   T('LG1) ไลต์เลส (ตำนาน): ไม่สนเกราะ 20% + ตาบอด 5 วิ = ตีไม่โดน · แหวนปฐมกาล ค่าพลัง +10 ทุกอย่าง · สร้างได้จากของบอส โอกาส 10%',()=>{const w=newItem('w_lightless','normal',9),r=newItem('r_primal','normal',9),sw=itemStats(w),sr=itemStats(r);
     const f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);Status.apply(f,'blind',1,null,5);const R1=RECIPES.find(x=>x.id==='lightless'),R2=RECIPES.find(x=>x.id==='primal');
-    return{ok:w.rar==='legendary'&&r.rar==='legendary'&&sw.apenPct===.2&&sw.blindChance===.2&&['str','agi','int','vit','luk'].every(k=>sr[k]>=10)&&f.st8.blind.t===300&&Craft.base(R1)===.1&&R1.mats.bossfrag===5&&R2.mats.bossfrag===5&&LOOT_TABLES.golem.guaranteed.some(g=>g.mat==='bossfrag'),info:w.rar+'/'+r.rar};});
+    return{ok:w.rar==='legendary'&&r.rar==='legendary'&&sw.apenPct===.2&&sw.blindChance===.2&&['str','agi','int','vit','luk'].every(k=>sr[k]>=10)&&f.st8.blind.t===300&&Craft.base(R1)===.1&&R1.mats.bossfrag===10&&R2.mats.bossfrag===10&&R1.gold===10&&R2.gold===10&&LOOT_TABLES.seraph.guaranteed.some(g=>g.mat==='bossfrag'),info:w.rar+'/'+r.rar};});
   T('LV1) เลเวลตันที่ Lv.200 — XP ส่วนเกินไม่ทำให้เกินเพดาน',()=>{const sv={level:G.level,xp:G.xp,points:G.points};G.level=199;G.xp=0;Prog.gainXP(9e9);const ok=G.level===CONFIG.levelCap&&CONFIG.levelCap===200&&G.xp===0&&Prog.gainXP(5000)===0&&G.level===200;Object.assign(G,sv);return{ok,info:'Lv.'+CONFIG.levelCap};});
   T('LV2) บอสเมืองแรกเลเวลตายตัว 35 / 40 / 50 และใช้ค่า base เป็นค่าจริง',()=>{const L=[FOES.golem.fixedLv,FOES.lavaking.fixedLv,FOES.seraph.fixedLv],D=Diff.cur(),E=Stats.enemy(FOES.golem,35,false);
     return{ok:L.join()==='35,40,50'&&foeLevel(FOES.golem,1)===35&&E.maxHP===Math.round(FOES.golem.base.hp*D.eHP)&&E.ap===Math.round(FOES.golem.base.atk*D.eATK),info:L.join(' / ')+' · HP '+E.maxHP};});
@@ -76,9 +76,9 @@ function runTests(){
   T('เลเวลอัปได้ 2 แต้มค่าพลัง',()=>{const s={level:G.level,xp:G.xp,points:G.points,hp:G.hp,mp:G.mp};G.level=1;G.xp=0;G.points=0;Prog.gainXP(CONFIG.xpNext(1));const ok=G.level===2&&G.points===CONFIG.levelPoints&&CONFIG.levelPoints===2;Object.assign(G,s);return ok;});
 
   RNG=mulberry32(12345);
-  T('ความหายากมีผลต่อจำนวน affix และพาสซีฟพิเศษ (ไม่มีช่องรูนแล้ว)',()=>{const mr=CONFIG.maxRarity;CONFIG.maxRarity='god';const it={};let ok=true;for(const r of RARS){const x=newItem('w_sword',r,5);it[r]=x;const R=RARITY[r];
-    if(x.affixes.length<R.affix[0]||x.affixes.length>R.affix[1]||x.sockets.length!==R.sockets||(!!R.uniq!==!!x.uniq))ok=false;}
-    const gp=it.god.uniq in PASSIVES.god;CONFIG.maxRarity=mr;return{ok:ok&&gp,info:RARS.map(r=>`${r}:${it[r].affixes.length}affix/${it[r].uniq||'-'}`).join(' ')};});
+  T('ความหายากมีผลต่อจำนวน affix ช่องรูน (1-5) และพาสซีฟพิเศษ',()=>{const mr=CONFIG.maxRarity;CONFIG.maxRarity='god';const it={};let ok=true;for(let i=0;i<RARS.length;i++){const r=RARS[i],x=newItem('w_sword',r,5);it[r]=x;const R=RARITY[r];
+    if(x.affixes.length<R.affix[0]||x.affixes.length>R.affix[1]||R.sockets!==i+1||!Array.isArray(x.sockets)||(!!R.uniq!==!!x.uniq))ok=false;}
+    const gp=it.god.uniq in PASSIVES.god;CONFIG.maxRarity=mr;return{ok:ok&&gp,info:RARS.map(r=>`${r}:${it[r].affixes.length}affix/${RARITY[r].sockets}sock`).join(' ')};});
   /* ---- slot-based crafting ---- */
   const SL=(...pairs)=>{const o=Array(6).fill(null);pairs.forEach((p,i)=>o[i]={id:p[0],q:p[1]});return o;};
   const resetCraft=m=>{G.mats=Object.assign({},m);G.bag=[];G.stats={crafts:0,craftOk:0};G.found=new Set();G.known=new Set();Craft.busy=false;};
@@ -145,9 +145,9 @@ function runTests(){
     return{ok:a&&b&&G.skills.learned.has('rising')&&G.skills.slots[1]==='rising'&&G.mats.sk_rising===1};});
   /* ---- v3: skill database, mana, potions, ultimate gauge, equipment caps, combo cancel ---- */
   T('ฐานข้อมูลสกิล: ทั่วไป/หายาก/สุดยอด อย่างละ 10 · ทุกพรสวรรค์มีสกิลเฉพาะตัวของตัวเอง',()=>{const c={};for(const k in SKILLS)if(!SKILLS[k].bossOnly&&SKILLS[k].user!=='enemy')c[SKILLS[k].tier]=(c[SKILLS[k].tier]||0)+1;const tal=Object.values(TALENTS).every(t=>SKILLS[t.skill]&&SKILLS[t.skill].tier==='unique');return{ok:['common','rare','ultimate'].every(t=>c[t]===10)&&c.unique>=Object.keys(TALENTS).length&&tal&&new Set(Object.values(TALENTS).map(t=>t.skill)).size===Object.keys(TALENTS).length,info:JSON.stringify(c)};});
-  T('ค่ามานา: ทั่วไป 30-50, หายาก 60-100, เฉพาะตัวแอ็กทีฟ 40-60, พาสซีฟ 0, สุดยอด = เกจ 100 ไม่ใช้ MP',()=>{const bad=Object.entries(SKILLS).filter(([k,s])=>{if(s.user==='enemy')return false;
+  T('ค่ามานา: ทั่วไป 30-50, หายาก 60-100, เฉพาะตัวแอ็กทีฟ 40-60, พาสซีฟ 0, สุดยอด = เกจ 100 ไม่ใช้ MP',()=>{const bad=Object.entries(SKILLS).filter(([k,s])=>{if(s.user==='enemy'||s.bossOnly)return false;
       if(s.tier==='common')return!(s.mp>=30&&s.mp<=50);if(s.tier==='rare')return!(s.mp>=60&&s.mp<=100);
-      if(s.tier==='unique')return s.type==='passive'?!!s.mp:s.mpPct?!(s.mpPct===.2):!(s.mp>=40&&s.mp<=60);return s.gauge!==100||!!s.mp;}).map(([k])=>k);return{ok:!bad.length,info:bad.join(',')||'ครบ 40 สกิล'};});
+      if(s.tier==='unique')return s.type==='passive'?!!s.mp:s.mpPct?!(s.mpPct===.2):!(s.mp>=30&&s.mp<=60);return s.gauge!==100||!!s.mp;}).map(([k])=>k);return{ok:!bad.length,info:bad.join(',')||'ครบทุกสกิล'};});
   T('MP ไม่พอ → ใช้สกิลไม่ได้ และ MP ไม่ถูกหัก',()=>{freshSk();G.skills.learned.add('orb');const p={mp:10,S:{maxMP:200,mpCost:0}};const e=skillCastCheck(p,'orb');return{ok:!!e&&p.mp===10,info:e};});
   T('คูลดาวน์สกิล: ระหว่างคูลดาวน์ใช้ไม่ได้ หมดแล้วใช้ได้',()=>{freshSk();const p={mp:999,S:{maxMP:999,mpCost:0}};G.skills.cd.orb=60;const a=!!skillCastCheck(p,'orb');for(let i=0;i<60;i++)Skills.tick();return{ok:a&&!skillCastCheck(p,'orb')};});
   T('สกิลพาสซีฟกดใช้ไม่ได้ (ทำงานอัตโนมัติ)',()=>({ok:!!skillCastCheck({mp:999,S:{maxMP:999}},'focus')&&Skills.move('focus','fist',2)===null}));
@@ -182,13 +182,13 @@ function runTests(){
   const tableIds=t=>new Set(LOOT_TABLES[t].entries.flatMap(e=>e.base?[e.base]:e.mat?[e.mat]:[]));
   T('4) บอสดรอปจากตารางของตัวเอง ตามจำนวนที่ตั้งไว้ (qty ของ boss)',()=>{RNG=mulberry32(11);const[lo,hi]=LOOT_CONFIG.classes.boss.qty;let ok=true;for(let i=0;i<300;i++){const r=gen({tableId:'golem',cls:'boss',level:6});const n=ids(r).length;if(n&&(n<lo||n>hi))ok=false;if(!n&&LOOT_CONFIG.classes.boss.chance>=1)ok=false;}return{ok,info:lo+'-'+hi+' ชิ้น · โอกาสดรอป '+LOOT_CONFIG.classes.boss.chance};});
   T('5) บอสไม่ดรอปของจากตารางบอสอื่น',()=>{RNG=mulberry32(12);const kingOnly=['h_crown','essence','mp_x'];let leak=0;for(let i=0;i<2000;i++)for(const id of ids(gen({tableId:'golem',cls:'boss',level:9})))if(kingOnly.includes(id))leak++;return{ok:leak===0,info:'รั่ว '+leak};});
-  T('บอสเซราฟ: ข้อมูลครบ (สไปรต์/พาเลท/ท่า/ตารางดรอป/โซน)',()=>{const d=FOES.seraph;return{ok:!!(d&&SPR[d.map]&&PAL[d.pal]&&d.moves.some(m=>m.beam)&&d.moves.some(m=>m.proj)&&LOOT_TABLES[d.loot]&&ZONE_INFO.sanctum&&BIOME.sanctum&&EXTRA_MOVES[d.phases[0].addMove]&&ELC.holy&&SKILLS.eyejudge&&MATS.sk_eyejudge&&SETS.seraph&&['h_halo','a_seraph','g_seraph','p_seraph','w_seraph'].every(k=>BASES[k]))};});
+  T('บอสเซราฟ: ข้อมูลครบ (สไปรต์/พาเลท/ท่า/ตารางดรอป/โซน/ตายเกิด 1 ครั้ง)',()=>{const d=FOES.seraph;return{ok:!!(d&&SPR[d.map]&&PAL[d.pal]&&d.moves.some(m=>m.beam)&&d.moves.some(m=>m.proj)&&LOOT_TABLES[d.loot]&&ZONE_INFO.sanctum&&BIOME.sanctum&&d.revive===1&&!d.phases&&ELC.holy&&SKILLS.eyejudge&&MATS.sk_eyejudge&&SETS.seraph&&['h_halo','a_seraph','g_seraph','p_seraph','w_seraph'].every(k=>BASES[k]))};});
   T('ลานเซราฟ: สร้างโซน/บอส/ประตูกลับล็อกอยู่ และปลดล็อกเมื่อชนะ',()=>{const z=makeSanctum();const pt=z.props.find(o=>o.k==='portal');const b=z.foes[0];return{ok:b.kind==='seraph'&&pt.locked===1&&z.grid.length===17&&!!z.props.find(o=>o.k==='exitdoor')&&!['#','^','T'].includes(z.grid[9][2])};});
-  T('ถ้ำน้ำแข็ง: ชั้น 1-2 สร้างได้ มีบันได/ประตูออก ศัตรูหนูน้ำแข็ง และประตูในเมืองเดินถึงได้',()=>{const a=makeDungeon(1,'ice'),b=makeDungeon(2,'ice');const t=makeTown();const gp=t.props.find(o=>o.k==='icegate');const gx=Math.floor(t.icegate.x/16),gy=Math.floor(t.icegate.y/16);
-    return{ok:a.id==='ice1'&&b.id==='ice2'&&a.theme==='ice'&&a.props.some(o=>o.k==='stairs')&&a.props.some(o=>o.k==='exitdoor')&&a.foes.every(f=>['frostslime','frostwolf','iceknight','icegolem'].includes(f.kind))&&!FOES.icerat&&makeSanctum().foes.length===1&&a.lavaTiles.length===0&&!!gp&&!'#^TRLW'.includes(t.grid[gy][gx])&&['frostslime','frostwolf','iceknight','icegolem'].every(k=>FOES[k]&&(FOES[k].kind==='rig'||SPR[FOES[k].map])&&PAL[FOES[k].pal])&&!!LOOT_TABLES.icecave&&ZONE_INFO.ice1&&BIOME.ice};});
+  T('ถ้ำน้ำแข็ง: ชั้น 1-2 สร้างได้ มีบันได/ประตูออก และประตูเมืองบนขวาเดินถึงได้',()=>{const a=makeDungeon(1,'ice'),b=makeDungeon(2,'ice');const t=makeTown();const gp=t.props.find(o=>o.k==='citygate');const gx=Math.floor(t.gate.x/16),gy=Math.floor(t.gate.y/16);
+    return{ok:a.id==='ice1'&&b.id==='ice2'&&a.theme==='ice'&&a.props.some(o=>o.k==='stairs')&&a.props.some(o=>o.k==='exitdoor')&&a.foes.every(f=>['frostslime','frostwolf','iceknight','icegolem'].includes(f.kind))&&!FOES.icerat&&makeSanctum().foes.length===1&&a.lavaTiles.length===0&&!!gp&&gp.x>t.cols*16*.6&&gp.y<100&&!'#^TRLW'.includes(t.grid[gy][gx])&&['frostslime','frostwolf','iceknight','icegolem'].every(k=>FOES[k]&&(FOES[k].kind==='rig'||SPR[FOES[k].map])&&PAL[FOES[k].pal])&&!!LOOT_TABLES.icecave&&ZONE_INFO.ice1&&BIOME.ice};});
   T('ลานประลอง: สกิลชุดเดียวกัน 4 ช่อง ใช้ได้ทั้งสองฝ่ายและไม่ใช่อัลติ/เฉพาะตัว',()=>{const s=CONFIG.arena.skills;return{ok:s.length===4&&s.every(id=>SKILLS[id]&&['common','rare'].includes(SKILLS[id].tier)&&SKILLS[id].type!=='passive')&&!!NETBITS.find(b=>b[0]==='S4')&&VSS1.length===4&&VSKN2_SK.length===4};});
   T('ห้องบอสแยกทุกตัว: ประตูออก/พอร์ทัลล็อก มีบอสตัวเดียว หนีจากบอสไม่ได้',()=>{const ok=['golem','lavaking','seraph'].every(k=>{const z=makeBossRoom(k);return z.foes.length===1&&z.foes[0].kind===k&&z.props.filter(o=>o.k==='exitdoor'||o.k==='portal').every(o=>o.locked===1)&&ZONE_INFO[z.id];});
-    const c=makeCave(),tw=makeTown(),sg=tw.props.find(o=>o.k==='stonegate'),s1=makeDungeon(1,'stone'),s2=makeDungeon(2,'stone');return{ok:ok&&!c.foes.some(f=>f.kind==='golem')&&!!sg&&sg.y>tw.rows*16-80&&s1.id==='stone1'&&s2.props.some(o=>o.k==='stairs')&&s1.props.some(o=>o.k==='exitdoor')&&s1.foes.every(f=>['rat','mudslime','rockling'].includes(f.kind))&&s1.lavaTiles.length===0&&!!LOOT_TABLES.stonecave&&CONFIG.flee.allowBoss===false};});
+    const c=makeCave(),tw=makeTown(),cg=tw.props.find(o=>o.k==='citygate'),s1=makeDungeon(1,'stone'),s2=makeDungeon(2,'stone');return{ok:ok&&!c.foes.some(f=>f.kind==='golem')&&!!cg&&!tw.props.some(o=>o.k==='stonegate'||o.k==='cavegate'||o.k==='icegate'||o.k==='towergate')&&s1.id==='stone1'&&s2.props.some(o=>o.k==='stairs')&&s1.props.some(o=>o.k==='exitdoor')&&s1.foes.every(f=>['rat','mudslime','rockling'].includes(f.kind))&&s1.lavaTiles.length===0&&!!LOOT_TABLES.stonecave&&CONFIG.flee.allowBoss===false};});
   T('บอสไม่การันตีอุปกรณ์ (มีแต่ทอง/ไอเท็มเดินเรื่อง)',()=>({ok:['kage','golem','lavaking','seraph'].every(t=>LOOT_TABLES[t].guaranteed.every(g=>g.gold||(g.mat&&!BASES[g.mat])))}));
   T('6) ผู้เล่นแต่ละคนได้ผลสุ่มแยกกัน',()=>{RNG=mulberry32(77);G.simPlayers={P2:{luk:10}};let diff=0;for(let i=0;i<50;i++){const[a,b]=LootManager.rollForPlayers({tableId:'golem',cls:'boss',level:6},['P1','P2']);
       if(a.pid!=='P1'||b.pid!=='P2'||a.drops===b.drops||a.drops.some(d=>b.drops.includes(d)))return{ok:false,info:'แชร์ผลกัน'};if(JSON.stringify(ids(a))!==JSON.stringify(ids(b)))diff++;}return{ok:diff>30,info:`ต่างกัน ${diff}/50 ครั้ง`};});
@@ -211,7 +211,7 @@ function runTests(){
   T('13) การกระจายความหายาก (ศัตรูปกติ / หัวหน้า / บอส) ตรงตามน้ำหนัก',()=>{RNG=mulberry32(2024);const N=200000,out=[];let ok=true;
       for(const cls of ['normal','elite','boss']){const W=LootManager.weights(cls),tot=Object.values(W).reduce((a,b)=>a+b,0),c={};for(let i=0;i<N;i++){const r=weighted(W);c[r]=(c[r]||0)+1;}
         for(const r of RARS){const exp=W[r]/tot,got=(c[r]||0)/N;if(Math.abs(exp-got)>Math.max(.003,exp*.08))ok=false;}out.push(cls+': '+RARS.map(r=>((c[r]||0)/N*100).toFixed(1)).join('/'));}return{ok,info:out.join(' · ')};});
-  T('น้ำหนักความหายากของบอสใช้ร่วมกับมินิบอส และตั้งค่าได้',()=>({ok:LootManager.weights('miniboss')===LOOT_CONFIG.classes.boss.rar&&LOOT_CONFIG.classes.normal.rar.epic===3.5&&!('god' in LOOT_CONFIG.classes.normal.rar)}));
+  T('น้ำหนักความหายากของบอสใช้ร่วมกับมินิบอส และตั้งค่าได้',()=>({ok:LootManager.weights('miniboss')===LOOT_CONFIG.classes.boss.rar&&LOOT_CONFIG.classes.normal.rar.epic<=10&&LOOT_CONFIG.classes.normal.rar.legendary===0.002&&LOOT_CONFIG.classes.normal.rar.god===0.0001}));
   T('Pity บอส: ปิดเป็นค่าเริ่มต้น / เปิดแล้วได้เศษวิญญาณที่ครั้งที่ 10 และ 20 แยกตามบอสและผู้เล่น',()=>{G.pity={};LOOT_CONFIG.pity.enabled=false;const off=LootManager.pity('P1','golem').length;LOOT_CONFIG.pity.enabled=true;let got=[];
       for(let i=1;i<=20;i++){const x=LootManager.pity('P1','golem');if(x.length)got.push(i);}const other=G.pity.P1.lavaking===undefined&&!G.pity.P2;return{ok:off===0&&got.join()==='10,20'&&other,info:'ได้ที่ครั้ง '+got};});
   T('14) เซฟ/โหลด เก็บกระเป๋า จำนวนวัตถุดิบ อุปกรณ์ และ Pity ครบ',()=>{const mr=CONFIG.maxRarity;CONFIG.maxRarity='god';G.bag=[newItem('w_sword','legendary',5)];CONFIG.maxRarity=mr;G.mats={wood:7,mp_s:3};G.pity={P1:{golem:4}};const d=JSON.parse(JSON.stringify(Save.data()));
@@ -268,7 +268,7 @@ function runTests(){
   T('bbqy legendary: บอสเลเวล 100 HP 5000 ท้าได้ และสกิลสุดยอดปลดหลังชนะเท่านั้น',()=>{const d=FOES.duelist;return{ok:d.kind==='rig'&&d.boss===1&&d.challenge===1&&d.base.hp===5000&&!SKILLS.bluejudge.talent&&SKILLS.bluejudge.bossOnly===1&&!!LOOK_BY_NAME.DUELIST};});
   /* ===== UNIQUE TALENT SYSTEM ===== */
   {const base=()=>Stats.derive(Object.assign({},BASE_ATTR),{},1,null,new Set()),tal=k=>Stats.derive(Object.assign({},BASE_ATTR),{},1,k,new Set());
-  T('TL1) มีพรสวรรค์ 6 แบบ แต่ละแบบมีพาสซีฟและสกิลเฉพาะตัวแยกกัน',()=>{const ks=Object.keys(TALENTS);return{ok:ks.join()==='piercer,lucky,endurer,undying,hexweaver,archmage'&&ks.every(k=>TALENT_PASSIVE[k]&&SKILLS[TALENTS[k].skill]&&SKILLS[TALENTS[k].skill].talent===k&&SKILLS[TALENTS[k].skill].tier==='unique'),info:ks.length+' แบบ'};});
+  T('TL1) มีพรสวรรค์ 9 แบบ แต่ละแบบมีพาสซีฟและสกิลเฉพาะตัวแยกกัน',()=>{const ks=Object.keys(TALENTS);return{ok:ks.join()==='piercer,lucky,endurer,undying,hexweaver,archmage,sololeveling,parryman,vampire'&&ks.every(k=>TALENT_PASSIVE[k]&&SKILLS[TALENTS[k].skill]&&SKILLS[TALENTS[k].skill].talent===k&&SKILLS[TALENTS[k].skill].tier==='unique'),info:ks.length+' แบบ'};});
   T('TL2) ค่าพาสซีฟคงที่ตามสเปก (Piercer/Lucky/Endurer/Archmage)',()=>{const b=base(),P=tal('piercer'),L=tal('lucky'),E=tal('endurer'),A=tal('archmage');
     const ok=P.apen-b.apen===100&&near(L.critRate-b.critRate,.25)&&near(L.critDmg-b.critDmg,.5)&&near(E.dr-b.dr,.25)&&near(E.statusRes-b.statusRes,.3)&&A.mpow===Math.round(b.mpow*1.15)&&A.maxMP===Math.round(b.maxMP*1.1)&&near(A.mcritDmg,.1);
     return{ok,info:`เจาะ+${P.apen} · คริ+${(L.critRate-b.critRate).toFixed(2)} · DR ${E.dr} · พลังเวท ${b.mpow}→${A.mpow} · MP ${b.maxMP}→${A.maxMP}`};});
@@ -385,17 +385,20 @@ function runTests(){
       const d=p.mana===2&&p.mp>10&&G.mats.mp_s===2;G.vsNet='host';const s=Net.snap();const f=s.p.mp===Math.round(p.mp)&&s.p.fk===3&&s.p.mn===2;
       BT=null;G.mode='explore';return{ok:a&&c&&d&&f,info:`revive=${a} noTalent=${c} mana=${d} snap=${f}`};}
     finally{G.talent=g0;G.mats.mp_s=m0;G.vsNet=vn;if(BT&&BT.vs){BT=null;G.mode='explore';}}});
-  T('V25-2) ไม่มีระบบรูนแล้ว: ไม่มีรูนในข้อมูล/ช่อง/สูตร และเซฟเก่าที่มีรูนโหลดได้',()=>{
-    const noMat=!Object.keys(MATS).some(k=>/^rune_/.test(k)||k==='sc_runes'||MATS[k].rune);
-    const noRecipe=!(typeof RECIPES!=='undefined'?RECIPES:[]).some(r=>/^rune_/.test(r.id));
-    const it=Loot&&0;let made=true;try{for(const r of RARS){const x=Loot.makeGear?0:0;}}catch(e){}
-    const noSock=RARS.every(r=>RARITY[r].sockets===0);
-    const gm=JSON.stringify(G.mats),gk=[...G.known],gb=G.bag.map(i=>i.sockets);
-    try{G.mats.rune_str=2;G.mats.sc_runes=1;G.known.add('rune_fire');if(G.bag[0])G.bag[0].sockets=['rune_str'];
-      const d=Save.data();G.mats.rune_str=1;localStorage.setItem(SAVE_KEY,JSON.stringify(d));const ok=Save.load();
-      const clean=ok&&!('rune_str' in G.mats)&&!('sc_runes' in G.mats)&&!G.known.has('rune_fire')&&G.bag.every(i=>i.sockets.length===0);
-      return{ok:noMat&&noRecipe&&noSock&&clean,info:`mat=${noMat} recipe=${noRecipe} sock=${noSock} migrate=${clean}`};}
-    finally{G.mats=JSON.parse(gm);G.known=new Set(gk);G.bag.forEach((i,k)=>i.sockets=gb[k]||[]);}});
+  T('V25-2) ระบบใหม่: ช่องรูน 1-5 ตามระดับ, เลเวลอุปกรณ์ 100, ตีบวก +15, วิวัฒน์ และร้านค้าพิเศษ',()=>{
+    const sockOk=RARITY.normal.sockets===1&&RARITY.rare.sockets===2&&RARITY.epic.sockets===3&&RARITY.legendary.sockets===4&&RARITY.god.sockets===5;
+    const it=newItem('w_sword','normal',5);
+    const gm=JSON.stringify(G.mats),gg=G.gold,gs=JSON.stringify(G.shopCD||{});
+    try{
+      G.mats.exprock=200;G.mats.evostone=1;G.mats.rune_atk=1;G.mats.cryst_durable=1;G.gold=999999;G.shopCD={};
+      while(it.lv<100)Equip.useExpStone(it);
+      it.enh=15;
+      const canEvo=Equip.canEvolve(it),evoRes=Equip.evolve(it);
+      const sockRes=Equip.socketRune(it,0,'rune_atk'),st=itemStats(it),unsockRes=Equip.unsocketRune(it,0);
+      const shopRes=SpecialShop.buy('exprock');
+      return{ok:sockOk&&it.lv===100&&canEvo&&evoRes.ok&&it.rar==='rare'&&sockRes.ok&&st.atk>0&&unsockRes.ok&&G.mats.rune_atk===1&&shopRes.ok&&!('bosstoken' in MATS),
+        info:`sock=${sockOk} lv=${it.lv} evo=${evoRes.ok}->${it.rar} rune=${sockRes.ok}/${unsockRes.ok} shop=${shopRes.ok}`};
+    }finally{G.mats=JSON.parse(gm);G.gold=gg;G.shopCD=JSON.parse(gs);}});
   T('V26-1) bbqy: สะท้อน 20% · ดาบ bbqy ตำนาน +ทุกสเตต 10 · โอกาสโกลาหล 20% · โกลาหล 4 วิ ติดซ้ำไม่ได้',()=>{
     const it=newItem('w_bbqy','legendary',5),st=itemStats(it),f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);
     const r1=Status.apply(f,'chaos',1,null,4),t0=f.st8.chaos.t,r2=Status.apply(f,'chaos',1,null,4);
@@ -418,16 +421,16 @@ function runTests(){
     const lv0=G.level;G.level=20;const full=Prog.xpScale(20),low=Prog.xpScale(1);G.level=lv0;
     const ok=CONFIG.levelPoints===2&&CONFIG.levelCap===200&&CONFIG.xpNext(31)>Math.round(50*Math.pow(31,1.3))&&CONFIG.xpNext(30)===Math.round(50*Math.pow(30,1.3))&&pc>base&&fl>base&&full===1&&low<.5;
     return{ok,info:`base=${base} pct=${pc} flat=${fl} xpLow=${low.toFixed(2)}`};});
-  T('V25-3) ดรอปไม่มีตำนาน/เทพ · ตำราสกิลและคริสตัลยังตกที่มหากาพย์ · ร้านรีข้ามเพดานได้ (อารีนาไม่ได้)',()=>{
-    const W=LOOT_CONFIG.classes,noW=['normal','elite','boss'].every(c=>!('legendary' in W[c].rar)&&!('god' in W[c].rar));
-    let bad=0,books=0,divine=0,n=0;const bossT=Object.keys(LOOT_TABLES);
+  T('V25-3) ดรอปไม่มีคริสตัลศักดิ์สิทธิ์ (ขายร้านพิเศษ) · อัตราดรอปตำนาน 0.002% เทพ 0.0001% · ร้านรีข้ามเพดานได้ (อารีนาไม่ได้)',()=>{
+    const W=LOOT_CONFIG.classes,wOk=['normal','elite','boss'].every(c=>W[c].rar.legendary===0.002&&W[c].rar.god===0.0001);
+    let books=0,divine=0,n=0;const bossT=Object.keys(LOOT_TABLES);
     for(let i=0;i<1500;i++){for(const tid of bossT){for(const cls of['normal','elite','boss']){const r=LootManager.generate({tableId:tid,cls,level:20,luk:10});
-      for(const d of r.drops){n++;if(d.rar==='legendary'||d.rar==='god'||(d.item&&(d.item.rar==='legendary'||d.item.rar==='god')&&!BASES[d.item.base].fixRar))bad++;if(d.mat&&d.mat.startsWith('sk_'))books++;if(d.mat==='divine')divine++;}}}}
+      for(const d of r.drops){n++;if(d.mat&&d.mat.startsWith('sk_'))books++;if(d.mat==='divine')divine++;}}}}
     const o=REITEM.odds;let shopOk=false,arenaCap=false;
     try{REITEM.odds=[['god',100]];const s=reitemRoll(true),a2=reitemRoll();shopOk=s.rar==='god';arenaCap=a2.rar==='epic';
       REITEM.odds=[['legendary',100]];shopOk=shopOk&&reitemRoll(true).rar==='legendary';}finally{REITEM.odds=o;}
     const shown=reitemOdds(true).map(x=>x[0]).join(',');const tot=REITEM.odds.reduce((a,b)=>a+b[1],0);
-    return{ok:noW&&bad===0&&books>0&&divine>0&&shopOk&&arenaCap&&Math.abs(tot-100)<1e-9&&shown.includes('legendary')&&shown.includes('god'),info:`weights=${noW} badDrops=${bad}/${n} books=${books} divine=${divine} shop=${shopOk} arenaCap=${arenaCap} sum=${tot}`};});
+    return{ok:wOk&&n>0&&books>0&&divine===0&&shopOk&&arenaCap&&Math.abs(tot-100)<1e-9&&shown.includes('legendary')&&shown.includes('god'),info:`weights=${wOk} drops=${n} books=${books} divine=${divine} shop=${shopOk} arenaCap=${arenaCap} sum=${tot}`};});
   }finally{RNG=rng0;Z=z0;P.x=px0;P.y=py0;G.hp=hp0;G.mode=mode0;G.flags.bossCD=cd0;G.pendingFoe=pf0;try{buildBg();}catch(e){}}}
   RNG=saveRNG;Object.assign(G,saveG);[Status.onStun,Status.onStunEnd,Status.onSynergy]=prevHooks;
   window.__testResults={pass,fail,out};return{pass,fail,out};
