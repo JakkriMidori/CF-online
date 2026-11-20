@@ -86,8 +86,12 @@ const BOSS_CHUNK=["....................","..LL............LL..","..LL...........
 const TRAP={near:64,pitDmg:.08,spikeDmg:.10,spikeCD:90};
 function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/2.4);
   const far=(x,y)=>props.every(o=>Math.hypot(o.x-(x*16+8),o.y-(y*16+8))>(o.inter?TRAP.near:24))&&items.every(i=>Math.hypot(i.x-(x*16+8),i.y-(y*16+8))>20)&&Math.hypot(x*16-16,y*16-9*16)>TRAP.near*1.5;
+  let deadCnt=0;
   for(let k=0,tries=0;k<n&&tries<1500;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<3))continue;
-    const r=rand(),type=r<.25&&y!==8&&y!==9?'pit':r<.48&&y!==8&&y!==9?'deadpit':r<.82?'spike':'alarm';out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
+    let type;
+    if(floor===1&&deadCnt<1&&y!==8&&y!==9){type='deadpit';deadCnt++;}
+    else{const r=rand();type=r<.35&&y!==8&&y!==9?'pit':r<.78?'spike':'alarm';}
+    out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
   return out;}
 function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge&&!d.passive&&!d.immortal;}
 // ย้ายศัตรูที่ซ่อนอยู่/ไม่ใช่บอส ให้ห่างประตู ทางออก บันได และจุดเกิด (แก้ปัญหามอนดักหน้าประตู)
@@ -585,8 +589,12 @@ function interact(n){
     else if(r.reason==='full'){SFX.fail();toast('🎒 กระเป๋าเต็ม — ของยังอยู่บนพื้น เก็บได้ภายหลัง');}
     else if(r.reason==='owner')toast('ของชิ้นนี้เป็นของผู้เล่นอื่น');else if(r.reason==='expired')toast('ของหายไปแล้ว');}
   else if(n.type==='fountain'){const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;SFX.level();let extra='';
-    if(Diff.cur().restRespawn&&CAVE){let k=0;for(const e of CAVE.foes)if(!e.alive&&!FOES[e.kind].boss&&!FOES[e.kind].miniboss){e.alive=true;e.x=e.home.x;e.y=e.home.y;e.respawn=0;e.cool=120;k++;}if(k)extra=` · 🔥 ศัตรูในถ้ำฟื้นคืน ${k} ตัว`;}
-    toast('💧 น้ำพุศักดิ์สิทธิ์ — HP และ MP ฟื้นเต็ม'+extra,3000);}
+    if(Diff.cur().restRespawn&&CAVE){let k=0;for(const e of CAVE.foes)if(!e.alive&&!FOES[e.kind].boss&&!FOES[e.kind].miniboss){e.alive=true;e.x=e.home.x;e.y=e.home.y;e.respawn=0;e.cool=120;k++;}if(k)extra+=` · 🔥 ศัตรูในถ้ำฟื้นคืน ${k} ตัว`;}
+    {const panDone=G.q&&G.q.pan&&(G.q.pan.step>0||G.q.pan.done);let rc=0;
+      for(const zl of[CAVE,Z])if(zl&&Array.isArray(zl.items))for(const it of zl.items){if(it.taken&&(it.it!=='pan'||!panDone)){it.taken=false;rc++;}}
+      if(rc)extra+=` · ✨ ทรัพยากรตามฉากเกิดใหม่ ${rc} ชิ้น`;}
+    Save.save&&Save.save();
+    toast('💧 น้ำพุศักดิ์สิทธิ์ — HP และ MP ฟื้นเต็ม'+extra,3200);}
   else if(n.type==='arena'){UI.open('arena');}
   else if(n.type==='bloodstain'){const r=Diff.recover();if(r){SFX.level();toast(`🩸 เก็บคราบเลือดคืน — ทอง +${r.gold} · EXP +${r.xp}`,3000);if(r.ups)UI.levelUp(r.ups);UI.hud();Save.save();}}
   else if(n.type==='shop'||n.type==='store')UI.open('shop');
@@ -620,8 +628,9 @@ function checkTraps(){const tx=Math.floor(P.x/16),ty=Math.floor((P.y-2)/16),S=St
     if(t.type==='spike'){t.seen=1;t.cd=TRAP.spikeCD;const dm=Math.round(S.maxHP*TRAP.spikeDmg);G.hp=Math.max(1,G.hp-dm);G.shake=5;SFX.hit(false);EP.push({x:P.x,y:P.y-14,vx:0,vy:-.4,l:40,c:'#ff6a5a'});toast(`🗡️ กับดักหนาม! -${dm} HP`,1800);return false;}
     if(t.type==='alarm'){t.seen=1;t.cd=99999;const pool=Z.foes.filter(f=>f.alive&&f.hidden);toast('🔔 เหยียบแผ่นสัญญาณ — ศัตรูได้ยินเสียง!',2200);if(pool.length){encounter(pick(pool));return true;}return false;}
     if(t.type==='pit'||t.type==='deadpit'){t.seen=1;t.cd=99999;const dm=Math.round(S.maxHP*TRAP.pitDmg);G.hp=Math.max(1,G.hp-dm);G.shake=8;SFX.hit(true);
-      if(t.type==='pit'&&Z.floor===1&&!Z.bossRoom){const th=Z.theme||'lava';enterDungeon(2,th);setTimeout(()=>toast(`🕳️ ตกหลุม! ร่วงลงมาชั้น 2 (-${dm} HP)`,3000),60);}
-      else{loadZone(makePitRoom(Z));setTimeout(()=>toast(`🕳️ ตกหลุมกับดัก! ร่วงลงห้องปิดตายที่ไม่มีทางออก (-${dm} HP)`,3400),60);}return true;}}
+      if(t.type==='deadpit'){loadZone(makePitRoom(Z));setTimeout(()=>toast(`🕳️ ตกหลุมกับดัก! ร่วงลงห้องปิดตายที่ไม่มีทางออก (-${dm} HP)`,3400),60);}
+      else if(Z.floor===1&&!Z.bossRoom){const th=Z.theme||'lava';enterDungeon(2,th);setTimeout(()=>toast(`🕳️ ตกหลุม! ร่วงลงมาชั้น 2 (-${dm} HP)`,3000),60);}
+      else{loadZone(Z);setTimeout(()=>toast(`🕳️ ตกหลุมลึก! ปีนกลับขึ้นมาที่จุดเริ่ม (-${dm} HP)`,3000),60);}return true;}}
   return false;}
 // วาดกับดัก: หลุมที่ยังไม่ตกมีรอยร้าวจาง ๆ · หลุม/หนาม/แผ่นสัญญาณที่เจอแล้วแสดงชัด
 function drawTrap(t){const x=t.tx*16+8,y=t.ty*16+9;g.save();

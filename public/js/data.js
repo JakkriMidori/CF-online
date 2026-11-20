@@ -22,8 +22,8 @@ const CONFIG={
   craftBoost:.20,           // Divine Crafting Crystal: +20 percentage points, max one per attempt, final chance capped at 100%
   craftSlots:6,
   enhanceRates:[1,.95,.90,.85,.80,.75,.70,.65,.60,.55,.50,.47,.44,.42,.40],  // โอกาสสำเร็จจาก +n ไป +n+1 (n=0..14) สูงสุด +15 · ลดลงเรื่อย ๆ ต่ำสุด 40%
-  equipExp:{maxLv:100,kill:{normal:[100,150],elite:[280,420],boss:[1000,1500]},stone:1000,
-    next(lv){if(lv>=100)return 0;if(lv<=20)return Math.round(100+(lv-1)*(200/19));if(lv<=40)return Math.round(350+(lv-21)*(250/19));if(lv<=60)return Math.round(650+(lv-41)*(350/19));if(lv<=80)return Math.round(1100+(lv-61)*(400/19));return Math.round(1600+(lv-81)*(600/18));}},
+  equipExp:{maxLv:100,maxByRar:{normal:40,rare:60,epic:80,legendary:100,god:120},kill:{normal:[100,150],elite:[280,420],boss:[1000,1500]},stone:1000,
+    next(lv,max=120){if(lv>=max)return 0;if(lv<=20)return Math.round(100+(lv-1)*(200/19));if(lv<=40)return Math.round(350+(lv-21)*(250/19));if(lv<=60)return Math.round(650+(lv-41)*(350/19));if(lv<=80)return Math.round(1100+(lv-61)*(400/19));return Math.round(1600+(Math.min(lv,100)-81)*(600/18))+(lv>100?(lv-100)*80:0);}},
   regen:{sta:24},           // stamina per second
   mana:{combatEvery:180,outEvery:90,recoveryCap:.30,costCap:.30},   // 1 MP / 3 s in combat, 1 MP / 1.5 s outside; gear bonus caps 30%
   potionCD:600,             // 10 s shared mana-potion cooldown
@@ -410,11 +410,11 @@ const MATS={
   hide:{n:'หนังสัตว์',ic:'🟫'},cheese:{n:'ชีสแข็งโป๊ก',ic:'🧀'},pan:{n:'กระทะของพ่อ',ic:'🍳',rareMat:1},cloth:{n:'ผ้าเงา',ic:'🧵'},core:{n:'แก่นหินเทพ',ic:'💠',rareMat:1,rar:'epic',desc:'แก่นศิลาโบราณ (ดรอปเฉพาะจากบอสโกเลมหิน)'},
   lavaore:{n:'แร่ลาวา',ic:'🟧'},essence:{n:'แก่นลาวาเทพ',ic:'🌟',rareMat:1,rar:'epic',desc:'แก่นเพลิงบริสุทธิ์ (ดรอปเฉพาะจากบอสราชันย์ลาวา)'},
   potion:{n:'ยาฟื้น HP',ic:'❤️',use:'potion',desc:'ฟื้น HP 40%'},
-  pot_regen:{n:'ยาฟื้นเลือดต่อเนื่อง',ic:'💖',use:'buff',rar:'rare',desc:'บัพ 20 วิ: ฟื้นฟู HP 3% ของ Max HP ทุก 1 วินาที',buff:{id:'pot_regen',dur:20,mods:[{id:'pot_regen',n:'ฟื้นเลือด 3%/วิ',kind:'buff',stat:'hotPct',op:'add',v:.03}]}},
-  pot_def:{n:'ยาเพิ่มเกราะ',ic:'🛡️',use:'buff',rar:'rare',desc:'บัพ 20 วิ: เพิ่มเกราะกายภาพ (DEF) +50',buff:{id:'pot_def',dur:20,mods:[{id:'pot_def',n:'เกราะ +50',kind:'buff',stat:'def',op:'add',v:50}]}},
-  pot_mdef:{n:'ยาเพิ่มเกราะเวท',ic:'🔮',use:'buff',rar:'rare',desc:'บัพ 20 วิ: เพิ่มเกราะเวท (M.DEF) +50',buff:{id:'pot_mdef',dur:20,mods:[{id:'pot_mdef',n:'เกราะเวท +50',kind:'buff',stat:'mdef',op:'add',v:50}]}},
-  pot_m150:{n:'ยาเพิ่ม M150',ic:'⚡',use:'buff',rar:'epic',desc:'บัพ 20 วิ: คริ +20% · ดาเมจ +20% · DEF/M.DEF +20 · ลด Max HP 10%',buff:{id:'pot_m150',dur:20,mods:[{id:'pot_m150_cr',n:'M150 คริ +20%',kind:'buff',stat:'critRate',op:'add',v:.20},{id:'pot_m150_dm',n:'M150 ดาเมจ +20%',kind:'buff',stat:'dmgPct',op:'add',v:.20},{id:'pot_m150_df',n:'M150 DEF +20',kind:'buff',stat:'def',op:'add',v:20},{id:'pot_m150_md',n:'M150 M.DEF +20',kind:'buff',stat:'mdef',op:'add',v:20},{id:'pot_m150_hp',n:'M150 MaxHP -10%',kind:'debuff',stat:'maxHP',op:'mul',v:.90}]}},
-  pot_quad:{n:'ยาเพิ่ม 4 อย่าง',ic:'🌟',use:'buff',rar:'epic',desc:'บัพ 20 วิ: เจาะเกราะ +20% · เจาะเวท +20% · คริ +20% · คริดาเมจ +20%',buff:{id:'pot_quad',dur:20,mods:[{id:'pot_quad_ap',n:'เจาะเกราะ +20%',kind:'buff',stat:'apenPct',op:'add',v:.20},{id:'pot_quad_mp',n:'เจาะเวท +20%',kind:'buff',stat:'mpenPct',op:'add',v:.20},{id:'pot_quad_cr',n:'คริ +20%',kind:'buff',stat:'critRate',op:'add',v:.20},{id:'pot_quad_cd',n:'คริดาเมจ +20%',kind:'buff',stat:'critDmg',op:'add',v:.20}]}},
+  pot_regen:{n:'ยาฟื้นเลือดต่อเนื่อง',ic:'💖',use:'buff',rar:'rare',shopOnly:1,desc:'บัพ 20 วิ: ฟื้นฟู HP 3% ของ Max HP ทุก 1 วินาที',buff:{id:'pot_regen',dur:20,mods:[{id:'pot_regen',n:'ฟื้นเลือด 3%/วิ',kind:'buff',stat:'hotPct',op:'add',v:.03}]}},
+  pot_def:{n:'ยาเพิ่มเกราะ',ic:'🛡️',use:'buff',rar:'rare',shopOnly:1,desc:'บัพ 20 วิ: เพิ่มเกราะกายภาพ (DEF) +50',buff:{id:'pot_def',dur:20,mods:[{id:'pot_def',n:'เกราะ +50',kind:'buff',stat:'def',op:'add',v:50}]}},
+  pot_mdef:{n:'ยาเพิ่มเกราะเวท',ic:'🔮',use:'buff',rar:'rare',shopOnly:1,desc:'บัพ 20 วิ: เพิ่มเกราะเวท (M.DEF) +50',buff:{id:'pot_mdef',dur:20,mods:[{id:'pot_mdef',n:'เกราะเวท +50',kind:'buff',stat:'mdef',op:'add',v:50}]}},
+  pot_m150:{n:'ยาเพิ่ม M150',ic:'⚡',use:'buff',rar:'epic',shopOnly:1,desc:'บัพ 20 วิ: คริ +20% · ดาเมจ +20% · DEF/M.DEF +20 · ลด Max HP 10%',buff:{id:'pot_m150',dur:20,mods:[{id:'pot_m150_cr',n:'M150 คริ +20%',kind:'buff',stat:'critRate',op:'add',v:.20},{id:'pot_m150_dm',n:'M150 ดาเมจ +20%',kind:'buff',stat:'dmgPct',op:'add',v:.20},{id:'pot_m150_df',n:'M150 DEF +20',kind:'buff',stat:'def',op:'add',v:20},{id:'pot_m150_md',n:'M150 M.DEF +20',kind:'buff',stat:'mdef',op:'add',v:20},{id:'pot_m150_hp',n:'M150 MaxHP -10%',kind:'debuff',stat:'maxHP',op:'mul',v:.90}]}},
+  pot_quad:{n:'ยาเพิ่ม 4 อย่าง',ic:'🌟',use:'buff',rar:'epic',shopOnly:1,desc:'บัพ 20 วิ: เจาะเกราะ +20% · เจาะเวท +20% · คริ +20% · คริดาเมจ +20%',buff:{id:'pot_quad',dur:20,mods:[{id:'pot_quad_ap',n:'เจาะเกราะ +20%',kind:'buff',stat:'apenPct',op:'add',v:.20},{id:'pot_quad_mp',n:'เจาะเวท +20%',kind:'buff',stat:'mpenPct',op:'add',v:.20},{id:'pot_quad_cr',n:'คริ +20%',kind:'buff',stat:'critRate',op:'add',v:.20},{id:'pot_quad_cd',n:'คริดาเมจ +20%',kind:'buff',stat:'critDmg',op:'add',v:.20}]}},
   mercury:{n:'ปรอท',ic:'💧',desc:'โลหะเหลวจากสไลม์ปรอท ใช้ตีไม้เท้าปรอท'},philostone:{n:'ศิลานักแปรธาตุแปรปรวน',ic:'🔮',rareMat:1,rar:'epic',desc:'ใช้ที่นักเล่นแร่แปรธาตุ: ล็อกค่าเสริม 1 ค่าไว้ตอนหลอมรวม (ดรอปเฉพาะจากบอสนักแปรธาตุที่บิดเบี้ยว)'},
   sc_merc:{n:'คัมภีร์สูตร: ไม้เท้าปรอท',ic:'📙',scroll:'mercstaff'},
   mp_s:{n:'ยามานา (เล็ก)',ic:'🧪',manaPotion:100},mp_m:{n:'ยามานา (กลาง)',ic:'🧪',manaPotion:250},
@@ -424,7 +424,7 @@ const MATS={
   cryst_durable:{n:'คริสตัลตีเหล็กคงทน',ic:'💠',booster:1,craftBoost:.10,rar:'rare',rareMat:1,shopOnly:1,desc:'เพิ่มโอกาสคราฟต์ +10% (ใช้ 1 ชิ้นต่อครั้ง · ใช้กับคราฟต์เท่านั้น)'},
   cryst_great:{n:'คริสตัลตีเหล็กดีเยี่ยม',ic:'🔷',booster:1,craftBoost:.15,rar:'epic',rareMat:1,shopOnly:1,desc:'เพิ่มโอกาสคราฟต์ +15% (ใช้ 1 ชิ้นต่อครั้ง · ใช้กับคราฟต์เท่านั้น)'},
   divine:{n:'คริสตัลตีเหล็กศักดิ์สิทธิ์',ic:'💎',booster:1,craftBoost:.20,rar:'legendary',rareMat:1,shopOnly:1,desc:'เพิ่มโอกาสคราฟต์ +20% (ใช้ 1 ชิ้นต่อครั้ง · ใช้กับคราฟต์เท่านั้น)'},
-  evostone:{n:'หินแห่งการวิวัฒน์',ic:'🌟',rareMat:1,rar:'epic',desc:'ใช้วิวัฒน์อุปกรณ์ Lv.100 และ +15 เพื่อเลื่อนระดับความหายากขึ้น 1 ขั้น'},
+  evostone:{n:'หินแห่งการวิวัฒน์',ic:'🌟',rareMat:1,rar:'epic',desc:'ใช้วิวัฒน์อุปกรณ์ที่มีเลเวลสูงสุดตามระดับ (40/60/80/100) และ +15 เพื่อเลื่อนระดับความหายากขึ้น 1 ขั้น'},
   exitscroll:{n:'คัมภีร์ทางออก',ic:'📜',use:'exit',shopOnly:1,desc:'ใช้แล้วกลับเมืองทันที (ใช้ได้เฉพาะในดันเจี้ยน)'},
   exprock:{n:'หินเสริมพลังอุปกรณ์',ic:'🪨',rareMat:1,expVal:1000,shopOnly:1,desc:'เพิ่ม EXP อุปกรณ์ +1,000 (ใช้ในหน้าอัปเลเวลอุปกรณ์)'},
   talentevo:{n:'พรสวรรค์แห่งการวิวัฒน์',ic:'✨',rar:'legendary',rareMat:1,use:'talent',shopOnly:1,desc:'ใช้เปลี่ยนพรสวรรค์ประจำตัวใหม่ (คงเลเวลและอุปกรณ์เดิมทั้งหมด)'},
@@ -444,11 +444,16 @@ const MATS={
 };
 const RUNES=['rune_atk','rune_matk','rune_def','rune_hp','rune_crit','rune_agi'];
 const SPECIAL_SHOP=[
+  {id:'pot_regen',price:700,max:5,cdH:.25,tag:'ยาบัพ 20 วิ · ฟื้นเลือด 3%/วิ'},
+  {id:'pot_def',price:800,max:5,cdH:.25,tag:'ยาบัพ 20 วิ · DEF +50'},
+  {id:'pot_mdef',price:800,max:5,cdH:.25,tag:'ยาบัพ 20 วิ · M.DEF +50'},
+  {id:'pot_m150',price:800,max:5,cdH:.25,tag:'ยาบัพ 20 วิ · M150'},
+  {id:'pot_quad',price:800,max:5,cdH:.25,tag:'ยาบัพ 20 วิ · เพิ่ม 4 อย่าง'},
   {id:'divine',price:3000,max:1,cdH:6,tag:'Legendary · คราฟต์ +20%'},
   {id:'cryst_durable',price:600,max:10,cdH:3,tag:'Rare · คราฟต์ +10%'},
   {id:'cryst_great',price:1200,max:5,cdH:3,tag:'Epic · คราฟต์ +15%'},
   {id:'evostone',price:5000,max:5,cdH:3,tag:'Evolution · ใช้วิวัฒน์อุปกรณ์'},
-  {id:'exitscroll',price:300,max:10,cdH:.5,tag:'ใช้งาน · กลับเมืองทันทีจากดันเจี้ยน'},
+  {id:'exitscroll',price:100,max:10,cdH:.5,tag:'ใช้งาน · กลับเมืองทันทีจากดันเจี้ยน'},
   {id:'exprock',price:800,max:50,cdH:.5,tag:'EXP Item · เพิ่ม EXP อาวุธ 1,000'},
   {id:'talentevo',price:3000,max:2,cdH:2.5,tag:'Legendary · เปลี่ยนพรสวรรค์'}
 ];

@@ -14,7 +14,7 @@ const rb=r=>`style="border-color:${RARC[r]}"`;
 function statLines(s){return Object.keys(s).map(k=>`<div>${STATN2[k]||k} <b>${fmtStat(k,s[k])}</b></div>`).join('');}
 function itemTip(it,cmp){
   const b=BASES[it.base],s=itemStats(it),c=cmp?itemStats(cmp):null;
-  const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),mxLv=CONFIG.equipExp.maxLv,needExp=(noCap||lv<mxLv)?Equip.expNext(lv):0;
+  const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),mxLv=Equip.capLv(it),needExp=(noCap||lv<mxLv)?Equip.expNext(lv,it):0;
   let h=`<div class="tip" style="border-color:${RARC[it.rar]}"><div class="tn" ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</div><div class="ts">${RARN[it.rar]}${it.rar==='legendary'?` LV.${it.legLv||1}/5`:''} · ${CAT_N[b.cat]||SLOTN[b.type]} · Lv.${lv}/${noCap?'∞':mxLv}${noCap||lv<mxLv?` (${it.exp||0}/${needExp} EXP)`:' (MAX)'} · iLv.${it.ilvl} · ต้องการ Lv.${it.req}${G.level<it.req?' <span class="bad">(เลเวลไม่พอ)</span>':''}</div>`;
   h+=`<div class="ts">ตีบวก <b>+${it.enh||0}</b> / +${Equip.maxEnh(it)}${it.crafted?' · <span class="good">ของ craft</span>':''} · ทุกขั้น: ค่าแบบหน่วย +${CONFIG.enhFlat} · ค่า % +${CONFIG.enhPct*100}%</div>`;
   if(b.wt)h+=`<div class="ts">ชุดท่า: ${WEAPONS[b.wt].n} · ธาตุ <span style="color:${ELC[WEAPONS[b.wt].el]}">${ELN[WEAPONS[b.wt].el]}</span></div>`;
@@ -315,7 +315,7 @@ const UI={
       +`</div>`;
     if(T==='lv')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — อัปเลเวลอุปกรณ์ <small class="dim">หินเสริมพลัง ${G.mats.exprock||0} ชิ้น (+${CONFIG.equipExp.stone} EXP)</small></h2>${ctabs}`+this.lvList();
     if(T==='enh')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — ตีบวก <small class="dim">ทอง ${G.gold} · แร่เหล็ก ${G.mats.ore||0} · สูงสุด +${CONFIG.enhanceMax}</small></h2>${ctabs}`+this.enhList();
-    if(T==='evo')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — วิวัฒน์อุปกรณ์ <small class="dim">หินวิวัฒน์ ${G.mats.evostone||0} ชิ้น · ต้อง Lv.${CONFIG.equipExp.maxLv} และ +${CONFIG.enhanceMax}</small></h2>${ctabs}`+this.evoList();
+    if(T==='evo')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — วิวัฒน์อุปกรณ์ <small class="dim">หินวิวัฒน์ ${G.mats.evostone||0} ชิ้น · ต้องเลเวลเต็มตามระดับ (40/60/80/100) และ +${CONFIG.enhanceMax}</small></h2>${ctabs}`+this.evoList();
     if(T==='rune')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — ใส่รูน <small class="dim">เลือกจากคลังรูนแล้วคลิกที่ช่องรูนของอุปกรณ์</small></h2>${ctabs}`+this.runeList();
     return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — คราฟต์ <small class="dim">สำเร็จ ${G.stats.craftOk}/${G.stats.crafts} ครั้ง · ทอง ${G.gold} · อุปกรณ์ที่คราฟต์ได้ +${CONFIG.craftEnhMin} ถึง +${CONFIG.craftEnhMax} ทันที</small></h2>${ctabs}`+
     `<div class="cgrid"><div><div class="cslots">${slots}</div>${boost}<div class="carrow">↓</div>${prev}
@@ -347,7 +347,7 @@ const UI={
     const keeper = isGuildShop ? 'คลังเสบียงกิลด์ (ทริสตัน)' : 'ร้านค้ามาร์คัส';
     const quote = isGuildShop ? 'เตรียมยาและเสบียงให้พร้อมก่อนรับภารกิจจากกระดานเควสต์!' : 'ยินดีต้อนรับสู่ร้านค้าคอลลาวาร์รี ซื้อเสบียงหรือนำของจากถ้ำมาขายให้ข้าได้เลย!';
     const head=`<h2>${ico('coin',22)} ${keeper} <small class="dim">ทอง ${G.gold}</small></h2><p class="dim" style="margin:2px 0 8px">"${quote}"</p><div class="acts">${tab('buy','ซื้อ')}${tab('sell','ขาย')}</div>`;
-    if(T==='buy'){const items=[['mp_s',50],['mp_m',90],['mp_l',170],['mp_x',340],['potion',300],['pot_regen',700],['pot_def',800],['pot_mdef',800],['pot_m150',800],['pot_quad',800]];
+    if(T==='buy'){const items=[['mp_s',50],['mp_m',90],['mp_l',170],['mp_x',340],['potion',300]];
       const spec=SPECIAL_SHOP.map(def=>{
         const id=def.id,st=SpecialShop.state(id),m=MATS[id]||{n:id,d:''},mr=matRar(id);
         const cdTxt=st.cdMs>0?` · รีสต็อก ${SpecialShop.fmtCD(st.cdMs)}`:'';
@@ -387,11 +387,11 @@ const UI={
     const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
     const stones=G.mats.exprock||0;
     return`<div class="flist">`+(list.map(it=>{
-      const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),mx=!noCap&&lv>=CONFIG.equipExp.maxLv,need=mx?0:Equip.expNext(lv),pctExp=mx?100:Math.min(100,(it.exp||0)/Math.max(1,need)*100);
+      const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),cap=Equip.capLv(it),mx=!noCap&&lv>=cap,need=mx?0:Equip.expNext(lv,it),pctExp=mx?100:Math.min(100,(it.exp||0)/Math.max(1,need)*100);
       return`<div class="frow" style="border-color:${RARC[it.rar]}66">
         <div class="frow-main"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,20)}</span>
           <div><div ${rc(it.rar)}><b>${itemName(it)}</b>${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
-            <div class="dim">${RARN[it.rar]} · Lv.${lv}/${noCap?'∞':CONFIG.equipExp.maxLv}${mx?' (MAX)':` · EXP ${it.exp||0}/${need} (${Math.floor(pctExp)}%)`}</div></div>
+            <div class="dim">${RARN[it.rar]} · Lv.${lv}/${noCap?'∞':cap}${mx?' (MAX)':` · EXP ${it.exp||0}/${need} (${Math.floor(pctExp)}%)`}</div></div>
         </div>
         <div class="frow-act">${mx?'<span class="good">MAX</span>':`<button class="btn sm" data-exprock="${it.uid}" ${stones>0?'':'disabled'}>⬆ +${CONFIG.equipExp.stone} EXP (หิน ×1)</button>`}</div>
       </div>`;
@@ -416,8 +416,8 @@ const UI={
     const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
     const stones=G.mats.evostone||0;
     return`<div class="flist">`+(list.map(it=>{
-      const ri=RARS.indexOf(it.rar),nextR=ri<RARS.length-1?RARS[ri+1]:null,lv=it.lv||1,enh=it.enh||0;
-      const lvOk=lv>=CONFIG.equipExp.maxLv,enhOk=enh>=CONFIG.enhanceMax,canEvo=Equip.canEvolve(it)&&stones>0;
+      const ri=RARS.indexOf(it.rar),nextR=ri<RARS.length-1?RARS[ri+1]:null,lv=it.lv||1,enh=it.enh||0,reqLv=Equip.capLv(it);
+      const lvOk=lv>=reqLv,enhOk=enh>=CONFIG.enhanceMax,canEvo=Equip.canEvolve(it)&&stones>0;
       const evoBtn=nextR?`<button class="btn sm" data-evolve="${it.uid}" ${canEvo?'':'disabled'}>🌟 วิวัฒน์ → ${RARN[nextR]}</button>`:`<span class="good">ระดับสูงสุด (${RARN[it.rar]})</span>`;
       const lc=Equip.legUpgradeCost(it),canLeg=lc&&lc.mats.every(k=>Inv.has(k,lc.q));
       const legLine=it.rar==='legendary'?`<div class="frow-sub">${lc?`<span class="dim">อัปเกรดตำนาน LV.${lc.lv}→${lc.next}/5 (บอส 4 ชนิด ชิ้นละ ×${lc.q}: ${lc.mats.map(k=>`${MATS[k].n} ${G.mats[k]||0}/${lc.q}`).join(', ')})</span><button class="btn sm" data-legup="${it.uid}" ${canLeg?'':'disabled'}>★ อัปเกรดตำนาน LV.${lc.next}/5</button>`:`<span class="good">★ อัปเกรดตำนานเต็ม LV.5/5 (MAX)</span>`}</div>`:'';
@@ -425,7 +425,7 @@ const UI={
         <div class="frow-top">
           <div class="frow-main"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,20)}</span>
             <div><div ${rc(it.rar)}><b>${itemName(it)}</b>${it.rar==='legendary'?` <small class="tu">[LV.${it.legLv||1}/5]</small>`:''}${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
-              <div class="dim">เงื่อนไขวิวัฒน์: <span class="${lvOk?'good':'bad'}">Lv.${lv}/${CONFIG.equipExp.maxLv}</span> · <span class="${enhOk?'good':'bad'}">+${enh}/${CONFIG.enhanceMax}</span> · <span class="${stones>0?'good':'bad'}">หินวิวัฒน์ ${stones}/1</span></div></div>
+              <div class="dim">เงื่อนไขวิวัฒน์: <span class="${lvOk?'good':'bad'}">Lv.${lv}/${reqLv}</span> · <span class="${enhOk?'good':'bad'}">+${enh}/${CONFIG.enhanceMax}</span> · <span class="${stones>0?'good':'bad'}">หินวิวัฒน์ ${stones}/1</span></div></div>
           </div>
           <div class="frow-act">${evoBtn}</div>
         </div>${legLine}

@@ -135,10 +135,10 @@ function calcDamage(A,T,h){
   if(h.mastery)mods.mastery=1+h.mastery;
   if(h.execute)mods.execute=1.3;
   if(h.berserk)mods.berserk=1+h.berserk;
-  if(h.lvDiff){const st=Math.floor(Math.abs(h.lvDiff)/5);if(st>0){
-    const lm=h.lvDiff<0?(h.isP?Math.max(.70,1-st*.03):Math.max(.75,1-st*.02)):(h.isP?Math.min(1.30,1+st*.02):Math.min(1.30,1+st*.025));
-    if(lm!==1)mods.lvDiff=lm;
-  }}
+  if(h.lvDiff&&Math.abs(h.lvDiff)>=5){const gap=Math.abs(h.lvDiff);
+    const lm=h.lvDiff<0?Math.max(h.isP?.05:.15,1/(1+Math.pow((gap-4)/14,1.6))):(h.isP?Math.min(1.80,1+(gap-4)/18*.30):Math.min(3.00,1+(gap-4)/18*.45));
+    mods.lvDiff=Math.round(lm*1000)/1000;
+  }
   for(const k in mods)dmg*=mods[k];
   const dr=h.trueDmg?0:Math.min(CONFIG.drCap,(T.dr||0)+(T.buffDr||0));dmg*=1-dr;
   return{dmg:Math.max(1,Math.round(dmg)),crit,mods,dr,res,defUsed,base:Math.round(base)};
@@ -246,20 +246,23 @@ const Equip={
     if(ok)it.enh++;else if(it.enh>0)it.enh--;
     if(typeof StatSync!=='undefined')StatSync.invalidate('enh');
     return{ok,rate,msg:ok?`ตีบวกสำเร็จ! → +${it.enh}`:(prev>0?`ตีบวกล้มเหลว! ระดับลดลง 1 → +${it.enh}`:'ตีบวกล้มเหลว (ยังคง +0 · เสียทองและแร่)')};},
-  expNext(lv){lv=lv||1;if(lv>=CONFIG.equipExp.maxLv)return hasNoMaxLv()?Math.round(2200+(lv-100)*80):0;return CONFIG.equipExp.next(lv);},
-  gainExp(it,amt){if(!it)return 0;it.lv=Math.max(1,Number(it.lv)||1);it.exp=Math.max(0,Number(it.exp)||0);const mx=hasNoMaxLv()?Infinity:CONFIG.equipExp.maxLv;if(it.lv>=mx)return 0;
+  capLv(it){return(CONFIG.equipExp.maxByRar&&it&&CONFIG.equipExp.maxByRar[it.rar])||CONFIG.equipExp.maxLv;},
+  maxLv(it){return hasNoMaxLv()?Infinity:this.capLv(it);},
+  expNext(lv,it){lv=lv||1;const cap=it?this.capLv(it):CONFIG.equipExp.maxLv;if(lv>=cap)return hasNoMaxLv()?CONFIG.equipExp.next(lv,Infinity):0;return CONFIG.equipExp.next(lv,cap);},
+  gainExp(it,amt){if(!it)return 0;it.lv=Math.max(1,Number(it.lv)||1);it.exp=Math.max(0,Number(it.exp)||0);const mx=this.maxLv(it);if(it.lv>=mx)return 0;
     const mul=1+((G.talent&&TALENT_PASSIVE[G.talent]&&TALENT_PASSIVE[G.talent].eqXpMul)||0);
-    it.exp+=Math.round(amt*mul);let ups=0;while(it.lv<mx&&it.exp>=this.expNext(it.lv)){const n=this.expNext(it.lv);if(n<=0)break;it.exp-=n;it.lv++;ups++;}
+    it.exp+=Math.round(amt*mul);let ups=0;while(it.lv<mx&&it.exp>=this.expNext(it.lv,it)){const n=this.expNext(it.lv,it);if(n<=0)break;it.exp-=n;it.lv++;ups++;}
     if(it.lv>=mx)it.exp=0;if(ups&&typeof StatSync!=='undefined')StatSync.invalidate('equipLv');return ups;},
-  useExpStone(it){if(!it)return{ok:false,msg:'ไม่พบอุปกรณ์'};if(!hasNoMaxLv()&&(it.lv||1)>=CONFIG.equipExp.maxLv)return{ok:false,msg:'อุปกรณ์เลเวลเต็ม Lv.100 แล้ว'};
+  useExpStone(it){if(!it)return{ok:false,msg:'ไม่พบอุปกรณ์'};const mx=this.maxLv(it);if(mx!==Infinity&&(it.lv||1)>=mx)return{ok:false,msg:`อุปกรณ์เลเวลเต็ม Lv.${mx} แล้ว`};
     if(!Inv.has('exprock',1))return{ok:false,msg:'ไม่มีหินเสริมพลังอุปกรณ์'};Inv.take('exprock',1);
     const ups=this.gainExp(it,CONFIG.equipExp.stone);return{ok:true,ups,msg:`+${CONFIG.equipExp.stone} EXP${ups?` → อัปเป็น Lv.${it.lv}!`:''}`};},
-  canEvolve(it){return!!it&&(it.lv||1)>=CONFIG.equipExp.maxLv&&(it.enh||0)>=CONFIG.enhanceMax&&RARS.indexOf(it.rar)<RARS.length-1;},
+  canEvolve(it){return!!it&&(it.lv||1)>=this.capLv(it)&&(it.enh||0)>=CONFIG.enhanceMax&&RARS.indexOf(it.rar)<RARS.length-1;},
   evolve(it){if(!it)return{ok:false,msg:'ไม่พบอุปกรณ์'};
     const ri=RARS.indexOf(it.rar);if(ri<0||ri>=RARS.length-1)return{ok:false,msg:'ระดับความหายากสูงสุดแล้ว (God)'};
-    if((it.lv||1)<CONFIG.equipExp.maxLv||(it.enh||0)<CONFIG.enhanceMax)return{ok:false,msg:'ต้องเลเวลอุปกรณ์ Lv.100 และตีบวก +15 ก่อนวิวัฒน์'};
+    const reqLv=this.capLv(it);
+    if((it.lv||1)<reqLv||(it.enh||0)<CONFIG.enhanceMax)return{ok:false,msg:`ต้องเลเวลอุปกรณ์ Lv.${reqLv} และตีบวก +15 ก่อนวิวัฒน์`};
     if(!Inv.has('evostone',1))return{ok:false,msg:'ต้องใช้หินแห่งการวิวัฒน์ 1 ก้อน'};
-    Inv.take('evostone',1);const nextRar=RARS[ri+1];it.rar=nextRar;it.lv=Math.max(it.lv||1,CONFIG.equipExp.maxLv);it.enh=CONFIG.enhanceMax;
+    Inv.take('evostone',1);const nextRar=RARS[ri+1];it.rar=nextRar;it.lv=Math.max(it.lv||1,reqLv);it.enh=CONFIG.enhanceMax;
     const targetS=RARITY[nextRar].sockets;it.sockets=Array.isArray(it.sockets)?it.sockets.slice(0,targetS):[];while(it.sockets.length<targetS)it.sockets.push(null);
     if(RARITY[nextRar].uniq&&!it.uniq)it.uniq=pick(Object.keys(PASSIVES[RARITY[nextRar].uniq]));
     if(typeof StatSync!=='undefined')StatSync.invalidate('evolve');return{ok:true,rar:nextRar,msg:`✨ วิวัฒน์สำเร็จ! → ระดับ ${RARN[nextRar]} (ปลดล็อกช่องรูน ${targetS} ช่อง)`};},

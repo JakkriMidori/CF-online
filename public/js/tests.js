@@ -385,18 +385,18 @@ function runTests(){
       const d=p.mana===2&&p.mp>10&&G.mats.mp_s===2;G.vsNet='host';const s=Net.snap();const f=s.p.mp===Math.round(p.mp)&&s.p.fk===3&&s.p.mn===2;
       BT=null;G.mode='explore';return{ok:a&&c&&d&&f,info:`revive=${a} noTalent=${c} mana=${d} snap=${f}`};}
     finally{G.talent=g0;G.mats.mp_s=m0;G.vsNet=vn;if(BT&&BT.vs){BT=null;G.mode='explore';}}});
-  T('V25-2) ระบบใหม่: ช่องรูน 1-5 ตามระดับ, เลเวลอุปกรณ์ 100, ตีบวก +15, วิวัฒน์ และร้านค้าพิเศษ',()=>{
+  T('V25-2) ระบบใหม่: ช่องรูน 1-5 ตามระดับ, เลเวลอุปกรณ์ตามระดับ (40/60/80/100/120), ตีบวก +15, วิวัฒน์ และร้านค้าพิเศษ',()=>{
     const sockOk=RARITY.normal.sockets===1&&RARITY.rare.sockets===2&&RARITY.epic.sockets===3&&RARITY.legendary.sockets===4&&RARITY.god.sockets===5;
     const it=newItem('w_sword','normal',5);
     const gm=JSON.stringify(G.mats),gg=G.gold,gs=JSON.stringify(G.shopCD||{});
     try{
       G.mats.exprock=200;G.mats.evostone=1;G.mats.rune_atk=1;G.mats.cryst_durable=1;G.gold=999999;G.shopCD={};
-      while(it.lv<100)Equip.useExpStone(it);
+      while(it.lv<Equip.capLv(it))Equip.useExpStone(it);
       it.enh=15;
       const canEvo=Equip.canEvolve(it),evoRes=Equip.evolve(it);
       const sockRes=Equip.socketRune(it,0,'rune_atk'),st=itemStats(it),unsockRes=Equip.unsocketRune(it,0);
       const shopRes=SpecialShop.buy('exprock');
-      return{ok:sockOk&&it.lv===100&&canEvo&&evoRes.ok&&it.rar==='rare'&&sockRes.ok&&st.atk>0&&unsockRes.ok&&G.mats.rune_atk===1&&shopRes.ok&&!('bosstoken' in MATS),
+      return{ok:sockOk&&it.lv===40&&canEvo&&evoRes.ok&&it.rar==='rare'&&sockRes.ok&&st.atk>0&&unsockRes.ok&&G.mats.rune_atk===1&&shopRes.ok&&!('bosstoken' in MATS),
         info:`sock=${sockOk} lv=${it.lv} evo=${evoRes.ok}->${it.rar} rune=${sockRes.ok}/${unsockRes.ok} shop=${shopRes.ok}`};
     }finally{G.mats=JSON.parse(gm);G.gold=gg;G.shopCD=JSON.parse(gs);}});
   T('V26-1) bbqy: สะท้อน 20% · ดาบ bbqy ตำนาน +ทุกสเตต 10 · โอกาสโกลาหล 20% · โกลาหล 4 วิ ติดซ้ำไม่ได้',()=>{
