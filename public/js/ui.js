@@ -175,7 +175,7 @@ const UI={
   matDet(k){
     if(!k||!MATS[k]||!(G.mats[k]>0))return'<div class="dim">คลิกเลือกรายการทางซ้ายเพื่อดูรายละเอียด</div>';
     const m=MATS[k],mr=matRar(k),usable=m.scroll||m.use||m.manaPotion;
-    const cat=m.key?'ของสำคัญ':m.use==='learn'?'ตำราสกิล':m.scroll?'คัมภีร์สูตรตีเหล็ก':m.rune?'รูนสวมใส่':m.booster?'คริสตัลเสริมคราฟต์':m.manaPotion||m.use==='potion'?'ยาฟื้นฟู':m.use?'ไอเทมใช้งาน':'วัตถุดิบ';
+    const cat=m.key?'ของสำคัญ':m.use==='learn'?'ตำราสกิล':m.scroll?'คัมภีร์สูตรตีเหล็ก':m.rune?'รูนสวมใส่':m.booster?'คริสตัลเสริมคราฟต์':m.use==='buff'?'ยาบัพ':m.manaPotion||m.use==='potion'?'ยาฟื้นฟู':m.use?'ไอเทมใช้งาน':'วัตถุดิบ';
     let lines=[];
     if(m.desc)lines.push(m.desc);
     if(m.manaPotion)lines.push(`ฟื้นฟู MP +${m.manaPotion} (ใช้จากกระเป๋า หรือกด [R] ในการต่อสู้ · คูลดาวน์ 10 วิ)`);
@@ -344,7 +344,7 @@ const UI={
     const keeper = isGuildShop ? 'คลังเสบียงกิลด์ (ทริสตัน)' : 'ร้านค้ามาร์คัส';
     const quote = isGuildShop ? 'เตรียมยาและเสบียงให้พร้อมก่อนรับภารกิจจากกระดานเควสต์!' : 'ยินดีต้อนรับสู่ร้านค้าคอลลาวาร์รี ซื้อเสบียงหรือนำของจากถ้ำมาขายให้ข้าได้เลย!';
     const head=`<h2>${ico('coin',22)} ${keeper} <small class="dim">ทอง ${G.gold}</small></h2><p class="dim" style="margin:2px 0 8px">"${quote}"</p><div class="acts">${tab('buy','ซื้อ')}${tab('sell','ขาย')}</div>`;
-    if(T==='buy'){const items=[['mp_s',50],['mp_m',90],['mp_l',170],['mp_x',340],['potion',300]];
+    if(T==='buy'){const items=[['mp_s',50],['mp_m',90],['mp_l',170],['mp_x',340],['potion',300],['pot_regen',700],['pot_def',800],['pot_mdef',800],['pot_m150',800],['pot_quad',800]];
       const spec=SPECIAL_SHOP.map(def=>{
         const id=def.id,st=SpecialShop.state(id),m=MATS[id]||{n:id,d:''},mr=matRar(id);
         const cdTxt=st.cdMs>0?` · รีสต็อก ${SpecialShop.fmtCD(st.cdMs)}`:'';
@@ -1166,12 +1166,12 @@ function statusIcons(f,x,y,right){
   if(f.vanishT>0)good.push(Object.assign(sg('vanish','💨','#bff0ff'),{lbl:`หายตัว ${(f.vanishT/60).toFixed(1)}วิ`,pct:clamp(f.vanishT/180,0,1)}));
   if(f.fireShieldT>0)good.push(Object.assign(sg('fireShield','🔥','#ff8a3a'),{lbl:`เกราะเพลิง ${(f.fireShieldT/60).toFixed(1)}วิ`,pct:clamp(f.fireShieldT/600,0,1)}));
   if(f.stunImm>0&&!(f.st8&&f.st8.stun))good.push(Object.assign(sg('stunImm','🔰','#7af0c0'),{lbl:`ต้านมึน ${(f.stunImm/60).toFixed(1)}วิ`,pct:clamp(f.stunImm/180,0,1)}));
-  if((f.reviveN||0)>0&&f.invuln>0)good.push(Object.assign(sg('armorBuff','🛡️','#ff9aff'),{lbl:`อมตะ ${(f.invuln/60).toFixed(1)}วิ`,pct:clamp(f.invuln/180,0,1)}));
+  if(f.invuln>30||(f.reviveN||0)>0&&f.invuln>0)good.push(Object.assign(sg('armorBuff','🛡️','#ff9aff'),{lbl:`อมตะ ${(f.invuln/60).toFixed(1)}วิ`,pct:clamp(f.invuln/180,0,1)}));
   if(f.rootT>0)bad.push(Object.assign(sg('freeze','⛓️','#8ef2ff'),{lbl:`แช่ขยับไม่ได้ ${(f.rootT/60).toFixed(1)}วิ`,pct:clamp(f.rootT/240,0,1)}));
 
   for(const s of Status.list(f)){
     const extra=s.k==='freeze'?` ${s.hits||0}/5`:s.stacks>1?'×'+s.stacks:'';
-    bad.push(Object.assign(sg(s.k,STI[s.k],STC[s.k]),{lbl:`${STN[s.k]}${extra} ${(s.t/60).toFixed(1)}วิ`,pct:clamp(s.t/(s.k==='freeze'?480:CONFIG.statusDur),0,1)}));
+    bad.push(Object.assign(sg(s.k,STI[s.k],STC[s.k]),{lbl:`${STN[s.k]}${extra} ${(s.t/60).toFixed(1)}วิ`,pct:clamp(s.t/(s.k==='freeze'?480:s.k==='chaos'?240:CONFIG.statusDur),0,1)}));
   }
   if(f.rootT>0)bad.push(Object.assign(sg('root','⛓','#ffd23a'),{lbl:`ล็อคขา ${(f.rootT/60).toFixed(1)}วิ`,pct:clamp(f.rootT/180,0,1)}));
   if(f.penalty>0)bad.push(Object.assign(sg('penalty','⚠','#ff9a5a'),{lbl:`เสียหลัก ${(f.penalty/60).toFixed(1)}วิ`,pct:clamp(f.penalty/120,0,1)}));

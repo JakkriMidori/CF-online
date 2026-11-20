@@ -85,7 +85,7 @@ const TRAP={near:64,pitDmg:.08,spikeDmg:.10,spikeCD:90};
 function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/2.4);
   const far=(x,y)=>props.every(o=>Math.hypot(o.x-(x*16+8),o.y-(y*16+8))>(o.inter?TRAP.near:24))&&items.every(i=>Math.hypot(i.x-(x*16+8),i.y-(y*16+8))>20)&&Math.hypot(x*16-16,y*16-9*16)>TRAP.near*1.5;
   for(let k=0,tries=0;k<n&&tries<1500;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<3))continue;
-    const r=rand(),type=r<.45&&y!==8&&y!==9?'pit':r<.82?'spike':'alarm';out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
+    const r=rand(),type=r<.25&&y!==8&&y!==9?'pit':r<.48&&y!==8&&y!==9?'deadpit':r<.82?'spike':'alarm';out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
   return out;}
 function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge&&!d.passive&&!d.immortal;}
 // ย้ายศัตรูที่ซ่อนอยู่/ไม่ใช่บอส ให้ห่างประตู ทางออก บันได และจุดเกิด (แก้ปัญหามอนดักหน้าประตู)
@@ -142,6 +142,15 @@ function makeBossRoom(kind){
   const props=[{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town',locked:1,need},{k:'portal',...T(27,9,8,10),hw:6,inter:'portal',locked:1,need}];
   const wait=bossLeft(kind)>0;if(wait)for(const pr of props)pr.locked=0;
   return{id:R.id,grid,spawn:T(2,9),levelAt:()=>ZONE_INFO[R.id].lv,regionAt:()=>R.id,biomeAt:()=>R.biome,props,items:[],npcs:[],foes:wait?[]:[mkFoe(kind,T(22,9,8,6),{cool:100})],lavaTiles:[],floor:3,theme:R.theme,bossRoom:kind,cleared:wait?1:0,bossWait:wait?kind:null};
+}
+/* ห้องหลุมกับดักปิดตาย: ไม่มีมอนสเตอร์ ไม่มีของ และไม่มีทางออก */
+function makePitRoom(srcZ){
+  const grid=[];for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
+  for(let y=6;y<=11;y++)for(let x=10;x<=19;x++)grid[y][x]='.';
+  for(let x=10;x<=19;x++)grid[5][x]=x%4===2?'^':'#';
+  const bm=(srcZ&&srcZ.biomeAt)?srcZ.biomeAt(0):'cave',th=(srcZ&&srcZ.theme)||'stone',lv=(srcZ&&srcZ.levelAt)?srcZ.levelAt(0):1;
+  return{id:'pitroom',title:'🕳️ หลุมลึกปิดตาย (ไม่มีทางออก)',pitRoom:1,grid,cols:30,rows:17,spawn:T(15,9),levelAt:()=>lv,regionAt:()=>'pitroom',biomeAt:()=>bm==='town'||bm==='interior'?'cave':bm,
+    props:[],items:[],npcs:[],foes:[],traps:[],lavaTiles:[],floor:(srcZ&&srcZ.floor)||1,theme:th};
 }
 function makeSanctum(){return makeBossRoom('seraph');}
 function enterBossRoom(kind){if(bossLeft(kind)>0){loadZone(makeBossRoom(kind));toast(`⏳ ${FOES[kind].n} ยังไม่เกิดใหม่ — อีก ${fmtLeft(bossLeft(kind))}`,3000);return;}loadZone(makeBossRoom(kind));G.shake=6;SFX.hit(true);toast(`⚔️ ${ZONE_INFO[BOSS_ROOMS[kind].id].n} — ประตูถูกผนึก! ชนะหรือตายเท่านั้น`,3500);}
@@ -350,7 +359,7 @@ function enterSpire(floor=1){
 const World={
   serialize(){const c=CAVE,inInt=Z&&Z.interior,inSp=Z&&Z.theme==='spire',rz=inInt?(Z.retZone&&Z.retZone.id==='city'?'city':'town'):null,rp=inInt?(Z.retPos||TOWN.spawn):null;
     return{rubble:c.rubbleOpen,items:c.items.map(i=>!!i.taken),chests:c.props.map(p=>!!p.opened),
-    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inInt?rz:Z&&(Z.id==='town'||Z.bossRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?T(9,28,8,8):inInt?rp:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
+    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inInt?rz:Z&&(Z.id==='town'||Z.bossRoom||Z.pitRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?T(9,28,8,8):inInt?rp:Z&&(Z.bossRoom||Z.pitRoom)?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
   restore(d){CAVE=makeCave();TOWN=makeTown();if(typeof OW!=='undefined'){OVERWORLD=OW.make();CITY=OW.makeCity();}if(d){CAVE.rubbleOpen=d.rubble;if(d.rubble){CAVE.grid[8][19]='.';CAVE.grid[9][19]='.';}
     d.items.forEach((t,i)=>{if(CAVE.items[i])CAVE.items[i].taken=t;});d.chests.forEach((o,i)=>{if(CAVE.props[i])CAVE.props[i].opened=o;});
     d.foes.forEach((f,i)=>{const e=CAVE.foes[i];if(e){e.alive=f.alive;e.elite=f.elite;e.respawn=f.respawn||0;if(!e.alive&&e.respawnable&&!e.respawn)e.respawn=CONFIG.respawnFrames;}});G.visited=d.visited||{};}
@@ -602,13 +611,13 @@ function checkTraps(){const tx=Math.floor(P.x/16),ty=Math.floor((P.y-2)/16),S=St
   for(const t of Z.traps){if(t.cd>0)t.cd--;if(t.tx!==tx||t.ty!==ty||t.cd>0)continue;
     if(t.type==='spike'){t.seen=1;t.cd=TRAP.spikeCD;const dm=Math.round(S.maxHP*TRAP.spikeDmg);G.hp=Math.max(1,G.hp-dm);G.shake=5;SFX.hit(false);EP.push({x:P.x,y:P.y-14,vx:0,vy:-.4,l:40,c:'#ff6a5a'});toast(`🗡️ กับดักหนาม! -${dm} HP`,1800);return false;}
     if(t.type==='alarm'){t.seen=1;t.cd=99999;const pool=Z.foes.filter(f=>f.alive&&f.hidden);toast('🔔 เหยียบแผ่นสัญญาณ — ศัตรูได้ยินเสียง!',2200);if(pool.length){encounter(pick(pool));return true;}return false;}
-    if(t.type==='pit'){t.seen=1;t.cd=99999;const dm=Math.round(S.maxHP*TRAP.pitDmg);G.hp=Math.max(1,G.hp-dm);G.shake=8;SFX.hit(true);
-      if(Z.floor===1&&!Z.bossRoom){const th=Z.theme||'lava';enterDungeon(2,th);setTimeout(()=>toast(`🕳️ ตกหลุม! ร่วงลงมาชั้น 2 (-${dm} HP)`,3000),60);}
-      else{loadZone(Z);setTimeout(()=>toast(`🕳️ ตกหลุมลึก! ปีนกลับขึ้นมาที่จุดเริ่ม (-${dm} HP)`,3000),60);}return true;}}
+    if(t.type==='pit'||t.type==='deadpit'){t.seen=1;t.cd=99999;const dm=Math.round(S.maxHP*TRAP.pitDmg);G.hp=Math.max(1,G.hp-dm);G.shake=8;SFX.hit(true);
+      if(t.type==='pit'&&Z.floor===1&&!Z.bossRoom){const th=Z.theme||'lava';enterDungeon(2,th);setTimeout(()=>toast(`🕳️ ตกหลุม! ร่วงลงมาชั้น 2 (-${dm} HP)`,3000),60);}
+      else{loadZone(makePitRoom(Z));setTimeout(()=>toast(`🕳️ ตกหลุมกับดัก! ร่วงลงห้องปิดตายที่ไม่มีทางออก (-${dm} HP)`,3400),60);}return true;}}
   return false;}
 // วาดกับดัก: หลุมที่ยังไม่ตกมีรอยร้าวจาง ๆ · หลุม/หนาม/แผ่นสัญญาณที่เจอแล้วแสดงชัด
 function drawTrap(t){const x=t.tx*16+8,y=t.ty*16+9;g.save();
-  if(t.type==='pit'){if(t.seen){g.fillStyle='#050304';g.beginPath();g.ellipse(x,y,7.5,5,0,0,7);g.fill();g.strokeStyle='rgba(120,100,80,.8)';g.lineWidth=1;g.beginPath();g.ellipse(x,y-.5,7.8,5.2,0,Math.PI,0);g.stroke();}
+  if(t.type==='pit'||t.type==='deadpit'){if(t.seen){g.fillStyle='#050304';g.beginPath();g.ellipse(x,y,7.5,5,0,0,7);g.fill();g.strokeStyle='rgba(120,100,80,.8)';g.lineWidth=1;g.beginPath();g.ellipse(x,y-.5,7.8,5.2,0,Math.PI,0);g.stroke();}
     else{g.strokeStyle='rgba(20,14,10,.42)';g.lineWidth=.7;g.beginPath();g.moveTo(x-6,y-1);g.lineTo(x-2,y+1);g.lineTo(x+1,y-2);g.lineTo(x+6,y+1);g.moveTo(x-2,y+1);g.lineTo(x-3,y+4);g.moveTo(x+1,y-2);g.lineTo(x+2,y-4);g.stroke();}}
   else if(t.seen&&t.type==='spike'){g.fillStyle='rgba(30,26,30,.6)';g.fillRect(x-7,y-4,14,8);for(let i=0;i<4;i++)for(let j=0;j<2;j++){const sx=x-5+i*3.4,sy=y-1+j*3.5;g.fillStyle='#b8bcc8';g.beginPath();g.moveTo(sx-1.2,sy);g.lineTo(sx,sy-3.5);g.lineTo(sx+1.2,sy);g.fill();g.fillStyle='#5a5e6a';g.fillRect(sx,sy-3,1,3);}}
   else if(t.seen&&t.type==='alarm'){g.fillStyle='#5a4a3a';g.fillRect(x-6,y-3,12,6);g.fillStyle='#c8a050';g.fillRect(x-4,y-2,8,4);}
@@ -652,6 +661,7 @@ function updFolk(){
 }
 function updExplore(){
   StatSync.frame('P');   // นับเวลาบัฟ/ดีบัฟนอกการต่อสู้
+  {const S=StatSync.get();if(G.t%60===0&&(S.hotPct||0)>0&&G.hp>0&&G.hp<S.maxHP){G.hp=Math.min(S.maxHP,G.hp+Math.max(1,Math.round(S.maxHP*S.hotPct)));UI.hud&&UI.hud();}}
   if(Z.puddles&&G.t%30===0){const k=Math.floor(P.x/16)+','+Math.floor((P.y-2)/16),t=Z.puddles[k];   // แอ่งน้ำยาในหอคอย
     if(t){const S=StatSync.get();if(t==='poison'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.03));toast('🧪 แอ่งพิษ — HP ลดลง',900);}
       else if(t==='burn'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.05));toast('🔥 แอ่งเพลิง — HP ลดลง',900);}
@@ -1054,7 +1064,7 @@ function drawExplore(){
     g.fillStyle=`rgba(255,60,40,${.35+p*.2})`;g.fillRect(x-1,y-14-p*2,2,12);if(G.t%6===0)EP.push({x:x+rnd(-5,5),y:y-2,vx:0,vy:-.4,l:30,c:'#ff4a3a'});}});
   for(const n of Z.folk||[])list.push({x:n.x,y:n.y,f:()=>{n._K=n._K||palLook(n.pal,n.id);drawWalker(n.x,n.y,n.face,n._K,n.mv,G.t*.22,n.x|0,null,'folk_'+((parseInt(String(n.id).replace(/\D/g,''))||0)%4+1),n.mv?(Math.abs(n.vy||0)>Math.abs(n.vx||0)?(n.vy>0?'down':'up'):(n.face<0?'left':'right')):'down');}});
   for(const n of Z.npcs)list.push({x:n.x,y:n.y,f:()=>{n.face=P.x<n.x?-1:1;n._K=n._K||palLook(PAL[n.pal],n.id);drawWalker(n.x,n.y,n.face,n._K,0,0,n.x|0,null,'npc_'+n.id,Math.abs(P.y-n.y)>Math.abs(P.x-n.x)?(P.y>n.y?'down':'up'):(n.face<0?'left':'right'));}});
-  for(const t of Z.traps||[])if(t.seen||t.type==='pit')list.push({x:t.tx*16+8,y:t.ty*16+1,f:()=>drawTrap(t)});
+  for(const t of Z.traps||[])if(t.seen||t.type==='pit'||t.type==='deadpit')list.push({x:t.tx*16+8,y:t.ty*16+1,f:()=>drawTrap(t)});
   for(const e of Z.foes)if(e.alive&&!e.hidden)list.push({x:e.x,y:e.y,f:()=>{const d=FOES[e.kind];
     if(e.elite&&G.t%4===0)EP.push({x:e.x+rnd(-6,6),y:e.y-rnd(2,12),vx:0,vy:-.3,l:16,c:'#ffd23a'});
     const mh=(SPR[d.map]||GOLEM).length,mt=e.cool>0&&G.t%8<4?'#ffffff':null;

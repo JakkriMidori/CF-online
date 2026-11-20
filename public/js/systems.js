@@ -15,14 +15,14 @@ const ATTRN={str:'STR',agi:'AGI',int:'INT',vit:'VIT',luk:'LUK'};
 const itemByUid=u=>G.bag.find(i=>i.uid===u);
 const equipped=()=>SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean);
 function itemStats(it){
-  const b=BASES[it.base],R=RARITY[it.rar],lm=1+.1*(it.ilvl-1),lvm=1+.015*((it.lv||1)-1),legm=it.rar==='legendary'?1+.15*((it.legLv||1)-1):1,s={};
+  const b=BASES[it.base],R=RARITY[it.rar],lm=1+.1*(it.ilvl-1),lvm=1+.0075*((it.lv||1)-1),legm=it.rar==='legendary'?1+.15*((it.legLv||1)-1):1,s={};
   const add=(k,v)=>s[k]=(s[k]||0)+v;
   if(b.atk)add('watk',Math.round(b.atk*R.mult*lm*lvm*legm));if(b.matk)add('wmatk',Math.round(b.matk*R.mult*lm*lvm*legm));
   if(b.def)add('def',Math.round(b.def*R.mult*lm*lvm*legm));if(b.mdef)add('mdef',Math.round(b.mdef*R.mult*lm*lvm*legm));
   if(b.implicit)for(const k in b.implicit)add(k,b.implicit[k]*(b.implicitRaw||(AFFIX[k]&&AFFIX[k].pct)?1:Math.round(R.mult*lm)));   // implicitRaw = ค่าคงที่ ไม่คูณระดับ
   for(const a of it.affixes)add(a.k,a.v);
   // ตีบวก: ทุกค่าของไอเทม (ค่าหลัก + ค่าติดตัว + affix) — ค่าแบบหน่วย +1.5 ต่อขั้น · ค่าแบบ % +1.5% ของค่านั้นต่อขั้น (ไม่รวมรูน)
-  const n=it.enh||0;if(n)for(const k in s){const pc=AFFIX[k]&&AFFIX[k].pct;s[k]=pc?Math.round(s[k]*(1+CONFIG.enhPct*n)*10000)/10000:Math.round((s[k]+CONFIG.enhFlat*n)*10)/10;}
+  const n=it.enh||0;if(n)for(const k in s){const pc=(AFFIX[k]&&AFFIX[k].pct)||k.endsWith('Pct')||k.endsWith('Chance');s[k]=pc?Math.round(s[k]*(1+CONFIG.enhPct*n)*10000)/10000:Math.round((s[k]+CONFIG.enhFlat*n)*10)/10;}
   for(const rk of it.sockets||[]){const m=rk&&MATS[rk];if(m&&m.rune)for(const k in m.rune)add(k,m.rune[k]);}
   return s;
 }
@@ -87,6 +87,7 @@ const Stats={
       const c=def.challenge;out.maxHP=Math.round(b.hp*(c?1:D.eHP));out.ap=out.mpow=Math.round(b.atk*(c?1:D.eATK));
       if(!c){out.def=b.def+t10(attr.agi)*DV.agiPer10Def;out.mdef=b.mdef;}}
     out.pcritRes=Math.min(.75,t10(out.def)*DV.defPer10Crit+bc);out.mcritRes=Math.min(.75,t10(out.mdef)*DV.defPer10Crit+bc);
+    out.chaosChance=def.chaosChance||0;
     return out;
   },
   enemyCore(def,lv,elite,b,k,em,D){
@@ -176,7 +177,7 @@ const Status={
   chance(src,f,type){const R=Math.min(1,((f.statusRes||{})[type]||0)+((f.S&&f.S.statusRes)||0)),bonus=(src&&src.S&&src.S.statusChance)||0;return clamp(1+bonus-R,0,1);},
   /* returns 'ok' | 'capped' | 'resist' | 'immune' | 'stunned' */
   apply(f,type,stacks=1,src=null,durSec=0){
-    const s=f.st8,SS=src&&src.S,baseFr=durSec>0?durSec*60:(type==='freeze'?480:CONFIG.statusDur),Dur=Math.round(baseFr+(SS&&SS.talent==='hexweaver'?(SS.statusChance||0)*100*CONFIG.statusChanceDur*60:0)),   // เฉพาะ Hexweaver: +0.05 วิ ต่อโอกาสติดสถานะ 1% · freeze เริ่มต้น 8 วิ (480 เฟรม)
+    const s=f.st8,SS=src&&src.S,rawSec=durSec>0?durSec:(type==='freeze'?8:CONFIG.statusDur/60),adjSec=(src&&src.kind==='duelist'&&(type==='shock'||type==='stun'))?Math.max(.5,rawSec-1.5):rawSec,baseFr=Math.round(adjSec*60),Dur=Math.round(baseFr+(SS&&SS.talent==='hexweaver'?(SS.statusChance||0)*100*CONFIG.statusChanceDur*60:0)),   // เฉพาะ Hexweaver: +0.05 วิ ต่อโอกาสติดสถานะ 1% · freeze เริ่มต้น 8 วิ (480 เฟรม) · bbqy ลดเวลาช็อก/สตั้นลง 1.5 วิ
       R=Math.min(1,((f.statusRes||{})[type]||0)+((f.S&&f.S.statusRes)||0));
     if(R>=1||(type==='burn'&&f.S&&f.S.immuneBurn)||f.statusImm>0)return'immune';   // Iron Wall: กันสถานะทุกชนิด
     const chance=Status.chance(src,f,type);                 // คำนวณใหม่ทุกครั้งที่ติดสถานะ
@@ -191,7 +192,7 @@ const Status={
       if(hadPoison&&src){this.apply(f,'poison',2,null);Status.onSynergy&&Status.onSynergy(f,'toxicfire',src);}return'ok';}
     if(type==='shock'){const hadBurn=!!s.burn;s.shock=s.shock?Object.assign(s.shock,{t:T(s.shock),mul:Math.max(s.shock.mul||1,mul)}):{t:Dur,tk:0,mul};
       if(hadBurn&&src){s.burn=null;Status.onSynergy&&Status.onSynergy(f,'plasma',src);}
-      this.apply(f,'stun',1,src);return'ok';}
+      this.apply(f,'stun',1,src,durSec);return'ok';}
     if(type==='blind'){s.blind=s.blind?Object.assign(s.blind,{t:T(s.blind)}):{t:Dur,tk:0};return'ok';}   // ตาบอด: โจมตีไม่โดน
     if(type==='chaos'){if(s.chaos)return'capped';s.chaos={t:240,tk:0};return'ok';}   /* โกลาหล: 4 วิ ติดซ้ำไม่ได้ขณะยังมีผล */
     if(type==='freeze'){if(s.freeze){s.freeze.t=Math.max(s.freeze.t,Dur);return'ok';}s.freeze={t:Dur,hits:0,tk:0};return'ok';}   /* แช่แข็ง: 3 วิ · ครบ 5 ฮิตจะน้ำแข็งแตก 2× */
@@ -246,7 +247,7 @@ const Equip={
     if(typeof StatSync!=='undefined')StatSync.invalidate('enh');
     return{ok,rate,msg:ok?`ตีบวกสำเร็จ! → +${it.enh}`:(prev>0?`ตีบวกล้มเหลว! ระดับลดลง 1 → +${it.enh}`:'ตีบวกล้มเหลว (ยังคง +0 · เสียทองและแร่)')};},
   expNext(lv){lv=lv||1;if(lv>=CONFIG.equipExp.maxLv)return hasNoMaxLv()?Math.round(2200+(lv-100)*80):0;return CONFIG.equipExp.next(lv);},
-  gainExp(it,amt){if(!it)return 0;it.lv=it.lv||1;it.exp=it.exp||0;const mx=hasNoMaxLv()?Infinity:CONFIG.equipExp.maxLv;if(it.lv>=mx)return 0;
+  gainExp(it,amt){if(!it)return 0;it.lv=Math.max(1,Number(it.lv)||1);it.exp=Math.max(0,Number(it.exp)||0);const mx=hasNoMaxLv()?Infinity:CONFIG.equipExp.maxLv;if(it.lv>=mx)return 0;
     const mul=1+((G.talent&&TALENT_PASSIVE[G.talent]&&TALENT_PASSIVE[G.talent].eqXpMul)||0);
     it.exp+=Math.round(amt*mul);let ups=0;while(it.lv<mx&&it.exp>=this.expNext(it.lv)){const n=this.expNext(it.lv);if(n<=0)break;it.exp-=n;it.lv++;ups++;}
     if(it.lv>=mx)it.exp=0;if(ups&&typeof StatSync!=='undefined')StatSync.invalidate('equipLv');return ups;},
@@ -301,7 +302,7 @@ const Inv={
   remove(it){for(const s of SLOTS)if(G.eq[s]===it.uid)G.eq[s]=null;G.bag=G.bag.filter(x=>x!==it);},
   // ราคาขาย: ครึ่งหนึ่งของค่าแยกชิ้นส่วนทอง (ขายเฉพาะไอเทมที่ไม่ได้สวมอยู่)
   sellPrice(it){const r=RARS.indexOf(it.rar);return Math.max(1,Math.round(5*(r+1)*it.ilvl*(1+.2*(it.enh||0))));},
-  matPrice(k){const m=MATS[k];if(!m)return 0;if(k.startsWith('sk_'))return 80;if(m.rareMat)return 60;if(k==='divine')return 150;if(k.startsWith('mp_')||k==='potion')return 10;return 5;},
+  matPrice(k){const m=MATS[k];if(!m)return 0;if(k.startsWith('sk_'))return 80;if(m.rareMat)return 60;if(k==='divine')return 150;if(k.startsWith('pot_'))return 120;if(k.startsWith('mp_')||k==='potion')return 10;return 5;},
   isJunkMat(k){const m=MATS[k];return !!m&&!m.rareMat&&!m.scroll&&!m.use&&!m.manaPotion&&!k.startsWith('sk_')&&!k.startsWith('mp_')&&k!=='potion'&&k!=='divine'&&k!=='ore';},   // แร่เหล็กเก็บไว้ใช้ตีบวก
   sellMat(k,q){q=Math.min(q,G.mats[k]||0);if(q<=0)return 0;const g=this.matPrice(k)*q;this.take(k,q);G.gold+=g;return g;},
   sellAllGear(rar){let g=0,n=0;for(const it of G.bag.slice()){if(Equip.isEquipped(it)||(rar&&it.rar!==rar))continue;g+=this.sellPrice(it);this.sell(it);n++;}return{g,n};},
@@ -314,6 +315,10 @@ const Inv={
     if(m.use==='learn'){const r=Skills.learn(m.skillBook);if(!r.ok)return{ok:false,msg:r.err+' (ไม่เสียตำรา)'};this.take(id);return{ok:true,msg:`📖 เรียนสกิล ${SKILLS[m.skillBook].ic} ${SKILLS[m.skillBook].n} แล้ว — จัดช่องได้ที่หน้าสกิล (K)`};}
     if(m.use==='sealbreak')return{ok:false,msg:'ตราทำลายผนึกใช้ได้ที่หน้าสกิล (K) เท่านั้น'};
     if(m.use==='potion'){if(typeof Z!=='undefined'&&Z&&Z.noPotion)return{ok:false,msg:'🚫 สนามทดสอบแรงค์ไม่อนุญาตให้ใช้ยา!'};const S=Stats.player();G.hp=Math.min(S.maxHP,G.hp+Math.round(S.maxHP*.4));this.take(id);return{ok:true,msg:'ฟื้น HP 40%'};}
+    if(m.use==='buff'&&m.buff){if(typeof Z!=='undefined'&&Z&&Z.noPotion)return{ok:false,msg:'🚫 สนามทดสอบแรงค์ไม่อนุญาตให้ใช้ยา!'};
+      this.take(id);const ttl=(m.buff.dur||20)*60;
+      for(const bm of m.buff.mods||[]){StatSync.addMod('P',Object.assign({},bm,{ttl}));if(typeof BT!=='undefined'&&BT&&G.mode==='battle'&&BT.p)StatSync.addMod(BT.p,Object.assign({},bm,{ttl}));}
+      return{ok:true,msg:`🧪 ดื่ม ${m.n} (แสดงผล ${m.buff.dur||20} วิ)!`};}
     if(m.use==='talent'){if(typeof UI!=='undefined'){UI.talentSwitch=true;UI.open('talent');return{ok:true,msg:'✨ เลือกพรสวรรค์ใหม่ได้เลย'};}return{ok:false,msg:'เปิดหน้าเลือกพรสวรรค์ไม่ได้'};}
     if(m.use==='exit'){if(typeof Z==='undefined'||!Z||Z.safe)return{ok:false,msg:'ใช้คัมภีร์ทางออกได้เฉพาะในดันเจี้ยนเท่านั้น'};if(Z.bossRoom&&!Z.cleared)return{ok:false,msg:'🔒 ห้องบอสถูกผนึก — ต้องปราบบอสก่อนจึงจะใช้คัมภีร์ทางออกได้'};
       if(typeof P!=='undefined'&&P&&P.castExit>0)return{ok:false,msg:'กำลังร่ายคัมภีร์ทางออกอยู่แล้ว'};
@@ -645,6 +650,8 @@ const SpecialShop={
     const def=SPECIAL_SHOP.find(x=>x.id===id);if(!def)return null;
     G.shopCD=G.shopCD||{};let s=G.shopCD[id];const now=Date.now();
     if(!s||typeof s.left!=='number'||(s.resetAt&&now>=s.resetAt)){s=G.shopCD[id]={left:def.max,resetAt:0};}
+    if(s.left>def.max)s.left=def.max;
+    if(s.resetAt&&s.resetAt-now>def.cdH*3600000)s.resetAt=now+def.cdH*3600000;
     const cdMs=s.left<def.max&&s.resetAt?Math.max(0,s.resetAt-now):0;
     return{def,left:s.left,max:def.max,cdMs};
   },

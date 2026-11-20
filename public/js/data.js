@@ -15,14 +15,14 @@ const CONFIG={
   dashCD:90,dashFrames:16,dashSpeed:7,   // พุ่ง 16 เฟรม × 7 = ~110 พิกเซล ทะลุตัวศัตรูได้
     // พุ่งหลบ (Space): คูลดาวน์ 1.5 วิ · อมตะตลอด 18 เฟรม
   levelPoints:2,             // แต้มค่าพลังต่อเลเวล
-  enemyStartupMul:1.3,       // ท่าโจมตีปกติของศัตรู: ช่วงง้าง (startup) ช้าลง 30%
+  enemyStartupMul:.65,       // มอนสเตอร์ทั่วไป/หัวหน้า (ยกเว้น bbqy): ออกท่าและฟื้นตัวเร็วขึ้น 35%
   levelCap:200,             // เลเวลสูงสุด 200 (เมืองแรกจบที่ราว Lv.28-30 หลังจากนั้นเลเวลขึ้นช้าลงเรื่อย ๆ)
   craftRates:{normal:.50,rare:.30,epic:.20,legendary:.20,god:.10},
   maxRarity:'epic',         // ระดับไอเทมสูงสุดที่สร้าง/ดรอปได้ตอนนี้ (ตำนาน/เทพ จะเพิ่มภายหลัง)  // base success (fixed)
   craftBoost:.20,           // Divine Crafting Crystal: +20 percentage points, max one per attempt, final chance capped at 100%
   craftSlots:6,
   enhanceRates:[1,.95,.90,.85,.80,.75,.70,.65,.60,.55,.50,.47,.44,.42,.40],  // โอกาสสำเร็จจาก +n ไป +n+1 (n=0..14) สูงสุด +15 · ลดลงเรื่อย ๆ ต่ำสุด 40%
-  equipExp:{maxLv:100,kill:{normal:[30,50],elite:[90,140],boss:[450,700]},stone:1000,
+  equipExp:{maxLv:100,kill:{normal:[100,150],elite:[280,420],boss:[1000,1500]},stone:1000,
     next(lv){if(lv>=100)return 0;if(lv<=20)return Math.round(100+(lv-1)*(200/19));if(lv<=40)return Math.round(350+(lv-21)*(250/19));if(lv<=60)return Math.round(650+(lv-41)*(350/19));if(lv<=80)return Math.round(1100+(lv-61)*(400/19));return Math.round(1600+(lv-81)*(600/18));}},
   regen:{sta:24},           // stamina per second
   mana:{combatEvery:180,outEvery:90,recoveryCap:.30,costCap:.30},   // 1 MP / 3 s in combat, 1 MP / 1.5 s outside; gear bonus caps 30%
@@ -215,6 +215,7 @@ const SKILLS={
   stonepillars:{bossOnly:1,ic:'🪨',n:'เสาศิลาทลาย',tier:'ultimate',type:'phys',el:'phys',coef:5.5,cd:20,gauge:70,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',quake:1,pillars:1,kd:1,desc:'ทุบพื้นปล่อยเสาหินพุ่งแทงต่อเนื่องจนถึงตัวเป้าหมาย · ใช้เกจ 70 · คูลดาวน์ 20 วิ'},
   alchcataclysm:{bossOnly:1,ic:'⚗️',n:'มหาแปรธาตุวิบัติ',tier:'ultimate',type:'magic',el:'poison',coef:6.8,multi:6,cd:15,gauge:60,range:'ทั้งพื้นที่ (พื้นดิน)',anim:'cast',rain:1,status:{poison:2,burn:1,shock:1},desc:'โปรยฝนน้ำยาแปรธาตุต้องห้าม 6 ระลอก (พิษ/เผาไหม้/ช็อก) · ใช้เกจ 60 · คูลดาวน์ 15 วิ'},
   alchbarrier:{bossOnly:1,ic:'🛡️',n:'บาเรียแปรธาตุ',tier:'rare',type:'buff',cd:15,mp:0,range:'ตนเอง',anim:'cast',buff:{t:300,invuln:300},desc:'สร้างบาเรียกันดาเมจทั้งหมด 5 วินาที (คูลดาวน์ 15 วิ)'},
+  bbqybarrier:{bossOnly:1,ic:'🛡️',n:'บาเรียไร้พ่าย',tier:'rare',type:'buff',cd:9,mp:0,range:'ตนเอง',anim:'cast',buff:{t:120,invuln:120,col:'#c46aff'},desc:'สร้างบาเรียพลังโกลาหล อมตะไม่ได้รับดาเมจ 2 วินาที (คูลดาวน์ 9 วิ)'},
   silvabarrier:{bossOnly:1,ic:'🛡️',n:'บาเรียวิญญาณ',tier:'rare',type:'buff',cd:14,mp:0,range:'ตนเอง',anim:'cast',buff:{t:240,invuln:240},desc:'สร้างบาเรียจิตวิญญาณสีฟ้าอมตะ 4 วินาที (คูลดาวน์ 14 วิ)'},
   silvabeam:{bossOnly:1,ic:'💠',n:'ลำแสงจิตวิญญาณวารี',tier:'ultimate',type:'magic',el:'ice',coef:4.0,alwaysCrit:1,cd:15,gauge:80,range:'ทั้งจอ',anim:'beam',beam:1,multi:6,beamCol:'#42e8ff',spiritBeam:1,desc:'ปลดปล่อยลำแสงจิตวิญญาณขนาดยักษ์ 400% ATK · คริ 100% (CD 15 วิ · เกจ 80)'},
   thousandcuts:{ic:'⚔️',n:'พันคมดาบ',tier:'ultimate',type:'phys',el:'weapon',coef:7.5,multi:12,cd:10,range:'พุ่ง (52)',anim:'rush',lunge:1.8,reach:52,desc:'ฟันรัว 12 ครั้ง'},
@@ -409,6 +410,11 @@ const MATS={
   hide:{n:'หนังสัตว์',ic:'🟫'},cheese:{n:'ชีสแข็งโป๊ก',ic:'🧀'},pan:{n:'กระทะของพ่อ',ic:'🍳',rareMat:1},cloth:{n:'ผ้าเงา',ic:'🧵'},core:{n:'แก่นหินเทพ',ic:'💠',rareMat:1,rar:'epic',desc:'แก่นศิลาโบราณ (ดรอปเฉพาะจากบอสโกเลมหิน)'},
   lavaore:{n:'แร่ลาวา',ic:'🟧'},essence:{n:'แก่นลาวาเทพ',ic:'🌟',rareMat:1,rar:'epic',desc:'แก่นเพลิงบริสุทธิ์ (ดรอปเฉพาะจากบอสราชันย์ลาวา)'},
   potion:{n:'ยาฟื้น HP',ic:'❤️',use:'potion',desc:'ฟื้น HP 40%'},
+  pot_regen:{n:'ยาฟื้นเลือดต่อเนื่อง',ic:'💖',use:'buff',rar:'rare',desc:'บัพ 20 วิ: ฟื้นฟู HP 3% ของ Max HP ทุก 1 วินาที',buff:{id:'pot_regen',dur:20,mods:[{id:'pot_regen',n:'ฟื้นเลือด 3%/วิ',kind:'buff',stat:'hotPct',op:'add',v:.03}]}},
+  pot_def:{n:'ยาเพิ่มเกราะ',ic:'🛡️',use:'buff',rar:'rare',desc:'บัพ 20 วิ: เพิ่มเกราะกายภาพ (DEF) +50',buff:{id:'pot_def',dur:20,mods:[{id:'pot_def',n:'เกราะ +50',kind:'buff',stat:'def',op:'add',v:50}]}},
+  pot_mdef:{n:'ยาเพิ่มเกราะเวท',ic:'🔮',use:'buff',rar:'rare',desc:'บัพ 20 วิ: เพิ่มเกราะเวท (M.DEF) +50',buff:{id:'pot_mdef',dur:20,mods:[{id:'pot_mdef',n:'เกราะเวท +50',kind:'buff',stat:'mdef',op:'add',v:50}]}},
+  pot_m150:{n:'ยาเพิ่ม M150',ic:'⚡',use:'buff',rar:'epic',desc:'บัพ 20 วิ: คริ +20% · ดาเมจ +20% · DEF/M.DEF +20 · ลด Max HP 10%',buff:{id:'pot_m150',dur:20,mods:[{id:'pot_m150_cr',n:'M150 คริ +20%',kind:'buff',stat:'critRate',op:'add',v:.20},{id:'pot_m150_dm',n:'M150 ดาเมจ +20%',kind:'buff',stat:'dmgPct',op:'add',v:.20},{id:'pot_m150_df',n:'M150 DEF +20',kind:'buff',stat:'def',op:'add',v:20},{id:'pot_m150_md',n:'M150 M.DEF +20',kind:'buff',stat:'mdef',op:'add',v:20},{id:'pot_m150_hp',n:'M150 MaxHP -10%',kind:'debuff',stat:'maxHP',op:'mul',v:.90}]}},
+  pot_quad:{n:'ยาเพิ่ม 4 อย่าง',ic:'🌟',use:'buff',rar:'epic',desc:'บัพ 20 วิ: เจาะเกราะ +20% · เจาะเวท +20% · คริ +20% · คริดาเมจ +20%',buff:{id:'pot_quad',dur:20,mods:[{id:'pot_quad_ap',n:'เจาะเกราะ +20%',kind:'buff',stat:'apenPct',op:'add',v:.20},{id:'pot_quad_mp',n:'เจาะเวท +20%',kind:'buff',stat:'mpenPct',op:'add',v:.20},{id:'pot_quad_cr',n:'คริ +20%',kind:'buff',stat:'critRate',op:'add',v:.20},{id:'pot_quad_cd',n:'คริดาเมจ +20%',kind:'buff',stat:'critDmg',op:'add',v:.20}]}},
   mercury:{n:'ปรอท',ic:'💧',desc:'โลหะเหลวจากสไลม์ปรอท ใช้ตีไม้เท้าปรอท'},philostone:{n:'ศิลานักแปรธาตุแปรปรวน',ic:'🔮',rareMat:1,rar:'epic',desc:'ใช้ที่นักเล่นแร่แปรธาตุ: ล็อกค่าเสริม 1 ค่าไว้ตอนหลอมรวม (ดรอปเฉพาะจากบอสนักแปรธาตุที่บิดเบี้ยว)'},
   sc_merc:{n:'คัมภีร์สูตร: ไม้เท้าปรอท',ic:'📙',scroll:'mercstaff'},
   mp_s:{n:'ยามานา (เล็ก)',ic:'🧪',manaPotion:100},mp_m:{n:'ยามานา (กลาง)',ic:'🧪',manaPotion:250},
@@ -438,13 +444,13 @@ const MATS={
 };
 const RUNES=['rune_atk','rune_matk','rune_def','rune_hp','rune_crit','rune_agi'];
 const SPECIAL_SHOP=[
-  {id:'divine',price:3000,max:1,cdH:12,tag:'Legendary · คราฟต์ +20%'},
-  {id:'cryst_durable',price:600,max:10,cdH:6,tag:'Rare · คราฟต์ +10%'},
-  {id:'cryst_great',price:1200,max:5,cdH:6,tag:'Epic · คราฟต์ +15%'},
-  {id:'evostone',price:5000,max:5,cdH:6,tag:'Evolution · ใช้วิวัฒน์อุปกรณ์'},
-  {id:'exitscroll',price:300,max:10,cdH:1,tag:'ใช้งาน · กลับเมืองทันทีจากดันเจี้ยน'},
-  {id:'exprock',price:100,max:100,cdH:1,tag:'EXP Item · เพิ่ม EXP อาวุธ 1,000'},
-  {id:'talentevo',price:3000,max:2,cdH:5,tag:'Legendary · เปลี่ยนพรสวรรค์'}
+  {id:'divine',price:3000,max:1,cdH:6,tag:'Legendary · คราฟต์ +20%'},
+  {id:'cryst_durable',price:600,max:10,cdH:3,tag:'Rare · คราฟต์ +10%'},
+  {id:'cryst_great',price:1200,max:5,cdH:3,tag:'Epic · คราฟต์ +15%'},
+  {id:'evostone',price:5000,max:5,cdH:3,tag:'Evolution · ใช้วิวัฒน์อุปกรณ์'},
+  {id:'exitscroll',price:300,max:10,cdH:.5,tag:'ใช้งาน · กลับเมืองทันทีจากดันเจี้ยน'},
+  {id:'exprock',price:800,max:50,cdH:.5,tag:'EXP Item · เพิ่ม EXP อาวุธ 1,000'},
+  {id:'talentevo',price:3000,max:2,cdH:2.5,tag:'Legendary · เปลี่ยนพรสวรรค์'}
 ];
 /* Skill Books — the ONLY way to learn Common / Rare / Ultimate skills (no level or quest unlocks).
    Sources are configured in LOOT (monster drops) and chest contents below. */
@@ -582,8 +588,8 @@ const FOES={
   rockling:{n:'หินเดินได้',kind:'mon',map:'GOLEM',pal:'rockling',sc:3,hw:24,h:50,spd:.9,range:34,cd:[30,64],armor:1,el:'phys',
     base:{hp:320,atk:48,def:10,mdef:2},res:{phys:.15,lightning:-.4,fire:.2},xp:48,loot:'stonecave',statusRes:{bleed:.5},
     moves:[M('หมัดหิน',12,4,20,12,40,3,18,{hy:30,hh:36}),M('กลิ้งชน',18,12,24,14,30,4,22,{hy:30,hh:44,lunge:2.8,kd:1})]},
-  duelist:{n:'bbqy legendary',reflect:.2,revive:1,reviveHp:.5,kind:'rig',fixedLv:100,look:'DUELIST',wpn:'bbqysword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,bgm:'bgm_bbqy',
-    attr:{str:30,agi:40,int:20,vit:20,luk:50},skills:['bluejudge','orb','slashwave'],base:{hp:5000,atk:304,def:60,mdef:60},res:{lightning:.2,shadow:-.2},statusRes:{stun:.5,bleed:.5,shock:.4},xp:2200,loot:'duelist',meterStart:0},
+  duelist:{n:'bbqy legendary',reflect:.2,lifesteal:.15,revive:1,reviveHp:.5,chaosChance:.2,kind:'rig',fixedLv:100,look:'DUELIST',wpn:'bbqysword',hw:14,h:100,el:'lightning',boss:1,challenge:1,allMagic:1,bgm:'bgm_bbqy',
+    attr:{str:30,agi:40,int:20,vit:20,luk:50},skills:['bluejudge','orb','slashwave','bbqybarrier'],base:{hp:5000,atk:304,def:60,mdef:60},res:{lightning:.2,shadow:-.2},statusRes:{stun:.5,bleed:.5,shock:.4},xp:2200,loot:'duelist',meterStart:0},
   kage:{n:'คาเงะ นักดาบเงา',kind:'rig',look:'KAGE',wpn:'kageblade',hw:14,h:100,el:'shadow',miniboss:1,
     attr:{str:15,agi:30,int:10,vit:10,luk:20},skills:['moonfall','slashwave'],base:{hp:400,atk:44,def:12,mdef:8,critRate:.04},res:{shadow:.5,fire:-.2},statusRes:{stun:.15},xp:180,loot:'kage',meterStart:15},   // v0.2.1: อ่อนลง (HP 520→400 ATK 60→44 ความเร็ว/คริ/เกจเริ่มลดลง)
   shade:{n:'เงาสาวก',kind:'rig',look:'SHADE',wpn:'kageblade',hw:14,h:100,el:'shadow',

@@ -40,6 +40,7 @@ const StatSync={
     for(const m of mods||[]){if(!(m.stat in S)&&m.op==='mul')continue;
       if(m.op==='mul')S[m.stat]=(S[m.stat]||0)*m.v;else S[m.stat]=(S[m.stat]||0)+m.v;}
     // เพดาน/พื้น หลังรวมตัวปรับ
+    S.maxHP=Math.max(1,Math.round(S.maxHP));
     S.def=Math.max(0,Math.round(S.def));S.mdef=Math.max(0,Math.round(S.mdef));
     S.ap=Math.max(0,Math.round(S.ap));S.mpow=Math.max(0,Math.round(S.mpow));
     S.critRate=clamp(S.critRate,0,CONFIG.critCap);S.critDmg=Math.min(CONFIG.critDmgCap,S.critDmg);
@@ -55,7 +56,9 @@ const StatSync={
     return[G.level,G.talent,JSON.stringify(G.alloc),eq,sk,this.mods.map(m=>m.id+'@'+m.v).join(',')].join('#');},
   recalc(owner,reason){
     if(owner&&owner!=='P'){   // นักสู้ในฉากต่อสู้
-      if(!owner.S0)return null;owner.S=this.final(owner.S0,owner.mods);this.recalcs++;this.lastReason=reason;return owner.S;}
+      if(!owner.S0)return null;owner.S=this.final(owner.S0,owner.mods);
+      if(owner.isP&&owner.S.maxHP){owner.maxHp=owner.S.maxHP;owner.hp=Math.min(owner.hp,owner.maxHp);}
+      this.recalcs++;this.lastReason=reason;return owner.S;}
     if(typeof G==='undefined'||!G.talent)return null;
     const base=Stats.player();this.cur=this.final(base,this.mods);this.sigCache=this.sig();this.dirty=false;this.recalcs++;this.lastReason=reason;
     if(G.hp>this.cur.maxHP)G.hp=this.cur.maxHP;if(G.mp>this.cur.maxMP)G.mp=this.cur.maxMP;

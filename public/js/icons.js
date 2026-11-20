@@ -111,7 +111,7 @@ const BASE_ICO={
 const MAT_ICO={
   wood:['log','#c8925a'],ore:['ore','#b8bfcc'],stoneore:['ore','#8a867e'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['crystal','#eef6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
-  potion:['potion','#ff5a6a'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
+  potion:['potion','#ff5a6a'],pot_regen:['potion','#7aff9a'],pot_def:['potion','#9fd0ff'],pot_mdef:['potion','#c88aff'],pot_m150:['potion','#ffd23a'],pot_quad:['potion','#ff8ae0'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
   sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],reset:['scroll','#e8d8b0']
 };
 const _icoc=(name,col,size)=>`<span class="iic" style="color:${col}">${ico(name,size)}</span>`;
