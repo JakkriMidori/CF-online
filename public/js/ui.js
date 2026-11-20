@@ -344,7 +344,7 @@ const UI={
     const keeper = isGuildShop ? 'คลังเสบียงกิลด์ (ทริสตัน)' : 'ร้านค้ามาร์คัส';
     const quote = isGuildShop ? 'เตรียมยาและเสบียงให้พร้อมก่อนรับภารกิจจากกระดานเควสต์!' : 'ยินดีต้อนรับสู่ร้านค้าคอลลาวาร์รี ซื้อเสบียงหรือนำของจากถ้ำมาขายให้ข้าได้เลย!';
     const head=`<h2>${ico('coin',22)} ${keeper} <small class="dim">ทอง ${G.gold}</small></h2><p class="dim" style="margin:2px 0 8px">"${quote}"</p><div class="acts">${tab('buy','ซื้อ')}${tab('sell','ขาย')}</div>`;
-    if(T==='buy'){const items=[['mp_s',30],['mp_m',70],['mp_l',150],['mp_x',320],['potion',40]];
+    if(T==='buy'){const items=[['mp_s',50],['mp_m',90],['mp_l',170],['mp_x',340],['potion',300]];
       const spec=SPECIAL_SHOP.map(def=>{
         const id=def.id,st=SpecialShop.state(id),m=MATS[id]||{n:id,d:''},mr=matRar(id);
         const cdTxt=st.cdMs>0?` · รีสต็อก ${SpecialShop.fmtCD(st.cdMs)}`:'';
@@ -527,8 +527,9 @@ const UI={
       <p class="dim">แรงค์ปัจจุบัน: <b style="color:${Guild.info(cur).col}">Rank ${cur} (${Guild.info(cur).n})</b> · Lv.${G.level} · เงื่อนไขเลื่อนขั้น: F → G (Lv.30) → D (Lv.60) → C (Lv.90) → B (Lv.120) → A (Lv.150) → S (Lv.180)<br>กติกา: <b>ห้ามใช้ยาฮีลหรือยามานา</b> · ชนะคู่ต่อสู้ทีละคนจนครบเพื่อปลดล็อกสิทธิ์เลื่อนแรงค์ที่กิลด์</p>
       <div class="tal" style="grid-template-columns:1fr 1fr">${trainCard}${cards}</div>
       <div style="text-align:right;margin-top:10px"><button class="btn ghost" data-close="1">ออกจากโคลอสเซียม</button></div>`;},
-  vsResult(w,wins,net){this.cur='vsres';G.mode='menu';ov.classList.remove('hidden');SFX.loot('legendary');
+  vsResult(w,wins,net,names){this.cur='vsres';G.mode='menu';ov.classList.remove('hidden');SFX.loot('legendary');
     const again=net==='host'?'<button class="btn" data-net="again">⚔️ แก้มืออีกครั้ง</button>':net==='guest'?'<span class="dim">รอเจ้าของห้องเริ่มยกใหม่… </span>':'';
+    const n1=(names&&names[0])||'P1',n2=(names&&names[1])||'P2',wn=w==='P1'?n1:n2;
     // ผู้ชนะได้รางวัลสุ่ม 1 ชิ้น ด้วยอัตราเดียวกับร้านรีไอเทม (ฝั่งใครฝั่งมัน)
     const me=net==='guest'?'P2':'P1';let rw='';
     if(net&&w===me){const it=reitemRoll(),full=G.bag.length>=LOOT_CONFIG.inventory.equipSlots;
@@ -536,7 +537,7 @@ const UI={
       else{Inv.addItem(it);rw=`<div class="big">🎁 รางวัลผู้ชนะ: <span ${rc(it.rar)}>${bIco(it.base,18)} ${itemName(it)}</span> <small class="dim">(${RARN[it.rar]} · เข้ากระเป๋าแล้ว)</small></div>`;}
       if(it.rar!=='normal')SFX.loot(it.rar);try{Save.save();}catch(e){}UI.hud&&UI.hud();}
     else if(net)rw=`<div class="dim">แพ้ครั้งนี้ ชนะเพื่อรับรางวัลสุ่ม 1 ชิ้น</div>`;
-    pn.innerHTML=`<h2>🏆 ${w}${net?(w==='P1'?' (เจ้าของห้อง)':' (เพื่อน)'):''} ชนะการประลอง!</h2><div class="big" style="font-size:2em">P1 ${wins[0]} — ${wins[1]} P2</div>${rw}
+    pn.innerHTML=`<h2>🏆 ${esc(wn)}${net?(w==='P1'?' (เจ้าของห้อง)':' (เพื่อน)'):''} ชนะการประลอง!</h2><div class="big" style="font-size:2em">${esc(n1)} ${wins[0]} — ${wins[1]} ${esc(n2)}</div>${rw}
       <div style="text-align:right;margin-top:14px">${again} <button class="btn" data-close="1">ออกจากลาน</button></div>`;},
   scr_room(){const L=Net.lobby,back='<div style="text-align:right;margin-top:10px"><button class="btn" data-net="leave">ยกเลิก / กลับ</button></div>';
     if(L.phase==='hosting')return`<h2>🌐 ห้องของคุณ</h2><div class="big" style="font-size:3em;letter-spacing:.3em;text-align:center;margin:10px 0">${Net.code}</div><p class="dim" style="text-align:center">ส่งรหัสนี้ให้เพื่อน แล้วให้เพื่อนเปิดเกมนี้ → ลานประลอง → ห้องออนไลน์ → เข้าห้อง<br>${Net.label()}</p>
@@ -544,7 +545,7 @@ const UI={
       <div style="text-align:center;margin-top:12px"><button class="btn" data-net="start" ${L.peer?'':'disabled'}>⚔️ เริ่มสู้</button></div>${back}`;
     if(L.phase==='connecting')return`<h2>🌐 กำลังเชื่อมต่อระบบออนไลน์…</h2><p class="dim">อาจใช้เวลาถึง 10 วินาที</p>${back}`;
     if(L.phase==='joining')return`<h2>🌐 กำลังเข้าห้อง ${Net.code}…</h2><p class="dim">กำลังหาเจ้าของห้อง · ${Net.label()}</p>${back}`;
-    if(L.phase==='joined')return`<h2>🌐 เข้าห้อง ${Net.code} แล้ว</h2><div class="big" style="text-align:center">✅ รอเจ้าของห้องกดเริ่มสู้…</div><p class="dim" style="text-align:center">${Net.label()}<br>ปุ่มของคุณ: A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J หรือ , ตี · K หรือ . เตะ · Space หรือ / พุ่งหลบ</p>${back}`;
+    if(L.phase==='joined')return`<h2>🌐 เข้าห้อง ${Net.code} แล้ว</h2><div class="big" style="text-align:center">✅ ${L.hostName?'ห้องของ <b>'+esc(L.hostName)+'</b> · ':''}รอเจ้าของห้องกดเริ่มสู้…</div><p class="dim" style="text-align:center">${Net.label()}<br>ปุ่มของคุณ: A/D หรือ ←/→ เดิน · W/↑ โดด · S/↓ ย่อ · J หรือ , ตี · K หรือ . เตะ · Space หรือ / พุ่งหลบ · 1-4 สกิล · L ท่าสุดยอด</p>${back}`;
     return`<h2>🌐 ห้องออนไลน์</h2><p class="dim">สู้กับเพื่อนคนละเครื่อง · เจ้าของห้องเป็นฝั่ง P1 ซ้าย เพื่อนเป็น P2 ขวา · ใช้เลเวล อุปกรณ์ และสกิลของแต่ละคน · ไม่เสียอะไร<br>เพื่อนต้องล็อกอิน Claude และเปิดเกมจากลิงก์ที่คุณแชร์ให้ (เชิญผ่านปุ่มแชร์ของ artifact) — คนที่ไม่ได้ล็อกอินเข้าห้องออนไลน์ไม่ได้</p>${L.err?'<p class="bad">⚠ '+esc(L.err)+'</p>':''}
       <div class="tal" style="grid-template-columns:1fr 1fr"><button class="talc" data-net="host"><div class="ti">➕</div><b>สร้างห้อง</b><p>ได้รหัส 4 ตัวไปส่งให้เพื่อน</p></button>
       <div class="talc"><div class="ti">🔑</div><b>เข้าห้องของเพื่อน</b><p><input id="roomCode" maxlength="4" placeholder="รหัส 4 ตัว" style="width:7em;text-transform:uppercase;font:inherit;font-size:1.3em;letter-spacing:.2em;text-align:center"></p><button class="btn" data-net="join">เข้าห้อง</button></div></div>
@@ -1222,29 +1223,86 @@ function hpBarB(f,right){
     para(x+14,py,280,7,5);D.fillStyle='rgba(5,12,34,.92)';D.fill();D.strokeStyle='rgba(122,216,255,.35)';D.lineWidth=1;D.stroke();
     D.save();para(x+14,py,280,7,5);D.clip();const g2=D.createLinearGradient(x,0,x+300,0);g2.addColorStop(0,c1);g2.addColorStop(1,c2);D.fillStyle=g2;D.fillRect(x+14,py,290*clamp(v,0,1),7);D.restore();});}
   D.restore();
-  const tx=right?960-124:124;
+  const tx=right?960-124:124,isMe=BT&&BT.vs?(BT.net==='guest'?f===BT.e:f===BT.p):f.isP;
   outlineText(`${Math.ceil(f.hp)} / ${f.maxHp}`,right?960-118:118,30,13,'#ffffff',right?'right':'left');
   if(f.isP&&!BT.vs){outlineText(`MP ${Math.floor(f.mp)}/${f.S.maxMP}`,right?0:448,52,10,'#9be0ff','left');outlineText(`STA ${Math.floor(f.sta)}`,448,62,10,'#a8ff8c','left');}
-  outlineText(f.vsName?`${f.vsName} · ${WEAPONS[f.wpn].n}`:`Lv.${f.lv} ${f.isP?pname()+' · '+WEAPONS[f.wpn].n:f.name}`,tx,f.vsName?66:(f.isP?82:56),15,f.vsName?(f.isP?'#7ad8ff':'#ff9a8a'):f.elite?'#ffd98a':'#eef6ff',right?'right':'left');
+  outlineText(f.vsName?`Lv.${f.lv} ${f.vsName}${BT.net&&isMe?' (คุณ)':''} · ${WEAPONS[f.wpn].n}`:`Lv.${f.lv} ${f.isP?pname()+' · '+WEAPONS[f.wpn].n:f.name}`,tx,f.vsName?66:(f.isP?82:56),15,f.vsName?(isMe?'#7ad8ff':'#ff9a8a'):f.elite?'#ffd98a':'#eef6ff',right?'right':'left');
   if(!f.isP&&f.def&&f.def.phases)outlineText(`เฟส ${f.ph+1}/${f.def.phases.length+1}`,tx,76,12,'#ff9a8a','right');
   statusIcons(f,right?950:14,94,right);
-  if(f.isP||f.isP2){   // การ์ด: วางเหนือเกจสุดยอด (ซ้าย) / มุมขวาล่างสำหรับ P2
-    const al=right?'right':'left',lx=right?946:14,gy=402;
+  if((f.isP||f.isP2)&&(!BT.net||isMe)){   // การ์ด: วางเหนือเกจสุดยอดของจอใครจอมัน (โลคัล P2 อยู่มุมขวาล่าง)
+    const putRight=BT.net?false:right,al=putRight?'right':'left',lx=putRight?946:14,gy=398;
     if(f.guardBroken>0){outlineText(`การ์ดแตก! ป้องกันไม่ได้ ${(f.guardBroken/60).toFixed(1)} วิ`,lx,gy,12,'#ff6a4a',al);}
-    else{outlineText('การ์ด [E]',lx,gy,11,'#9fd8ff',al);const mg=typeof maxGuard==='function'?maxGuard(f):CONFIG.guard.max;for(let i=0;i<mg;i++){const bx=right?lx-62-i*16:lx+58+i*16;
+    else{outlineText('การ์ด [E]',lx,gy,11,'#9fd8ff',al);const mg=typeof maxGuard==='function'?maxGuard(f):CONFIG.guard.max;for(let i=0;i<mg;i++){const bx=putRight?lx-62-i*16:lx+58+i*16;
       D.fillStyle=i<f.guardLeft?'#8ee4ff':'rgba(122,216,255,.16)';D.strokeStyle=i<f.guardLeft?'#ffd98a':'rgba(122,216,255,.35)';D.lineWidth=1;
       D.beginPath();D.moveTo(bx+6,gy-7);D.lineTo(bx+13,gy-1);D.lineTo(bx+6,gy+6);D.lineTo(bx-1,gy-1);D.closePath();D.fill();D.stroke();}}}
   portrait(f,right?960-92-14:6,8,86,62,right);
 }
+function drawBattleFlash(b){
+  const f=b.flash.f,lft=f.x<BW/2;D.save();D.beginPath();D.moveTo(0,190);D.lineTo(960,150);D.lineTo(960,300);D.lineTo(0,340);D.closePath();
+  const gr=D.createLinearGradient(0,0,960,0);gr.addColorStop(0,'rgba(10,8,20,.95)');gr.addColorStop(.5,ELC[b.flash.m.el]||'#ffd23a');gr.addColorStop(1,'rgba(10,8,20,.95)');D.fillStyle=gr;D.fill();D.clip();
+  for(let i=0;i<24;i++){const y=150+hash(i,3)*190,xo=((G.t*30+hash(i,7)*960)%1200)-120;D.fillStyle='rgba(255,255,255,.35)';D.fillRect(lft?960-xo:xo,y,80,2);}
+  const cx=lft?250:710;
+  if(f.rig){const Pz=poseIdle(0),J=rigPoints(Pz),sc=16,dir=lft?1:-1;drawRig(D,cx-J.hd[0]*sc*dir,250-J.hd[1]*sc,sc,dir,Pz,f.look);}
+  else if(f.def){const pm=SPR[f.def.map]||GOLEM;spr(D,pm,PAL[f.def.pal],cx,f.def.map==='ANGEL'?340:335,f.def.map==='ANGEL'?8:12,!lft);}
+  D.restore();outlineText(b.flash.m.n,lft?620:340,250,36,'#fff');outlineText('ท่าไม้ตายสุดยอด!',lft?620:340,292,18,'#ffd23a');
+}
+function drawBottomHud(b,me){
+  const ultV=Ult.val(me);
+  // skill bar — Crystal Materia Deck (ของฝั่งผู้เล่นบนหน้าจอนั้น)
+  for(let i=0;i<4;i++){const id=(me.skillSet||G.skills.slots)[i],x=14+i*62,y=452,s=id&&SKILLS[id];
+    const sg=D.createLinearGradient(x,y,x,y+56);sg.addColorStop(0,'rgba(16,38,94,.88)');sg.addColorStop(1,'rgba(5,13,36,.94)');
+    D.fillStyle=sg;rrect(x,y,56,56,6);D.fill();
+    D.strokeStyle={common:'#a8c4e4',rare:'#52b8ff',unique:'#e27aff',ultimate:'#ffd98a'}[TIERS[i]];D.lineWidth=2;D.stroke();
+    D.strokeStyle='rgba(255,255,255,.22)';D.lineWidth=1;rrect(x+2,y+2,52,52,4);D.stroke();
+    outlineText(String(i+1),x+9,y+10,11,'#ffd98a');
+    if(s){{const im=skImg(id);if(im&&im.complete&&im.naturalWidth)D.drawImage(im,x+16,y+8,24,24);else{D.font='18px sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(s.ic,x+28,y+24);}}outlineText(s.n.length>6?s.n.slice(0,6)+'…':s.n,x+28,y+40,10,'#fff');if(i===2&&G.skills.bound&&!me.skillSet)outlineText('🔒',x+47,y+10,10,'#ffd98a');const cd=cdLeftF(me,id),full=Skills.cdFrames(id,me.S);
+      const ce=skillCastCheck(me,id),lack=ce&&!cd&&s.type!=='passive';if(lack){D.fillStyle='rgba(20,30,85,.58)';rrect(x,y,56,56,6);D.fill();}
+      if(cd>0){D.fillStyle='rgba(2,8,24,.68)';D.beginPath();D.moveTo(x+28,y+28);D.arc(x+28,y+28,30,-Math.PI/2,-Math.PI/2+6.283*cd/full);D.closePath();D.fill();outlineText((cd/60).toFixed(1),x+28,y+30,16,'#fff');}
+      outlineText(s.tier==='ultimate'?Math.floor(ultV)+'/100':s.type==='passive'?'พาสซีฟ':Mana.cost(id,me.S)+'MP',x+28,y+51,8,s.tier==='ultimate'?'#ffd98a':'#8ee4ff');}
+    else outlineText('—',x+28,y+30,14,'#6078a0');}
+  // ultimate resonance gauge + potions
+  {const gx=14,gy=428,gw=240,v=clamp(ultV/CONFIG.ult.max,0,1);D.fillStyle='rgba(5,12,34,.9)';rrect(gx,gy,gw,14,4);D.fill();
+   D.strokeStyle=v>=1?'#ffd98a':'rgba(122,216,255,.65)';D.lineWidth=1.3;rrect(gx,gy,gw,14,4);D.stroke();
+   const gg=D.createLinearGradient(gx,0,gx+gw,0);gg.addColorStop(0,'#2eb8ff');gg.addColorStop(.55,'#ffe066');gg.addColorStop(1,'#ff942a');D.fillStyle=v>=1&&G.t%20<10?'#fff6b8':gg;rrect(gx+1.5,gy+1.5,(gw-3)*v,11,3);D.fill();
+   outlineText('เกจสุดยอด '+Math.floor(ultV)+'/100'+(v>=1?'  [L] พร้อม!':''),gx+gw/2,gy+7,10.5,'#fff');
+   if(!b.vs&&typeof Z!=='undefined'&&Z&&Z.noPotion){
+     outlineText('🚫 โคลอสเซียม Rank '+(Z.colosseum||'G')+': ห้ามใช้ยาฟื้นพลัง / ยามานา',gx+gw*.55,gy-12,11,'#ff8a7a');
+   }else if(b.vs){
+     const f=me.flask||0,mu=me.mana||0,pcd=me.potCD||0;
+     outlineText(`❤️ ขวดยา ${'◆'.repeat(f)}${'◇'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,gx+gw*.25,gy-12,11,f?'#8aff9a':'#7888a8');
+     outlineText(`🧪 ยามานา ${'◆'.repeat(mu)+'◇'.repeat(Math.max(0,FLASK.uses-mu))} [R]${pcd>0?' · '+(pcd/60).toFixed(1)+' วิ':''}`,gx+gw*.73,gy-12,11,pcd>0||mu===0?'#8898b8':'#8ee4ff');
+   }else{
+     const np=Mana.potionIds.reduce((a,k)=>a+(G.mats[k]||0),0),f=b.flask||0,mu=b.mana||0;
+     outlineText(`❤️ ขวดยา ${'◆'.repeat(f)}${'◇'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,gx+gw*.25,gy-12,11,f?'#8aff9a':'#7888a8');
+     outlineText(`🧪 ยามานา ×${np} ${'◆'.repeat(mu)+'◇'.repeat(Math.max(0,FLASK.uses-mu))} [R]${G.potCD>0?' · '+(G.potCD/60).toFixed(1)+' วิ':''}`,gx+gw*.73,gy-12,11,G.potCD>0||mu===0?'#8898b8':'#8ee4ff');
+   }}
+  // bottom attack & combo timing frame bar (แสดงเฉพาะของเจ้าของจอนั้น)
+  const lt=b.vs?(me.lastT||0):(b.lastT||0),lm=b.vs?me.lastMove:b.lastMove;
+  const m=me.state==='attack'?me.move:(lt>0?lm:null);
+  if(m&&!b.flash){const X=330,Y=486,Wd=300,tot=m.s+m.a+m.r,k=Wd/tot;D.globalAlpha=me.state==='attack'?.95:.4;
+    D.fillStyle='rgba(0,0,0,.55)';D.fillRect(X-4,Y-4,Wd+8,18);D.fillStyle='#c79a2a';D.fillRect(X,Y,m.s*k,10);D.fillStyle='#e0473a';D.fillRect(X+m.s*k,Y,m.a*k,10);
+    D.fillStyle='#3a6ad0';D.fillRect(X+(m.s+m.a)*k,Y,m.r*k,10);D.fillStyle=me.didHit?(G.t%8<4?'#ffe27a':'#fff6c8'):'rgba(255,226,122,.25)';D.fillRect(X+(m.s+m.a)*k,Y-2,Math.min(CONFIG.comboWindow,m.r)*k,14);
+    if(me.state==='attack'){const el=me.phase==='startup'?me.pt:me.phase==='active'?m.s+me.pt:m.s+m.a+me.pt;D.fillStyle='#fff';D.fillRect(X+el*k-1.5,Y-5,3,20);}
+    D.globalAlpha=1;outlineText(m.n,480,Y+26,15,'#fff');}
+  const sm=b.vs?me.small:b.small;
+  if(sm)outlineText(sm.t,bsx(me.x)*S,bsy(me.y-me.h-26)*S,15,'#9fe6ff');
+}
 function drawVSUI(b){
-  const p=b.p,e=b.e,v=b.vs,need=CONFIG.arena.rounds;
+  const p=b.p,e=b.e,v=b.vs,need=CONFIG.arena.rounds,me=b.net==='guest'?e:p;
   for(let i=0;i<need;i++){outlineText(i<v.wins[0]?'◆':'◇',440-i*20,70,16,'#ffd98a');outlineText(i<v.wins[1]?'◆':'◇',520+i*20,70,16,'#ffd98a');}
-  if(b.comboT>0&&b.comboShow>=2){const left=b.comboWho===p;outlineText(b.comboShow+' HITS',left?110:850,180,36,'#ffd98a');}
-  if(b.fullCombo)outlineText('◆ FULL COMBO: '+b.fullCombo.n+' ◆',480,150,28,'#ffd98a');
-  if(b.intro>0){outlineText(b.intro>30?`ROUND ${v.round}`:'FIGHT!',480,250,b.intro>30?52:76,b.intro>30?'#eaf4ff':'#ffd98a');if(b.intro>30)outlineText('P1  VS  P2',480,310,22,'#7ad8ff');}
-  if(b.msg)outlineText(b.msg.t,480,250,b.msg.t==='K.O.'?96:64,b.msg.c);
-  if(b.result&&b.end>0&&b.end<70)outlineText(b.result==='win'?'P1 ชนะยกนี้!':b.result==='lose'?'P2 ชนะยกนี้!':'เสมอ',480,330,32,'#ffd98a');
+  if(b.net){
+    if(me.comboT>0&&me.comboShow>=2){const left=me===p;outlineText(me.comboShow+' HITS',left?110:850,180,36,'#ffd98a');outlineText('COMBO!',left?110:850,210,14,'#7ad8ff');}
+    if(me.fullCombo)outlineText('✦ FULL COMBO: '+me.fullCombo.n+' ✦',480,150,28,'#ffd98a');
+  }else{
+    if(b.comboT>0&&b.comboShow>=2){const left=b.comboWho===p;outlineText(b.comboShow+' HITS',left?110:850,180,36,'#ffd98a');outlineText('COMBO!',left?110:850,210,14,'#7ad8ff');}
+    if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd98a');
+  }
   for(const n of b.nums){D.globalAlpha=Math.min(1,n.t/15);outlineText(n.txt,bsx(n.x)*S,bsy(n.y)*S,n.size,n.col);}D.globalAlpha=1;
+  drawBottomHud(b,me);
+  if(b.flash)drawBattleFlash(b);
+  if(b.intro>0){outlineText(b.intro>30?`ROUND ${v.round}`:'FIGHT!',480,250,b.intro>30?52:76,b.intro>30?'#eaf4ff':'#ffd98a');if(b.intro>30)outlineText(`${p.vsName||'P1'}  VS  ${e.vsName||'P2'}`,480,310,22,'#7ad8ff');}
+  if(b.msg)outlineText(b.msg.t,480,250,b.msg.t==='K.O.'?96:64,b.msg.c);
+  if(b.result&&b.end>0&&b.end<70)outlineText(b.result==='win'?`${p.vsName||'P1'} ชนะยกนี้!`:b.result==='lose'?`${e.vsName||'P2'} ชนะยกนี้!`:'เสมอ',480,330,32,'#ffd98a');
   if(b.white>0){D.fillStyle=`rgba(235,246,255,${Math.min(.24,b.white/36)})`;D.fillRect(0,0,960,540);}
 }
 function drawBattleUI(){
@@ -1256,46 +1314,14 @@ function drawBattleUI(){
     D.beginPath();D.moveTo(-41,-22);D.lineTo(41,-22);D.lineTo(30,22);D.lineTo(-30,22);D.closePath();
     D.strokeStyle='rgba(255,217,138,.4)';D.lineWidth=1;D.stroke();D.restore();}
   outlineText(String(Math.ceil(b.time/60)),480,30,30,'#fff');outlineText('TIME',480,52,11,'#7ad8ff');
-  if(b.vs){drawVSUI(b);drawVSPotions(b);return;}
+  if(b.vs){drawVSUI(b);return;}
   if(b.comboT>0&&b.comboShow>=2){const left=b.comboWho===p;outlineText(b.comboShow+' HITS',left?110:850,180,36,'#ffd98a');outlineText('COMBO!',left?110:850,210,14,'#7ad8ff');}
   for(const n of b.nums){D.globalAlpha=Math.min(1,n.t/15);outlineText(n.txt,bsx(n.x)*S,bsy(n.y)*S,n.size,n.col);}D.globalAlpha=1;
   if(e.state==='attack'&&e.phase==='startup'&&!b.flash)outlineText('!',bsx(e.x)*S,bsy(e.y-e.h-14)*S,34,'#ff5a4a');
-  // skill bar — Crystal Materia Deck
-  for(let i=0;i<4;i++){const id=(p.skillSet||G.skills.slots)[i],x=14+i*62,y=452,s=id&&SKILLS[id];
-    const sg=D.createLinearGradient(x,y,x,y+56);sg.addColorStop(0,'rgba(16,38,94,.88)');sg.addColorStop(1,'rgba(5,13,36,.94)');
-    D.fillStyle=sg;rrect(x,y,56,56,6);D.fill();
-    D.strokeStyle={common:'#a8c4e4',rare:'#52b8ff',unique:'#e27aff',ultimate:'#ffd98a'}[TIERS[i]];D.lineWidth=2;D.stroke();
-    D.strokeStyle='rgba(255,255,255,.22)';D.lineWidth=1;rrect(x+2,y+2,52,52,4);D.stroke();
-    outlineText(String(i+1),x+9,y+10,11,'#ffd98a');
-    if(s){{const im=skImg(id);if(im&&im.complete&&im.naturalWidth)D.drawImage(im,x+16,y+8,24,24);else{D.font='18px sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(s.ic,x+28,y+24);}}outlineText(s.n.length>6?s.n.slice(0,6)+'…':s.n,x+28,y+40,10,'#fff');if(i===2&&G.skills.bound&&!p.skillSet)outlineText('🔒',x+47,y+10,10,'#ffd98a');const cd=cdLeftF(p,id),full=Skills.cdFrames(id,p.S);
-      const ce=skillCastCheck(p,id),lack=ce&&!Skills.cdLeft(id)&&s.type!=='passive';if(lack){D.fillStyle='rgba(20,30,85,.58)';rrect(x,y,56,56,6);D.fill();}
-      if(cd>0){D.fillStyle='rgba(2,8,24,.68)';D.beginPath();D.moveTo(x+28,y+28);D.arc(x+28,y+28,30,-Math.PI/2,-Math.PI/2+6.283*cd/full);D.closePath();D.fill();outlineText((cd/60).toFixed(1),x+28,y+30,16,'#fff');}
-      outlineText(s.tier==='ultimate'?Math.floor(G.ult||0)+'/100':s.type==='passive'?'พาสซีฟ':Mana.cost(id,p.S)+'MP',x+28,y+51,8,s.tier==='ultimate'?'#ffd98a':'#8ee4ff');}
-    else outlineText('—',x+28,y+30,14,'#6078a0');}
-  // ultimate resonance gauge + mana potion
-  {const gx=14,gy=428,gw=240,v=(G.ult||0)/CONFIG.ult.max;D.fillStyle='rgba(5,12,34,.9)';rrect(gx,gy,gw,14,4);D.fill();
-   D.strokeStyle=v>=1?'#ffd98a':'rgba(122,216,255,.65)';D.lineWidth=1.3;rrect(gx,gy,gw,14,4);D.stroke();
-   const gg=D.createLinearGradient(gx,0,gx+gw,0);gg.addColorStop(0,'#2eb8ff');gg.addColorStop(.55,'#ffe066');gg.addColorStop(1,'#ff942a');D.fillStyle=v>=1&&G.t%20<10?'#fff6b8':gg;rrect(gx+1.5,gy+1.5,(gw-3)*v,11,3);D.fill();
-   outlineText('เกจสุดยอด '+Math.floor(G.ult||0)+'/100'+(v>=1?'  [L] พร้อม!':''),gx+gw/2,gy+7,10.5,'#fff');
-   if(typeof Z!=='undefined'&&Z&&Z.noPotion){
-     outlineText('🚫 โคลอสเซียม Rank '+(Z.colosseum||'G')+': ห้ามใช้ยาฟื้นพลัง / ยามานา',gx+gw*.55,gy-12,11,'#ff8a7a');
-   }else{
-     const np=Mana.potionIds.reduce((a,k)=>a+(G.mats[k]||0),0),PF=BT.vs?BT.p:BT,f=PF.flask||0;
-     outlineText(`❤️ ขวดยา ${'◆'.repeat(f)}${'◇'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,gx+gw*.25,gy-12,11,f?'#8aff9a':'#7888a8');   // v0.2.0 ขวดยา 3 ครั้ง/ไฟต์
-     const mu=PF.mana||0;outlineText(`🧪 ยามานา ×${np} ${'◆'.repeat(mu)+'◇'.repeat(Math.max(0,FLASK.uses-mu))} [R]${G.potCD>0?' · '+(G.potCD/60).toFixed(1)+' วิ':''}`,gx+gw*.73,gy-12,11,G.potCD>0||mu===0?'#8898b8':'#8ee4ff');
-   }}
-  // combo route
-  // (คำแนะนำคอมโบกลางจอถูกนำออก)
   if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd23a');
   if(b.phaseMsg)outlineText(b.phaseMsg.t,480,200,30,'#ff6a5a');
   if(e.weakT>0)outlineText('จุดอ่อนเปิด '+(e.weakT/60).toFixed(1)+' วิ',bsx(e.x)*S,bsy(e.y-e.h-34)*S,15,'#5affb0');
-  const m=p.state==='attack'?p.move:(b.lastT>0?b.lastMove:null);
-  if(m&&!b.flash){const X=330,Y=486,Wd=300,tot=m.s+m.a+m.r,k=Wd/tot;D.globalAlpha=p.state==='attack'?.95:.4;
-    D.fillStyle='rgba(0,0,0,.55)';D.fillRect(X-4,Y-4,Wd+8,18);D.fillStyle='#c79a2a';D.fillRect(X,Y,m.s*k,10);D.fillStyle='#e0473a';D.fillRect(X+m.s*k,Y,m.a*k,10);
-    D.fillStyle='#3a6ad0';D.fillRect(X+(m.s+m.a)*k,Y,m.r*k,10);D.fillStyle=p.didHit?(G.t%8<4?'#ffe27a':'#fff6c8'):'rgba(255,226,122,.25)';D.fillRect(X+(m.s+m.a)*k,Y-2,Math.min(CONFIG.comboWindow,m.r)*k,14);
-    if(p.state==='attack'){const el=p.phase==='startup'?p.pt:p.phase==='active'?m.s+p.pt:m.s+m.a+p.pt;D.fillStyle='#fff';D.fillRect(X+el*k-1.5,Y-5,3,20);}
-    D.globalAlpha=1;outlineText(m.n,480,Y+26,15,'#fff');}
-  if(b.small)outlineText(b.small.t,bsx(p.x)*S,bsy(p.y-p.h-26)*S,15,'#9fe6ff');
+  drawBottomHud(b,p);
   if(b.def&&b.def.immortal){
     const c=b.coach||{},tm=Math.floor((c.t||0)/330)%5;
     const tips=[
@@ -1312,13 +1338,7 @@ function drawBattleUI(){
     outlineText(`${chk(c.jCombo,'คอมโบ')} · ${chk(c.heavy,'ตีหนัก')} · ${chk(c.kick,'เตะ')} · ${chk(c.dodge,'พุ่งหลบ')} · ${chk(c.guard,'กัน/ปัดป้อง')} · ${chk(c.skill,'สกิล')}`,480,105,11,'#a8ecff');
     D.restore();
   }
-  if(b.flash){const f=b.flash.f,lft=f.x<BW/2;D.save();D.beginPath();D.moveTo(0,190);D.lineTo(960,150);D.lineTo(960,300);D.lineTo(0,340);D.closePath();
-    const gr=D.createLinearGradient(0,0,960,0);gr.addColorStop(0,'rgba(10,8,20,.95)');gr.addColorStop(.5,ELC[b.flash.m.el]||'#ffd23a');gr.addColorStop(1,'rgba(10,8,20,.95)');D.fillStyle=gr;D.fill();D.clip();
-    for(let i=0;i<24;i++){const y=150+hash(i,3)*190,xo=((G.t*30+hash(i,7)*960)%1200)-120;D.fillStyle='rgba(255,255,255,.35)';D.fillRect(lft?960-xo:xo,y,80,2);}
-    const cx=lft?250:710;
-    if(f.rig){const Pz=poseIdle(0),J=rigPoints(Pz),sc=16,dir=lft?1:-1;drawRig(D,cx-J.hd[0]*sc*dir,250-J.hd[1]*sc,sc,dir,Pz,f.look);}
-    else if(f.def){const pm=SPR[f.def.map]||GOLEM;spr(D,pm,PAL[f.def.pal],cx,f.def.map==='ANGEL'?340:335,f.def.map==='ANGEL'?8:12,!lft);}
-    D.restore();outlineText(b.flash.m.n,lft?620:340,250,36,'#fff');outlineText('ท่าไม้ตายสุดยอด!',lft?620:340,292,18,'#ffd23a');}
+  if(b.flash)drawBattleFlash(b);
   if(b.intro>0){outlineText(b.intro>30?'ROUND 1':'FIGHT!',480,250,b.intro>30?52:76,b.intro>30?'#fff':'#ffd23a');if(b.intro>30)outlineText(`Lv.${p.lv} คุณ  VS  ${e.name} Lv.${e.lv}`,480,310,20,'#fff');}
   if(b.msg)outlineText(b.msg.t,480,250,b.msg.t==='K.O.'?96:64,b.msg.c);
   if(b.result&&b.end>0&&b.end<70)outlineText(b.result==='win'?'คุณชนะ!':'คุณแพ้...',480,330,32,b.result==='win'?'#ffd23a':'#ff8a7a');
@@ -1336,7 +1356,4 @@ const Nav={
     if(best){best.focus();best.scrollIntoView({block:'nearest'});}},
   activate(){const a=document.activeElement;if(a&&pn.contains(a)&&!a.disabled)a.click();else{const it=this.items();if(it[0])it[0].focus();}}
 };
-function drawVSPotions(b){const PF=b.net==='guest'?b.e:b.p,f=PF.flask||0,mu=PF.mana||0;
-  outlineText(`❤️ ขวดยา ${'●'.repeat(f)}${'○'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,14,448,11,f?'#8aff9a':'#888','left');
-  outlineText(`🧪 ยามานา ${'●'.repeat(mu)+'○'.repeat(Math.max(0,FLASK.uses-mu))} [R]${PF.potCD>0?' · '+(PF.potCD/60).toFixed(1)+' วิ':''}`,14,466,11,PF.potCD>0||mu===0?'#999':'#9fd8ff','left');}
 

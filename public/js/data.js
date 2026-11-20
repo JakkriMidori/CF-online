@@ -70,6 +70,9 @@ const WEAPONS={
   woodsword:{n:'ดาบไม้ฝึกหัด',col:'#9c6a38',fx:'#e8c89a',len:13,shape:'sword',el:'phys',
     light:[M('ฟันเฉียง',5,3,10,5,58,1,15,{anim:'slash'}),M('ฟันกลับ',5,3,10,5,58,1,15,{anim:'slash2'}),M('แทงตรง',6,3,15,8,64,3,22,{anim:'thrust',launch:1})],
     heavy:M('ฟันผ่าหิน',13,4,20,14,62,5,28,{anim:'heavyslash',kd:1})},
+  stonesword:{n:'ดาบหิน',col:'#8a867e',fx:'#d8d4ca',len:13,shape:'sword',el:'phys',
+    light:[M('ฟันหิน',5,3,10,5,58,1,15,{anim:'slash'}),M('ฟันกลับ',5,3,10,5,58,1,15,{anim:'slash2'}),M('แทงตรง',6,3,15,8,64,3,22,{anim:'thrust',launch:1})],
+    heavy:M('ฟันผ่าหิน',13,4,20,14,62,5,28,{anim:'heavyslash',kd:1})},
   bbqysword:{n:'Chaos Blade Legendary Sword',col:'#28144a',fx:'#a64df0',len:17,shape:'chaosblade',el:'lightning',
     light:[M('ฟันเฉียง',5,3,10,5,60,1,15,{anim:'slash'}),M('ฟันกลับ',5,3,10,5,60,1,15,{anim:'slash2'}),M('แทงตรง',6,3,15,8,66,3,22,{anim:'thrust',launch:1})],
     heavy:M('ฟันผ่าหิน',13,4,20,14,64,5,28,{anim:'heavyslash',kd:1})},
@@ -287,6 +290,7 @@ const slotType=s=>s.startsWith('ring')?'ring':s;
 const BASES={
   w_club:{n:'กระบองรากไม้',type:'weapon',wt:'club',atk:16,matk:4,ic:'🏏'},
   w_woodsword:{n:'ดาบไม้ฝึกหัด',type:'weapon',wt:'woodsword',atk:12,matk:2,ic:'🗡️',fixRar:'normal',look:{wcol:'#9c6a38',wfx:'#e8c89a'}},
+  w_stonesword:{n:'ดาบหิน',type:'weapon',wt:'stonesword',atk:20,matk:2,ic:'🗡️',fixRar:'normal',look:{wcol:'#8a867e',wfx:'#d8d4ca'}},
   w_sword:{n:'ดาบเหล็กโบโร',type:'weapon',wt:'sword',atk:24,matk:4,ic:'🗡️'},
   w_spear:{n:'หอกเขี้ยวถ้ำ',type:'weapon',wt:'spear',atk:22,matk:4,ic:'🔱'},
   w_flame:{n:'ดาบถ่านแดง',type:'weapon',wt:'flame',atk:28,matk:12,ic:'⚔️'},
@@ -368,7 +372,7 @@ const BASES={
   p_ice:{n:'สนับขาน้ำแข็ง',type:'pants',def:8,mdef:6,ic:'👖',fixRar:'rare',set:'ice',look:{pants:'#366898'}}
 };
 // แยกประเภทอุปกรณ์ตามรูปแบบการใช้งานจริง (ดาบ / ดาบหนัก / ค้อน / ค้อนหนัก / หอก / หมัด / ไม้เท้า / หมวก / เกราะ / ถุงมือ / กางเกง / รองเท้า / เครื่องประดับ)
-const BASE_CAT={w_club:'hammer',w_hammer:'hammer',w_firepan:'hammer',w_woodsword:'sword',w_sword:'sword',w_flame:'sword',w_kage:'sword',w_seraph:'sword',w_god:'sword',w_mswd:'sword',w_adagger:'sword',w_bbqy:'sword',w_icesword:'sword',
+const BASE_CAT={w_club:'hammer',w_hammer:'hammer',w_firepan:'hammer',w_woodsword:'sword',w_stonesword:'sword',w_sword:'sword',w_flame:'sword',w_kage:'sword',w_seraph:'sword',w_god:'sword',w_mswd:'sword',w_adagger:'sword',w_bbqy:'sword',w_icesword:'sword',
   w_spear:'spear',w_gaunt:'fist',w_gs1:'gsword',w_gs2:'gsword',w_gs3:'gsword',w_lightless:'gsword',w_scythe:'gsword',w_iceaxe:'gsword',
   w_wh1:'ghammer',w_wh2:'ghammer',w_wh3:'ghammer',w_mstaff:'staff',w_wand_fire:'staff',w_wand_ice:'staff',w_wand_lightning:'staff',w_mercstaff:'staff'};
 for(const k in BASES){const b=BASES[k];b.cat=BASE_CAT[k]||(b.type==='ring'||b.type==='necklace'?'accessory':b.type);}
@@ -454,6 +458,7 @@ for(const id in SKILLS)if(SKILLS[id].tier!=='unique'&&SKILLS[id].user!=='enemy')
    `clue` is the written hint the player reads in books / from NPCs; no recipe list is ever shown. */
 const RECIPES=[
   {id:'club',out:{base:'w_club'},rar:'normal',mats:{wood:2},known:1,clue:'โบโรเล่า: "ไม้สองท่อนมัดรวมกัน ก็ได้กระบองตีหัวหนูแล้ว"'},
+  {id:'stonesword',out:{base:'w_stonesword'},rar:'normal',mats:{stoneore:2,wood:1},known:1,clue:'โบโรเล่า: "แร่หินสองก้อนเหลาคมเข้าด้ามไม้หนึ่ง — ได้ดาบหินไว้ลุยถ้ำต้นเกมเลย"'},
   {id:'sword',out:{base:'w_sword'},rar:'normal',mats:{wood:1,ore:1},known:1,clue:'โบโรเล่า: "ด้ามไม้หนึ่ง ใบแร่เหล็กหนึ่ง — นั่นแหละดาบของช่างฝึกหัด"'},
   {id:'spear',out:{base:'w_spear'},rar:'normal',mats:{wood:1,fang:1},known:1,clue:'โบโรเล่า: "เอาเขี้ยวหนูหนึ่งซี่ผูกปลายไม้ จะได้หอกแหลมเปี๊ยบ"'},
   {id:'hhelm',out:{base:'h_leather'},rar:'normal',mats:{hide:2,wood:1},known:1,clue:'โบโรเล่า: "หนังสัตว์สองผืน ไม้หนึ่งชิ้นทำโครง ได้หมวกหนัง"'},
@@ -620,14 +625,18 @@ const FOES={
     attr:{str:18,agi:22,int:32,vit:22,luk:12},skills:['orb'],base:{hp:420,atk:78,def:18,mdef:18},res:{ice:.25,shadow:.15},xp:140,loot:'spire',meterStart:0},
   spire1_leader:{n:'จิตวิญญาณของหัวหน้าผู้คุมหอคอย',kind:'rig',look:'SPIRE1_LEADER',wpn:'kageblade',hw:15,h:105,el:'ice',miniboss:1,
     attr:{str:28,agi:26,int:24,vit:30,luk:18},skills:['slashwave','cuttingwind'],base:{hp:1150,atk:118,def:26,mdef:22},res:{ice:.3,phys:.15},statusRes:{stun:.3,bleed:.2},xp:380,loot:'spire',meterStart:10},
+  spire2_mob:{n:'วิญญาณโครงกระดูกคบเพลิง',kind:'rig',look:'SPIRE2_MOB',wpn:'wand_fire',hw:15,h:104,el:'fire',
+    attr:{str:22,agi:24,int:34,vit:26,luk:14},skills:['emberbolt','flamepillar'],base:{hp:580,atk:104,def:20,mdef:24},res:{fire:.35,shadow:.25},xp:220,loot:'spire',meterStart:0},
+  spire2_leader:{n:'นักบวชโครงกระดูก',kind:'rig',look:'SPIRE2_LEADER',wpn:'wand_poison',hw:16,h:108,el:'poison',miniboss:1,
+    attr:{str:26,agi:26,int:38,vit:32,luk:18},skills:['toxiccloud','acidflask','slashwave'],base:{hp:1520,atk:142,def:28,mdef:32},res:{poison:.5,shadow:.35,phys:.15},statusRes:{stun:.35,poison:.8},xp:520,loot:'spire',meterStart:15},
   spiremob:{n:'ศิษย์คริสตัลอเมทิสต์',kind:'rig',look:'SPIRE_MOB',wpn:'mstaff',hw:14,h:100,el:'lightning',
     attr:{str:18,agi:22,int:32,vit:22,luk:12},skills:['orb'],base:{hp:420,atk:78,def:18,mdef:18},res:{lightning:.25,shadow:.15},xp:140,loot:'spire',meterStart:0},
   spireleader:{n:'หัวหน้าผู้คุมหอคอย',kind:'rig',look:'SPIRE_LEADER',wpn:'kageblade',hw:15,h:105,el:'shadow',miniboss:1,
     attr:{str:28,agi:26,int:24,vit:30,luk:18},skills:['slashwave','cuttingwind'],base:{hp:1150,atk:118,def:26,mdef:22},res:{shadow:.35,phys:.15},statusRes:{stun:.3,bleed:.2},xp:380,loot:'spire',meterStart:10},
   spire_b1:{n:'จิตวิญญาณของซิลวา (บอสชั้น 1)',kind:'rig',look:'SPIRE_B1',wpn:'sword',hw:16,h:112,el:'ice',boss:1,fog:1,bgm:'bgm_silva',
     attr:{str:32,agi:26,int:34,vit:36,luk:18},skills:['silvabeam','blink','silvabarrier','slashcut'],base:{hp:2600,atk:152,def:30,mdef:28},res:{ice:.35,phys:.15},statusRes:{stun:.5,bleed:.3},xp:900,loot:'spireboss',meterStart:15},
-  spire_b2:{n:'อัศวินเงาออบซิเดียน (บอสชั้น 2)',kind:'rig',look:'SPIRE_B2',wpn:'kageblade',hw:16,h:114,el:'shadow',boss:1,
-    attr:{str:36,agi:34,int:24,vit:38,luk:22},skills:['moonfall','slashwave','venomslash'],base:{hp:3400,atk:185,def:34,mdef:28},res:{shadow:.45},statusRes:{stun:.5,bleed:.4},xp:1250,loot:'spireboss',meterStart:15},
+  spire_b2:{n:'นิกซ์ แม่มดสุญญตา (บอสชั้น 2)',kind:'rig',look:'SPIRE_B2',wpn:'mstaff',hw:16,h:116,el:'shadow',boss:1,allMagic:1,hover:1,
+    attr:{str:22,agi:36,int:48,vit:40,luk:26},skills:['abyssgate','orb','slashwave','blink'],base:{hp:3400,atk:185,def:32,mdef:40},res:{shadow:.5,poison:.3},statusRes:{stun:.5,bleed:.4},xp:1250,loot:'spireboss',meterStart:20},
   spire_b3:{n:'จอมเวทเพลิงอเมทิสต์ (บอสชั้น 3)',kind:'rig',look:'SPIRE_B3',wpn:'mstaff',hw:16,h:116,el:'fire',boss:1,
     attr:{str:26,agi:28,int:46,vit:40,luk:24},skills:['flamepillar','orb','fireflask'],base:{hp:4400,atk:225,def:36,mdef:36},res:{fire:.5},statusRes:{stun:.5,burn:.7},xp:1650,loot:'spireboss',meterStart:20},
   spire_b4:{n:'เทวทูตคริสตัลเหมันต์ (บอสชั้น 4)',kind:'rig',look:'SPIRE_B4',wpn:'mstaff',hw:16,h:118,el:'lightning',freezeChance:.25,boss:1,
@@ -660,15 +669,17 @@ const SPIRE1_MOB={arch:'mage_dress',sex:'f',hstyle:'long',hair:'#82e8ff',skin:'#
 const SPIRE1_LEADER={arch:'knight',sex:'m',hstyle:'spiky',hair:'#78e2ff',skin:'#e4f0fc',body:'#2c4e7c',armor:'#62b8ea',coatCol:'#1c3862',trim:'#a4f4ff',pants:'#1a2a48',boots:'#121d32',cape:'#2468a2',head:'helm',hc:'#4ca0d8',hc2:'#9ef6ff',plume:'#66ebff',weapon:'kageblade',eye:'#7ae8ff'};
 const SPIRE_MOB={arch:'mage_dress',sex:'f',hstyle:'long',hair:'#c89cf0',skin:'#e8dce8',body:'#3e2860',coatCol:'#68349c',trim:'#e0a8ff',pants:'#26183a',boots:'#1b1028',head:'cowl',hc:'#52287e',hc2:'#f0b8ff',orbCol:'#d270ff',weapon:'mstaff',eye:'#e090ff'};
 const SPIRE_LEADER={arch:'knight',sex:'m',hstyle:'spiky',hair:'#b88ce8',skin:'#dcccd8',body:'#4a3868',armor:'#7e649c',coatCol:'#382058',trim:'#f0c858',pants:'#241834',boots:'#1a1026',cape:'#4e2278',head:'helm',hc:'#6a4e8c',hc2:'#f0c858',plume:'#d058ff',weapon:'kageblade',eye:'#ffd258'};
+const SPIRE2_MOB={custom:'skel_wraith',sex:'m',hair:'#6d1122',skin:'#8e6e4a',body:'#6d1122',trim:'#961b32',pants:'#2e0610',boots:'#1e040a',weapon:'wand_fire',eye:'#ff9030'};
+const SPIRE2_LEADER={custom:'skel_shaman',sex:'m',hair:'#cfc6ae',skin:'#cfc6ae',body:'#585042',trim:'#9eff00',pants:'#585042',boots:'#3a342a',weapon:'wand_poison',eye:'#9eff00'};
 const SPIRE_B1={arch:'mage_dress',sex:'f',hstyle:'long',hair:'#52e6ff',skin:'#f2f7ff',body:'#eef6fc',coatCol:'#1d86c8',sleeve:'#1d86c8',trim:'#1a2838',pants:'#e6f0f8',boots:'#283e54',gloves:'#f2f7ff',head:'halo',hc:'#7cf4ff',hc2:'#ffffff',orbCol:'#58e8ff',eyec:'#58e8ff',eye:'#58e8ff'};
-const SPIRE_B2={arch:'knight',sex:'m',hstyle:'spiky',hair:'#241c30',skin:'#c8b8d0',body:'#241c34',armor:'#44345c',coatCol:'#5a1c42',trim:'#ff68b8',pants:'#181224',boots:'#100a18',cape:'#341438',head:'horns',hc:'#ff68b8',weapon:'kageblade',eye:'#ff68b8'};
+const SPIRE_B2={custom:'void_witch',sex:'f',hair:'#a838ff',skin:'#0b0710',body:'#3e3c4c',trim:'#d4bd88',pants:'#1a1824',boots:'#d4bd88',weapon:'mstaff',eye:'#e068ff'};
 const SPIRE_B3={arch:'furcoat',sex:'f',hstyle:'hime',hair:'#f05848',skin:'#fbe0d0',body:'#4e1828',coatCol:'#8a2238',furCol:'#f4b8c8',trim:'#ffd060',pants:'#2a101a',boots:'#381422',head:'wizard',hc:'#681834',hc2:'#ffd060',orbCol:'#ff7a30',weapon:'mstaff',eye:'#ffb84a'};
 const SPIRE_B4={arch:'mage_dress',elfEars:1,sex:'f',hstyle:'long',hair:'#e4f2ff',skin:'#f4e8f0',body:'#426c9c',coatCol:'#5a90c8',trim:'#e8fbff',pants:'#263c5e',boots:'#1c2e4a',head:'halo',hc:'#c888ff',orbCol:'#80e8ff',weapon:'mstaff',eye:'#a8f0ff'};
 const SPIRE_B5={arch:'furcoat',sex:'m',hstyle:'long',hair:'#f4e4ff',skin:'#ecdcf2',body:'#361858',coatCol:'#5e2098',furCol:'#e4b8ff',trim:'#ffe066',pants:'#201038',boots:'#160828',cape:{col:'#4c167e',col2:'#1c0836'},head:'crown',hc:'#ffd858',hc2:'#e058ff',orbCol:'#e068ff',weapon:'bbqysword',wcol:'#6220a8',wfx:'#e280ff',wshape:'chaosblade',eye:'#ff96ff'};
 const EGEL_LOOK={arch:'knight',sex:'m',hstyle:'short',hair:'#a8b0bc',beard:'#9ca4b0',eyepatch:1,eyec:'#4ab8ff',skin:'#e2b898',body:'#365270',coatCol:'#263c58',trim:'#7ad8ff',pants:'#202c3c',boots:'#18202c',gloves:'#4a6480',pads:1,plate:1,head:'none',weapon:'frostaxe',wcol:'#7ad8ff',wfx:'#ffffff'};
 const RANKG2_LOOK={arch:'elf_knight',sex:'m',hstyle:'spiky',hair:'#684830',eyec:'#d89040',skin:'#eec29c',body:'#5a687c',coatCol:'#2f4868',trim:'#6fd48c',pants:'#242a34',boots:'#1a1e24',gloves:'#444c58',pads:1,head:'band',hc:'#6fd48c',hc2:'#e8f8e0',weapon:'sword'};
 const RANKG3_LOOK={arch:'mage_dress',sex:'f',hstyle:'ponytail',hair:'#c84848',eyec:'#ff9040',skin:'#fbe0c8',body:'#682632',coatCol:'#882e3c',trim:'#ffd27a',pants:'#2a1a22',boots:'#3a1c24',head:'none',orbCol:'#ff8030',weapon:'wand_fire'};
-const LOOK_BY_NAME={HOMUNC:HOMUNC_LOOK,GARGOYLE:GARGOYLE_LOOK,HOMUNCULUS:HOMUNCULUS_LOOK,KAGE:KAGE_LOOK,SHADE:SHADE_LOOK,ICEKNIGHT:ICEKNIGHT_LOOK,DUELIST:DUELIST_LOOK,SPIRE1_MOB,SPIRE1_LEADER,SPIRE_MOB,SPIRE_LEADER,SPIRE_B1,SPIRE_B2,SPIRE_B3,SPIRE_B4,SPIRE_B5,EGEL:EGEL_LOOK,RANKG2:RANKG2_LOOK,RANKG3:RANKG3_LOOK};
+const LOOK_BY_NAME={HOMUNC:HOMUNC_LOOK,GARGOYLE:GARGOYLE_LOOK,HOMUNCULUS:HOMUNCULUS_LOOK,KAGE:KAGE_LOOK,SHADE:SHADE_LOOK,ICEKNIGHT:ICEKNIGHT_LOOK,DUELIST:DUELIST_LOOK,SPIRE1_MOB,SPIRE1_LEADER,SPIRE2_MOB,SPIRE2_LEADER,SPIRE_MOB,SPIRE_LEADER,SPIRE_B1,SPIRE_B2,SPIRE_B3,SPIRE_B4,SPIRE_B5,EGEL:EGEL_LOOK,RANKG2:RANKG2_LOOK,RANKG3:RANKG3_LOOK};
 const DEFLOOK={hair:'#9a4a22',skin:'#f2c9a0',eye:'#1a1020',hstyle:'short',sex:'m',name:''};
 const pname=()=>((G.look&&G.look.name)||'').trim()||'คุณ';
 const ELITE={chance:.2,hp:2.5,atk:1.4,xp:3,prefix:'★ หัวหน้า'};
@@ -687,7 +698,7 @@ const DIFFICULTY={
           eHP:2,eATK:2.0,eSpd:1.15,aiCD:.65,guard:2.2,staRegen:.75,xp:1.5,gold:1.3,death:'bloodstain',restRespawn:1}};
 const LOOT_CONFIG={
   classes:{   // random drop chance, random item count, conditional rarity distribution (weights, given an item is selected)
-    normal:  {chance:.28,qty:[1,2],rar:{normal:70,rare:20,epic:9.9979,legendary:.002,god:.0001}},
+    normal:  {chance:.10,qty:[1,1],rar:{normal:85,rare:12,epic:2.9979,legendary:.002,god:.0001}},
     elite:   {chance:.60,qty:[2,3],rar:{normal:70,rare:20,epic:9.9979,legendary:.002,god:.0001}},
     miniboss:{chance:.99,qty:[3,5],rar:'boss'},
     boss:    {chance:.63,qty:[1,2],rar:{normal:69.9979,rare:20,epic:10,legendary:.002,god:.0001}}},
@@ -779,7 +790,7 @@ const GUILD_QUESTS=[
   {id:'gq_golem',n:'คำร้องปราบโกเลมศิลา',rankReq:'F',targets:['golem','rockling','stone','stonecave'],req:4,desc:'ปราบมอนสเตอร์หรือบอสในถ้ำหินโกเลม 4 ตัว',reward:{xp:450,gold:350,mats:{ore:4}}},
   {id:'gq_lava',n:'กวาดล้างเหมืองลาวา',rankReq:'F',targets:['lavarat','lizard','fireele','lavaking'],req:6,desc:'ปราบมอนสเตอร์ในเหมืองลาวา 6 ตัว',reward:{xp:750,gold:550,mats:{fire:3,mp_m:2}}},
   {id:'gq_ice',n:'สำรวจแดนเหมันต์',rankReq:'G',targets:['frostslime','frostwolf','iceknight','icegolem','seraph'],req:6,desc:'ปราบมอนสเตอร์ในถ้ำน้ำแข็ง 6 ตัว',reward:{xp:1400,gold:1000,mats:{iceore:4,mp_l:2}}},
-  {id:'gq_spire',n:'พิทักษ์ยอดหอคอยคริสตัล',rankReq:'G',targets:['spire1_mob','spire1_leader','spiremob','spireleader','spire_b1','spire_b2','spire_b3','spire_b4','spire_b5'],req:8,desc:'ปราบศัตรูในหอคอยคริสตัลจอมเวท 8 ตัว',reward:{xp:3200,gold:2200,mats:{evostone:1}}}
+  {id:'gq_spire',n:'พิทักษ์ยอดหอคอยคริสตัล',rankReq:'G',targets:['spire1_mob','spire1_leader','spire2_mob','spire2_leader','spiremob','spireleader','spire_b1','spire_b2','spire_b3','spire_b4','spire_b5'],req:8,desc:'ปราบศัตรูในหอคอยคริสตัลจอมเวท 8 ตัว',reward:{xp:3200,gold:2200,mats:{evostone:1}}}
 ];
 // แรงค์กิลด์นักผจญภัย 7 ขั้น (F -> G -> D -> C -> B -> A -> S) : เลื่อนขั้นเมื่อเลเวลถึงเกณฑ์ + ผ่านเควสต์เลื่อนขั้น
 const GUILD_RANKS=[

@@ -90,7 +90,7 @@ function ico(name,size=20){
 
 // ไอคอนประจำไอเทมแต่ละชิ้น: [รูปทรง, สี] — วาดเอง ไม่ใช้ emoji
 const BASE_ICO={
-  w_club:['club','#c8925a'],w_sword:['sword','#d8dde6'],w_spear:['spear','#f0e2c0'],w_flame:['flameblade','#ff8a3a'],w_gaunt:['gauntlet','#7fd8ff'],
+  w_club:['club','#c8925a'],w_woodsword:['sword','#9c6a38'],w_stonesword:['sword','#8a867e'],w_sword:['sword','#d8dde6'],w_spear:['spear','#f0e2c0'],w_flame:['flameblade','#ff8a3a'],w_gaunt:['gauntlet','#7fd8ff'],
   w_firepan:['pan','#ff9a3a'],w_hammer:['hammer','#ffd56a'],w_kage:['katana','#b08aff'],w_seraph:['featherblade','#fff2a8'],w_god:['greatsword','#ff5a1a'],
   w_mswd:['magicsword','#c9a0ff'],w_mstaff:['staff','#a98aff'],w_adagger:['dagger','#d88aff'],w_wand_fire:['wand','#ff7a2a'],w_wand_ice:['wand','#bff0ff'],
   w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],w_lightless:['greatsword','#9a7ad8'],r_primal:['ring','#ffd23a'],w_mercstaff:['wand','#9ae8b0'],h_alch:['wizardhat','#7af0c0'],a_alch:['robe','#7af0c0'],g_alch:['glove','#7af0c0'],b_alch:['boot','#7af0c0'],w_gs1:['greatsword','#c8ccd8'],w_gs2:['greatsword','#e8c070'],w_gs3:['greatsword','#a98aff'],
@@ -109,7 +109,7 @@ const BASE_ICO={
   w_icesword:['sword','#8ee4ff'],w_iceaxe:['axe','#7ad8ff'],b_ice:['boot','#8ee4ff'],h_ice:['helm','#8ee4ff'],a_ice:['plate','#aeeeff'],g_ice:['glove','#8ee4ff'],p_ice:['pants','#7ad8ff']
 };
 const MAT_ICO={
-  wood:['log','#c8925a'],ore:['ore','#b8bfcc'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['bolt','#9fe6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
+  wood:['log','#c8925a'],ore:['ore','#b8bfcc'],stoneore:['ore','#8a867e'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['bolt','#9fe6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
   potion:['potion','#ff5a6a'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
   sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],reset:['scroll','#e8d8b0']

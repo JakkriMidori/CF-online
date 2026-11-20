@@ -79,8 +79,8 @@ class NetCore{
   rx(m){if(m&&m.data&&!m.t)m=m.data;if(!m||!m.t||m.from===this.id)return;this.lastRx=this.now();
     switch(m.t){
       case'join':if(this.role!=='host')return;if(this.peerId&&this.peerId!==m.from){this.tx({t:'full'});return;}
-        this.peerId=m.from;this.lobby.peer=true;this.lobby.peerName=m.name||'เพื่อน';this.tx({t:'welcome',to:m.from});this.refresh();break;
-      case'welcome':if(this.role!=='guest'||m.to!==this.id)return;this.hostId=m.from;this.lobby.phase='joined';clearInterval(this.joinTimer);this.tx({t:'lo',lo:vsLoadout()});this.refresh();break;
+        this.peerId=m.from;this.lobby.peer=true;this.lobby.peerName=m.name||'เพื่อน';this.tx({t:'welcome',to:m.from,name:((G.look&&G.look.name)||'').trim()||'เจ้าของห้อง'});this.refresh();break;
+      case'welcome':if(this.role!=='guest'||m.to!==this.id)return;this.hostId=m.from;this.lobby.phase='joined';this.lobby.hostName=m.name||'เจ้าของห้อง';clearInterval(this.joinTimer);this.tx({t:'lo',lo:vsLoadout()});this.refresh();break;
       case'lo':if(!this.role||(m.from!==this.peerId&&m.from!==this.hostId))return;G.vsOther=m.lo;break;
       case'full':if(this.role==='guest'&&!this.hostId){this.lobby.err='ห้องนี้เต็มแล้ว';this.leave(true);}break;
       case'start':if(this.role!=='guest'||m.from!==this.hostId)return;this.rid=m.rid;this.startGuest();break;
@@ -88,7 +88,7 @@ class NetCore{
         for(const[k,bits]of m.taps||[])if(k>this.lastTap){this.lastTap=k;for(const[,nm,bit]of NETBITS)if(bits&bit)pressed[nm]=true;}break;
       case'snap':if(this.role==='guest'&&m.from===this.hostId)this.applySnap(m);break;
       case'round':if(this.role!=='guest'||m.from!==this.hostId)return;this.rid=m.rid;setupVS(m.wins,m.round);break;
-      case'end':if(this.role!=='guest'||m.from!==this.hostId)return;this.endBattle();UI.vsResult(m.w,m.wins,'guest');break;
+      case'end':if(this.role!=='guest'||m.from!==this.hostId)return;this.endBattle();UI.vsResult(m.w,m.wins,'guest',m.names);break;
       case'bye':if(m.from===this.peerId||m.from===this.hostId)this.peerLeft();break;
     }}
   refresh(){if(typeof UI!=='undefined'&&UI.cur==='room')UI.rerender();}
@@ -97,7 +97,7 @@ class NetCore{
   async join(code){code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(code.length!==4){this.lobby.err='รหัสต้องมี 4 ตัว';this.refresh();return;}
     this.role='guest';this.hostId=null;this.lobby={phase:'connecting',peer:false,err:''};this.refresh();const ok=await this.connect(code);if(!ok){this.lobby={phase:'menu',peer:false,err:'เชื่อมต่อระบบห้องไม่ได้'};this.role=null;this.refresh();return;}
     this.lobby={phase:'joining',peer:false,err:''};this.refresh();
-    const ask=()=>this.tx({t:'join',name:'เพื่อน'});ask();let n=0;this.joinTimer=setInterval(()=>{if(this.hostId||++n>8){clearInterval(this.joinTimer);if(!this.hostId&&this.role==='guest'){this.lobby={phase:'menu',peer:false,err:'ไม่พบห้อง '+code+' (เจ้าของห้องต้องเปิดเกมค้างไว้)'};this.leave(true);}return;}ask();},1000);}
+    const ask=()=>this.tx({t:'join',name:((G.look&&G.look.name)||'').trim()||'เพื่อน'});ask();let n=0;this.joinTimer=setInterval(()=>{if(this.hostId||++n>8){clearInterval(this.joinTimer);if(!this.hostId&&this.role==='guest'){this.lobby={phase:'menu',peer:false,err:'ไม่พบห้อง '+code+' (เจ้าของห้องต้องเปิดเกมค้างไว้)'};this.leave(true);}return;}ask();},1000);}
   leave(keepErr){const err=keepErr?this.lobby.err:'';try{this.tx({t:'bye'});}catch(e){}clearInterval(this.joinTimer);try{if(this.ws){const w=this.ws;this.ws=null;setTimeout(()=>{try{w.close();}catch(e){}},100);}if(this.bc)this.bc.close();if(this.unsub)this.unsub();if(this.room&&this.room.leave){this.room.presence({cf:null}).catch(()=>{});this.room.leave().catch(()=>{});}}catch(e){}
     this.unhookSfx();const wasBattle=this.inBattle;this.reset();this.lobby.err=err;this.refresh();return wasBattle;}
   peerLeft(){if(this.inBattle){this.endBattle();toast('🔌 เพื่อนออกจากห้องแล้ว',3000);G.mode='explore';this.lobby={phase:'menu',peer:false,err:''};this.role=null;this.leave();}else{this.lobby.peer=false;this.peerId=null;this.refresh();}}
@@ -109,12 +109,17 @@ class NetCore{
   /* ---- โฮสต์: เก็บเสียง/เอฟเฟกต์ส่งให้เพื่อน ---- */
   hookSfx(){if(this.sfxOrig)return;this.sfxOrig={};for(const n of SFX_HOOKS){const o=SFX[n];if(typeof o!=='function')continue;this.sfxOrig[n]=o;SFX[n]=(...a)=>{o(...a);this.evq.push({e:'s',n,a});};}}
   unhookSfx(){if(!this.sfxOrig)return;for(const n in this.sfxOrig)SFX[n]=this.sfxOrig[n];this.sfxOrig=null;}
-  snap(){const b=BT,F=f=>({x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),mp:Math.round(f.mp||0),fk:f.flask|0,mn:f.mana|0,iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq});
+  snap(){const b=BT,F=f=>{const o={x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),mp:Math.round(f.mp||0),fk:f.flask|0,mn:f.mana|0,iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq,ul:Math.round(f.ult||0),gl:f.guardLeft|0,gb:f.guardBroken|0,pcd:f.potCD|0,lm:f.lastMove?f.lastMove.n:null,lt:f.lastT|0,cs:f.comboShow|0,ct:f.comboT|0};
+    if(f.cd){const cd={};let any=0;for(const k in f.cd)if(f.cd[k]>0){cd[k]=f.cd[k];any=1;}if(any)o.cd=cd;}return o;};
     for(const n of b.nums)if(!n._s){n._s=1;this.evq.push({e:'n',x:Math.round(n.x),y:Math.round(n.y),t:n.txt,c:n.col,z:n.size});}
     for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0});}
     for(const u of b.bolts)if(!u._s){u._s=1;this.evq.push({e:'z',x:Math.round(u.x),t:u.t});}
+    for(const f of[b.p,b.e]){const w=f===b.e?1:0;
+      if(f.fullCombo&&!f.fullCombo._s){f.fullCombo._s=1;this.evq.push({e:'fc',n:f.fullCombo.n,w});}
+      if(f.small&&!f.small._s){f.small._s=1;this.evq.push({e:'sm',t:f.small.t,l:f.small.l,w});}}
+    if(b.flash&&!b.flash._s){b.flash._s=1;this.evq.push({e:'fl',w:b.flash.f===b.e?1:0,t:b.flash.t,mn:b.flash.m?b.flash.m.n:null});}
+    if(b.fullCombo&&!b.fullCombo._s){b.fullCombo._s=1;if(!b.p.fullCombo&&!b.e.fullCombo)this.evq.push({e:'fc',n:b.fullCombo.n,w:b.fullCombo.who===b.e?1:0});}
     for(const ev of this.evq.splice(0)){ev.k=++this.evK;this.evRing.push(ev);}if(this.evRing.length>14)this.evRing.splice(0,this.evRing.length-14);
-    if(b.fullCombo&&!b.fullCombo._s){b.fullCombo._s=1;this.evq.push({e:'fc',n:b.fullCombo.n});}
     return{t:'snap',rid:this.rid,p:F(b.p),e:F(b.e),tm:b.time,it:b.intro,en:b.end,sh:+b.shake.toFixed(1),hs:b.hitstop,wh:b.white,ms:b.msg,rs:b.result,
       cb:{n:b.comboShow,w:b.comboWho===b.e?1:0,t:b.comboT},k:++this.snapK,ev:this.evRing.slice(),
       pj:b.proj.map(q=>[Math.round(q.x),Math.round(q.y),q.r,q.col,q.vx>0?1:-1,q.rock?1:0])};}
@@ -131,17 +136,22 @@ class NetCore{
     if(this.now()-this.lastRx>6000&&this.lastRx){this.dropped('เจ้าของห้องหลุดการเชื่อมต่อ');return;}
     this.guestInput();
     if(s){this.pend=null;
-      for(const[f,d]of[[b.p,s.p],[b.e,s.e]]){const far=Math.abs(d.x-f.x)>60;f.tx=d.x;if(far)f.x=d.x;f.y=d.y;f.vy=d.vy;f.dir=d.d;f.state=d.s;f.phase=d.ph;f.pt=d.pt;f.hp=d.h;f.sta=d.sta;if(d.mp!==undefined){f.mp=d.mp;f.flask=d.fk;f.mana=d.mn;}f.invuln=d.iv;f.flash=d.fl;f.onGround=!!d.og;f.walkT=d.w;f.gc=!!d.gc;f.didHit=!!d.dh;f.move=moveByName(d.mv,f);f.moveSeq=d.ms;}
+      for(const[f,d]of[[b.p,s.p],[b.e,s.e]]){const far=Math.abs(d.x-f.x)>60;f.tx=d.x;if(far)f.x=d.x;f.y=d.y;f.vy=d.vy;f.dir=d.d;f.state=d.s;f.phase=d.ph;f.pt=d.pt;f.hp=d.h;f.sta=d.sta;if(d.mp!==undefined){f.mp=d.mp;f.flask=d.fk;f.mana=d.mn;}f.invuln=d.iv;f.flash=d.fl;f.onGround=!!d.og;f.walkT=d.w;f.gc=!!d.gc;f.didHit=!!d.dh;f.move=moveByName(d.mv,f);f.moveSeq=d.ms;
+        if(d.ul!==undefined)f.ult=d.ul;if(d.gl!==undefined){f.guardLeft=d.gl;f.guardBroken=d.gb||0;f.potCD=d.pcd||0;}
+        f.cd=Object.assign({},d.cd||{});f.lastMove=d.lm?moveByName(d.lm,f):null;f.lastT=d.lt||0;if(d.cs!==undefined){f.comboShow=d.cs;f.comboT=d.ct||0;}}
       b.time=s.tm;b.intro=s.it;b.end=s.en;b.msg=s.ms;b.result=s.rs;b.comboT=s.cb.t;b.comboShow=s.cb.n;b.comboWho=s.cb.w?b.e:b.p;if(s.sh>b.shake)b.shake=s.sh;b.hitstop=s.hs;if(s.wh>b.white)b.white=s.wh;
       b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],life:2,o:null}));
       for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55});
         else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,big:ev.g});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
-        else if(ev.e==='fc')b.fullCombo={n:ev.n,t:90};
+        else if(ev.e==='fc'){const tf=ev.w?b.e:b.p;tf.fullCombo={n:ev.n,t:90};b.fullCombo={n:ev.n,t:90,who:tf};}
+        else if(ev.e==='sm'){const tf=ev.w?b.e:b.p;tf.small={t:ev.t,l:ev.l||60};}
+        else if(ev.e==='fl'){const tf=ev.w?b.e:b.p,fm=moveByName(ev.mn,tf);if(fm)b.flash={t:ev.t||46,f:tf,m:fm};}
         else if(ev.e==='s'&&SFX[ev.n])SFX[ev.n](...ev.a);}}
     for(const f of[b.p,b.e]){if(f.tx!==undefined)f.x+=(f.tx-f.x)*.55;f.dhp+=(f.hp-f.dhp)*.05;
+      if(f.cd)for(const k in f.cd)if(f.cd[k]>0)f.cd[k]--;if(f.guardBroken>0)f.guardBroken--;if(f.potCD>0)f.potCD--;if(f.lastT>0&&f.state!=='attack')f.lastT--;if(f.comboT>0)f.comboT--;if(f.fullCombo&&--f.fullCombo.t<=0)f.fullCombo=null;if(f.small&&--f.small.l<=0)f.small=null;
       if(['dash','backdash','dodge'].includes(f.state)||(f.state==='attack'&&f.move&&(f.move.lunge))){if(G.t%2===0){f.trail.push({x:f.x,y:f.y,P:f.rig?poseFor(f):null});if(f.trail.length>4)f.trail.shift();}}else if(f.trail.length&&G.t%2===0)f.trail.shift();}
     for(const n of b.nums){n.t--;n.y-=.5;}b.nums=b.nums.filter(n=>n.t>0);for(const u of b.bursts)u.t++;b.bursts=b.bursts.filter(u=>u.t<14);for(const u of b.bolts)u.t--;b.bolts=b.bolts.filter(u=>u.t>0);
-    if(b.white>0)b.white--;if(b.fullCombo&&--b.fullCombo.t<=0)b.fullCombo=null;if(b.shake>0){b.shake*=.85;if(b.shake<.3)b.shake=0;}
+    if(b.white>0)b.white--;if(b.fullCombo&&--b.fullCombo.t<=0)b.fullCombo=null;if(b.flash&&--b.flash.t<=0)b.flash=null;if(b.shake>0){b.shake*=.85;if(b.shake<.3)b.shake=0;}
     for(const q of b.parts){q.x+=q.vx;q.y+=q.vy;if(q.grav)q.vy+=.15;q.l--;}b.parts=b.parts.filter(q=>q.l>0);if(b.comboT>0)b.comboT--;}
 }
 const Net=new NetCore();

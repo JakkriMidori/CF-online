@@ -92,7 +92,7 @@ const Combo={
   start(p,m){const c=COMBOS.filter(x=>x.seq[0]===m.tok);p.cmb=c.length?{c,prog:1}:null;},
   advance(p,m){if(!p.cmb)return this.start(p,m);const c=p.cmb.c.filter(x=>x.seq[p.cmb.prog]===m.tok);if(!c.length)return this.start(p,m);
     p.cmb={c,prog:p.cmb.prog+1};const full=c.find(x=>x.seq.length===p.cmb.prog);
-    if(full){p.fullMove=m;BT.fullCombo={n:full.n,t:90};if(!BT.vs)G.stats.fullCombos++;p.cmb=null;p.sta=Math.min(p.S.maxSTA,p.sta+20);Ult.gain(p,'combo',p.moveSeq);SFX.perfect();}},  // combo reward: stamina + Ultimate Gauge (never MP)
+    if(full){p.fullMove=m;p.fullCombo={n:full.n,t:90};BT.fullCombo={n:full.n,t:90,who:p};if(!BT.vs)G.stats.fullCombos++;p.cmb=null;p.sta=Math.min(p.S.maxSTA,p.sta+20);Ult.gain(p,'combo',p.moveSeq);SFX.perfect();}},  // combo reward: stamina + Ultimate Gauge (never MP)
   fail(p,why){if(p.failedThis)return;p.failedThis=true;p.cmb=null;p.penalty=CONFIG.comboFailPenalty;num(p,'จังหวะพลาด! ('+why+')','#ff9a8a',15,-30);SFX.fail();}
 };
 function pickMove(f,btn){
@@ -270,10 +270,11 @@ function fogFx(o={}){
     }
   };
 }
+const setSmall=(f,t,l=60)=>{const s={t,l};if(BT&&BT.vs&&f)f.small=s;else if(BT)BT.small=s;};
 function spawnMoveFx(kind,actor,x0,x1,dir){if(!BT)return;BT.moveFx=BT.moveFx||[];BT.moveFx.push(movementFx({kind,actor,x0,x1,y:actor.y,dir}));}
 function beginMove(f,m){
   if(!m)return false;
-  if((f.isP||f.isP2)&&m.sta&&!m.skillId){const c=m.sta*(f.S.passives.has('swift')?.7:1);if(f.sta<c){BT.small={t:'สตามินาไม่พอ',l:50};return false;}f.sta-=c;}
+  if((f.isP||f.isP2)&&m.sta&&!m.skillId){const c=m.sta*(f.S.passives.has('swift')?.7:1);if(f.sta<c){setSmall(f,'สตามินาไม่พอ',50);return false;}f.sta-=c;}
   if(m.blink){
     const x0=f.x,dir=(f.isP||f.isP2)?(()=>{const k=kk(f),l=down(...k.L),rt=down(...k.R);return l&&!rt?-1:rt&&!l?1:f.dir;})():(Math.abs(clamp(x0+f.dir*m.blink,24,BW-24)-x0)<40?-f.dir:f.dir);
     const x1=clamp(x0+dir*m.blink,24,BW-24);
@@ -284,7 +285,7 @@ function beginMove(f,m){
     spawnMoveFx('blink',f,x0,x1,dir);num(f,'⚡ Blink!','#9ef6ff',16,-36);SFX.dodge();return true;
   }
   startAtk(f,m);if(m.air)f.airUsed++;if(m.rise)f.airUsed=99;
-  if(f.isP){BT.lastMove=m;BT.lastT=40;}
+  if(f.isP||f.isP2){f.lastMove=m;f.lastT=40;}if(f.isP){BT.lastMove=m;BT.lastT=40;}
   if(m.super){BT.flash={t:m.super===2?66:46,f,m};SFX.flash();BT.white=6;}
   if(m.hpCost)f.hp=Math.max(1,f.hp-Math.round(f.maxHp*m.hpCost));
   if(m.jackpot){f.jackpot=m.jackpot;f.jackpotPen=m.jackpotPen||0;num(f,'แจ็คพอต! คริติคอล '+m.jackpot+' ครั้ง','#ffd23a',18,-30);SFX.crit();}
@@ -306,15 +307,15 @@ function attemptMove(p,m){
 function skillCastCheck(p,id){
   const s=SKILLS[id];if(!s)return'ไม่มีสกิล';if(s.type==='passive')return s.n+' เป็นพาสซีฟ ทำงานอยู่แล้ว';
   if(cdLeftF(p,id)>0)return`${s.n} ยังคูลดาวน์ (${Math.ceil(cdLeftF(p,id)/60)} วิ)`;
-  if(s.tier==='ultimate'){if(!Ult.ready())return`เกจสุดยอดไม่พอ (${Math.floor(G.ult||0)}/${CONFIG.ult.cost})`;}
+  if(s.tier==='ultimate'){if(!Ult.ready(p))return`เกจสุดยอดไม่พอ (${Math.floor(Ult.val(p))}/${CONFIG.ult.cost})`;}
   else if(p.mp<Mana.cost(id,p.S))return`MP ไม่พอ (${Math.floor(p.mp)}/${Mana.cost(id,p.S)})`;
   return null;
 }
 function useSkill(p,slot,fromBuf){
-  const id=(p.skillSet||G.skills.slots)[slot];if(!id){BT.small={t:'ช่องสกิล '+(slot+1)+' ว่าง (ตั้งได้ที่หน้าสกิล K)',l:70};return false;}
-  if(p.isP&&!p.skillSet&&!skillUsable(id,'player')){BT.small={t:SKILLS[id].n+' — ศัตรูใช้ได้เท่านั้น',l:70};return false;}
-  if(SKILLS[id].type==='passive'){BT.small={t:SKILLS[id].n+' เป็นสกิลพาสซีฟ — ทำงานอัตโนมัติ ไม่ต้องกด',l:80};return false;}
-  const err=skillCastCheck(p,id);if(err){BT.small={t:err,l:60};return false;}
+  const id=(p.skillSet||G.skills.slots)[slot];if(!id){setSmall(p,'ช่องสกิล '+(slot+1)+' ว่าง (ตั้งได้ที่หน้าสกิล K)',70);return false;}
+  if(p.isP&&!p.skillSet&&!skillUsable(id,'player')){setSmall(p,SKILLS[id].n+' — ศัตรูใช้ได้เท่านั้น',70);return false;}
+  if(SKILLS[id].type==='passive'){setSmall(p,SKILLS[id].n+' เป็นสกิลพาสซีฟ — ทำงานอัตโนมัติ ไม่ต้องกด',80);return false;}
+  const err=skillCastCheck(p,id);if(err){setSmall(p,err,60);return false;}
   const sk=SKILLS[id];
   if(sk.holdParry){if(!actionable(p))return false;p.state='holdparry';p.st=sk.holdParry;p.holdSlot=slot;p.vx=0;p.skBuf=null;
     p.mp-=Mana.cost(id,p.S);if(p.cd)p.cd[id]=Skills.cdFrames(id,p.S);else G.skills.cd[id]=Skills.cdFrames(id,p.S);
@@ -323,7 +324,7 @@ function useSkill(p,slot,fromBuf){
   if(!attemptMove(p,m)){   // กดตอนโดนตี/หลบ/กระโดด/ท่ายังไม่จบ → จำไว้สั้นๆ แล้วปล่อยทันทีที่ขยับได้
     if(!fromBuf&&!actionable(p))p.skBuf={slot,ttl:CONFIG.skillBuffer};return false;}
   p.skBuf=null;if(SKILLS[id].type==='magic'&&SFX.magic)SFX.magic(SKILLS[id].el);   // เสียงร่ายตามธาตุ
-  if(SKILLS[id].tier==='ultimate')Ult.spend();else p.mp-=Mana.cost(id,p.S);
+  if(SKILLS[id].tier==='ultimate')Ult.spend(p);else p.mp-=Mana.cost(id,p.S);
   if(p.cd)p.cd[id]=Skills.cdFrames(id,p.S);else G.skills.cd[id]=Skills.cdFrames(id,p.S);return true;
 }
 function cmdDir(p){const k=kk(p),F=p.dir>0?k.R:k.L,Bk=p.dir>0?k.L:k.R;return(down(...k.U)||!p.onGround)?'U':down(...k.D)?'D':down(...F)?'F':down(...Bk)?'B':'N';}
@@ -334,7 +335,7 @@ function cmdCheck(p,btn){p.cmdBuf=p.cmdBuf||[];p.cmdBuf.push({c:cmdDir(p)+btn,l:
     const lit=C.keys&&tail.every((x,i)=>x.l===C.keys[i]);for(let i=0;i<L;i++){if(!lit&&tail[i].c!==C.seq[i]){ok=false;break;}if(i&&tail[i].t-tail[i-1].t>C.window){ok=false;break;}}
     if(ok){p.cmdBuf=[];return C;}}return null;}
 function pressAttack(p,btn){const C=cmdCheck(p,btn);
-  if(C){const m=C.move;if(p.state==='attack'||p.state==='air')p.state='idle';if(beginMove(p,m)){BT.fullCombo={n:C.n,t:90};SFX.perfect();return true;}}
+  if(C){const m=C.move;if(p.state==='attack'||p.state==='air')p.state='idle';if(beginMove(p,m)){p.fullCombo={n:C.n,t:90};BT.fullCombo={n:C.n,t:90,who:p};SFX.perfect();return true;}}
   const m=pickMove(p,btn);if(m&&m.skill!==undefined)return useSkill(p,m.skill);return attemptMove(p,m);}
 function control(p,e){
   if(p.state==='ko'||BT.result)return;
@@ -346,9 +347,9 @@ function control(p,e){
   const blk=down(...(K.B||[]));if(tap(...(K.B||[])))p.backPressT=G.t;   // กด E ตรงจังหวะ = ปัดป้อง
   if(p.skBuf){if(--p.skBuf.ttl<=0)p.skBuf=null;else if(actionable(p)||p.state==='land'){const s=p.skBuf.slot;p.skBuf=null;useSkill(p,s,true);}}
   for(let i=0;i<4;i++)if(tap(...(p.skk?p.skk[i]:skillKeys(i))))useSkill(p,i);
-  if(tap(...(K.F||[]))){if(typeof Z!=='undefined'&&Z&&Z.noPotion){BT.small={t:'🚫 สนามทดสอบแรงค์ไม่อนุญาตให้ใช้ยาฟื้นพลัง!',l:70};SFX.fail();}else{const fc=BT.vs?p:BT;if(!(fc.flask>0))BT.small={t:'ขวดยาหมดแล้ว (ได้ 3 ครั้งต่อการต่อสู้)',l:60};else if(actionable(p)&&p.hp<p.S.maxHP){fc.flask--;const h=Math.round(p.S.maxHP*FLASK.heal);p.drinkT=FLASK.frames;p.drinkH=h/FLASK.frames;fxHeal(p);num(p,'+'+h+' HP','#7aff9a',18,-30);SFX.heal?SFX.heal():SFX.pick();}}}   // v0.2.0: ขวดยา 3 ครั้ง/ไฟต์
+  if(tap(...(K.F||[]))){if(typeof Z!=='undefined'&&Z&&Z.noPotion){BT.small={t:'🚫 สนามทดสอบแรงค์ไม่อนุญาตให้ใช้ยาฟื้นพลัง!',l:70};SFX.fail();}else{const fc=BT.vs?p:BT;if(!(fc.flask>0))setSmall(p,'ขวดยาหมดแล้ว (ได้ 3 ครั้งต่อการต่อสู้)',60);else if(actionable(p)&&p.hp<p.S.maxHP){fc.flask--;const h=Math.round(p.S.maxHP*FLASK.heal);p.drinkT=FLASK.frames;p.drinkH=h/FLASK.frames;fxHeal(p);num(p,'+'+h+' HP','#7aff9a',18,-30);SFX.heal?SFX.heal():SFX.pick();}}}   // v0.2.0: ขวดยา 3 ครั้ง/ไฟต์
   if(tap(...(K.M||[]))){if(typeof Z!=='undefined'&&Z&&Z.noPotion){BT.small={t:'🚫 สนามทดสอบแรงค์ไม่อนุญาตให้ใช้ยามานา!',l:70};SFX.fail();}else if(BT.vs){   // อารีนา: ยามานาของแต่ละคน 3 ครั้ง/ยก ไม่กินของในกระเป๋า (แฟร์ทั้งสองฝั่ง)
-      if(!(p.mana>0))BT.small={t:'ยามานาหมดแล้ว (ได้ 3 ครั้งต่อยก)',l:60};else if((p.potCD||0)>0)BT.small={t:'ยามานาคูลดาวน์ '+Math.ceil(p.potCD/60)+' วิ',l:50};
+      if(!(p.mana>0))setSmall(p,'ยามานาหมดแล้ว (ได้ 3 ครั้งต่อยก)',60);else if((p.potCD||0)>0)setSmall(p,'ยามานาคูลดาวน์ '+Math.ceil(p.potCD/60)+' วิ',50);
       else if(actionable(p)&&p.mp<p.S.maxMP){const g=Math.min(p.S.maxMP-p.mp,Math.round(p.S.maxMP*.35));p.mana--;p.mp+=g;p.potCD=CONFIG.potionCD;fxMana(p);num(p,'+'+g+' MP','#7ab8ff',18,-30);SFX.mana();}}
     else{const fc=BT;const id=Mana.bestPotion(p,p.S);if(!(fc.mana>0))BT.small={t:'ยามานาใช้ครบ 3 ครั้งแล้วในไฟต์นี้',l:60};else if(!id)BT.small={t:'ไม่มียามานา',l:50};else{const r=Mana.drink(p,p.S,id);if(r.ok){fc.mana--;fxMana(p);num(p,'+'+r.gained+' MP','#7ab8ff',18,-30);SFX.mana();}else BT.small={t:r.err,l:50};}}}
   if(!BT.vs&&(tap(KB.flee)||fleeTap)){fleeTap=false;tryFlee(p,e);if(BT.result)return;}
@@ -493,9 +494,9 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   const lsPct=(m.lifesteal||0)+((a.def&&a.def.lifesteal)||0);
   if(lsPct>0&&a.hp>0){const heal=Math.max(1,Math.round(r.dmg*lsPct));a.hp=Math.min(a.maxHp,a.hp+heal);num(a,'+'+heal,'#7aff8a',14,-40);}
   if(((a.isP&&!BT?.vs&&G.talent==='vampire')||a.talent==='vampire')&&a.hp>0){const heal=Math.max(1,Math.round(r.dmg*TALENT_PASSIVE.vampire.lifesteal));a.hp=Math.min(a.maxHp,a.hp+heal);num(a,'+'+heal,'#ff5a7a',13,-34);}
-  if(a.isP&&m.kind!=='ultimate'){Ult.gain(a,'hit',seq);if(h.counter)Ult.gain(a,'counter',seq);}
+  if((a.isP||a.isP2)&&m.kind!=='ultimate'){Ult.gain(a,'hit',seq);if(h.counter)Ult.gain(a,'counter',seq);}
   if(!a.isP&&!a.isP2&&m.kind!=='ultimate')a.ult=Math.min(100,(a.ult||0)+6);
-  if(t.isP)Ult.gain(t,'beingHit',a.name+':'+seq);
+  if(t.isP||t.isP2)Ult.gain(t,'beingHit',a.name+':'+seq);
   if(!t.isP&&!t.isP2)t.ult=Math.min(100,(t.ult||0)+8);
   if(a.S.uniq&&a.S.uniq.id==='vampiric'&&a.hp>0){const heal=Math.max(1,Math.round(r.dmg*a.S.uniq.v));a.hp=Math.min(a.maxHp,a.hp+heal);}
   if(t.revived&&t.invuln>100)return;
@@ -508,7 +509,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
       if(m.launch||air||m.kd){t.state='airhurt';t.onGround=false;t.vy=m.launch?-7.4:air?-3.8:-3.6;t.vx=a.dir*(m.kd?2.4:1.3);t.jug++;}
       else{t.state='hurt';t.st=m.hs;t.vx=a.dir*m.kb;}}
   }
-  a.combo=wasStun?a.combo+1:1;if(a.combo>=2){b.comboT=90;b.comboWho=a;b.comboShow=a.combo;}if(a.isP&&!b.vs)G.stats.maxCombo=Math.max(G.stats.maxCombo,a.combo);
+  a.combo=wasStun?a.combo+1:1;if(a.combo>=2){a.comboShow=a.combo;a.comboT=90;b.comboT=90;b.comboWho=a;b.comboShow=a.combo;}if(a.isP&&!b.vs)G.stats.maxCombo=Math.max(G.stats.maxCombo,a.combo);
   b.hitstop=Math.max(b.hitstop,m.super?3:r.crit?8:m.dmg>=12?8:m.dmg>=7?6:4);
   if(r.crit||a.parryBuffT>0||m.super)b.impFrame=m.super?3:2;
   const hc=a.parryBuffT>0?'#d8f8ff':(ELC[h.el]||'#ffe27a');
@@ -719,6 +720,7 @@ function updBattleCore(){
   if(b.shake>0){b.shake*=.85;if(b.shake<.3)b.shake=0;}
   for(const q of b.parts){q.x+=q.vx;q.y+=q.vy;if(q.grav)q.vy+=.15;q.l--;}b.parts=b.parts.filter(q=>q.l>0);
   if(b.comboT>0)b.comboT--;if(b.lastT>0&&p.state!=='attack')b.lastT--;if(b.small&&--b.small.l<=0)b.small=null;
+  for(const f of[p,e]){if(f.comboT>0)f.comboT--;if(f.lastT>0&&f.state!=='attack')f.lastT--;if(f.fullCombo&&--f.fullCombo.t<=0)f.fullCombo=null;if(f.small&&--f.small.l<=0)f.small=null;}
   if(b.fleeCD>0)b.fleeCD--;fleeBtn.classList.toggle('cd',b.fleeCD>0);
   if(b.intro>0){b.intro--;if(b.intro===30)SFX.perfect();return;}
   const updFrz=f=>{const r=f.st8&&f.st8.freeze?.55:1;f.__frzRate=r;f.__frzAcc=(f.__frzAcc||0)+r;if(f.__frzAcc>=1){f.__frzAcc-=1;f.__frzAct=true;}else f.__frzAct=false;};
@@ -798,13 +800,16 @@ function startVS(){G.vsPending=true;G.mode='trans';G.tt=0;SFX.hit(true);UI.close
 function setupVS(wins,round){
   buildBattleBg('arena');
   // ทุกคนใช้ของของตัวเอง (อุปกรณ์ + สกิล + เลเวล) — ออนไลน์: ชุดของเพื่อนมาทาง G.vsOther
-  const net=G.vsNet||null,nm=net?(net==='host'?['P1 · เจ้าของห้อง','P2 · เพื่อน']:['P1 · เจ้าของห้อง','P2 · คุณ']):['P1','P2'];
+  const net=G.vsNet||null,rawMine=((G.look&&G.look.name)||'').trim();
   const mine=vsLoadout(),other=G.vsOther||null,defA=Stats.arena();
   const lo1=net==='guest'?other:mine, lo2=net?(net==='guest'?mine:other):null;   // โลคัล: P2 ใช้ชุดตั้งต้นของกลาง
+  const n1=(lo1&&lo1.name)||(net==='guest'?(typeof Net!=='undefined'&&Net.lobby&&Net.lobby.hostName):rawMine)||(net?'เจ้าของห้อง':'P1');
+  const n2=(lo2&&lo2.name)||(net==='host'?(typeof Net!=='undefined'&&Net.lobby&&Net.lobby.peerName):net==='guest'?rawMine:'P2')||(net?'เพื่อน':'P2');
+  const nm=[n1,n2];
   const pack=(lo,defLook)=>lo?{S:vsLoadoutToS(lo),look:Object.assign({},lo.look,{weapon:lo.wpn}),wpn:lo.wpn,lv:lo.level,skills:lo.skills,talent:lo.talent||null}
     :{S:defA,look:Object.assign({},defLook,{weapon:CONFIG.arena.weapon}),wpn:CONFIG.arena.weapon,lv:defA.level,skills:CONFIG.arena.skills,talent:null};
   const A1=pack(lo1,Equip.look()),A2=pack(lo2,KAGE_LOOK);
-  const mk=(X,o)=>mkF(Object.assign({rig:true,S:Object.assign({},X.S,{res:Object.assign({},X.S.res)}),hp:X.S.maxHP,maxHp:X.S.maxHP,dhp:X.S.maxHP,mp:0,sta:X.S.maxSTA,wpn:X.wpn,hw:14,h:100,lv:X.lv,ultKeys:new Set(),flask:FLASK.uses,mana:FLASK.uses,talent:X.talent||null,moves:null,cdMul:1,spdMul:1},o));
+  const mk=(X,o)=>mkF(Object.assign({rig:true,S:Object.assign({},X.S,{res:Object.assign({},X.S.res)}),hp:X.S.maxHP,maxHp:X.S.maxHP,dhp:X.S.maxHP,mp:0,sta:X.S.maxSTA,wpn:X.wpn,hw:14,h:100,lv:X.lv,ult:0,ultKeys:new Set(),flask:FLASK.uses,mana:FLASK.uses,comboShow:0,comboT:0,lastMove:null,lastT:0,fullCombo:null,small:null,talent:X.talent||null,moves:null,cdMul:1,spdMul:1},o));
   const p=mk(A1,{x:BW/2-160,dir:1,isP:true,keys:VSKN1,look:A1.look,name:'P1',vsName:nm[0],skillSet:A1.skills,skk:VSS1,cd:{},mp:A1.S.maxMP});
   const e=mk(A2,{x:BW/2+160,dir:-1,isP2:true,keys:VSKN2,look:A2.look,name:'P2',vsName:nm[1],skillSet:A2.skills,skk:VSKN2_SK,cd:{},mp:A2.S.maxMP});
   if(p.talent==='vampire'||(p.skillSet&&p.skillSet.includes('blooddrain'))){e.maxHp=Math.max(1,Math.round(e.maxHp*.85));e.hp=e.maxHp;e.dhp=e.maxHp;}
@@ -817,11 +822,11 @@ function finishVS(){
   const b=BT,v=b.vs;wrap.classList.remove('battle','vs');
   if(b.result==='win')v.wins[0]++;else if(b.result==='lose')v.wins[1]++;
   const need=CONFIG.arena.rounds,done=v.wins[0]>=need||v.wins[1]>=need;
-  const net=b.net;
+  const net=b.net,names=[b.p.vsName||'P1',b.e.vsName||'P2'];
   if(!done){if(net==='host'){Net.rid++;Net.tx({t:'round',rid:Net.rid,wins:v.wins,round:v.round+1});}setupVS(v.wins,v.round+1);return;}   // ยกต่อไป
   const w=v.wins[0]>v.wins[1]?'P1':'P2';
-  if(net==='host'){Net.tx({t:'end',w,wins:v.wins});Net.endBattle();}
-  BT=null;G.mode='menu';UI.vsResult(w,v.wins,net);
+  if(net==='host'){Net.tx({t:'end',w,wins:v.wins,names});Net.endBattle();}
+  BT=null;G.mode='menu';UI.vsResult(w,v.wins,net,names);
 }
 /* ---------- poses ---------- */
 function poseFor(f){

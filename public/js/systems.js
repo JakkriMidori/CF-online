@@ -31,7 +31,7 @@ function activeSetBonuses(list){const out=[];const c=setCounts(list);for(const i
 /* ลานประลอง PvP: ชุดของแต่ละคน (เลเวล ค่าพลัง อุปกรณ์ สกิล) ส่งเป็น JSON ได้ */
 function vsLoadout(){
   const S=(typeof StatSync!=='undefined'&&StatSync.get())||Stats.player();
-  return{S:Object.assign({},S,{passives:[...(S.passives||[])],flat:undefined}),level:G.level,talent:G.talent||null,
+  return{name:((G.look&&G.look.name)||'').trim(),S:Object.assign({},S,{passives:[...(S.passives||[])],flat:undefined}),level:G.level,talent:G.talent||null,
     look:Equip.look(),wpn:Equip.weaponType(),
     skills:G.skills.slots.slice(0,4).map(id=>(id&&SKILLS[id]&&!SKILLS[id].bossOnly)?id:null)};}
 function vsLoadoutToS(lo){return Object.assign({},lo.S,{passives:new Set(lo.S.passives||[]),res:Object.assign({},lo.S.res||{})});}
@@ -160,11 +160,14 @@ const Mana={
 };
 /* ---------------- UltimateComponent ---------------- */
 const Ult={
+  val(f){return(typeof BT!=='undefined'&&BT&&BT.vs&&f)?(f.ult||0):(G.ult||0);},
   /* every gain is keyed by the event that caused it, so one move / one parry can only ever pay out once */
-  gain(f,type,key){if(!f||!f.isP||(typeof BT!=='undefined'&&BT&&BT.vs))return 0;f.ultKeys=f.ultKeys||new Set();const k=type+':'+key;if(f.ultKeys.has(k))return 0;f.ultKeys.add(k);
+  gain(f,type,key){if(!f)return 0;const vs=typeof BT!=='undefined'&&BT&&BT.vs;if(vs?(!f.isP&&!f.isP2):!f.isP)return 0;
+    f.ultKeys=f.ultKeys||new Set();const k=type+':'+key;if(f.ultKeys.has(k))return 0;f.ultKeys.add(k);
+    if(vs){const before=f.ult||0;f.ult=Math.min(CONFIG.ult.max,before+CONFIG.ult[type]);return f.ult-before;}
     const before=G.ult||0;G.ult=Math.min(CONFIG.ult.max,before+CONFIG.ult[type]);return G.ult-before;},
-  ready(){return(G.ult||0)>=CONFIG.ult.cost;},
-  spend(){if(!this.ready())return false;G.ult-=CONFIG.ult.cost;return true;}
+  ready(f){return this.val(f)>=CONFIG.ult.cost;},
+  spend(f){if(!this.ready(f))return false;if(typeof BT!=='undefined'&&BT&&BT.vs&&f)f.ult-=CONFIG.ult.cost;else G.ult-=CONFIG.ult.cost;return true;}
 };
 /* ---------------- StatusEffect ---------------- */
 const Status={

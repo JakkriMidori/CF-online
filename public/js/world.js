@@ -324,15 +324,15 @@ function makeSpireFloor(floor=1){
   ];
   if(floor<5)props.push({k:'stairs',...T(45,9,8,10),hw:7,inter:'spire_stairs'});
   else props.push({k:'portal',...T(45,9,8,10),hw:7,inter:'spire_clear'});
-  const bk='spire_b'+floor,mk=floor===1?'spire1_mob':'spiremob',lk=floor===1?'spire1_leader':'spireleader',rndPt=(x0,x1)=>{for(let tries=0;tries<24;tries++){const tx=rint(x0,x1),ty=rint(4,14);if(gr[ty][tx]==='.'&&!props.some(o=>Math.abs(o.x-(tx*16+8))<20&&Math.abs(o.y-(ty*16+8))<20))return T(tx,ty);}return T(x0,9);};
+  const bk='spire_b'+floor,mk=floor===1?'spire1_mob':floor===2?'spire2_mob':'spiremob',lk=floor===1?'spire1_leader':floor===2?'spire2_leader':'spireleader',rndPt=(x0,x1)=>{for(let tries=0;tries<24;tries++){const tx=rint(x0,x1),ty=rint(4,14);if(gr[ty][tx]==='.'&&!props.some(o=>Math.abs(o.x-(tx*16+8))<20&&Math.abs(o.y-(ty*16+8))<20))return T(tx,ty);}return T(x0,9);};
   const foes=[
     mkFoe(mk,rndPt(6,14),{room:1,hidden:1}),mkFoe(mk,rndPt(6,14),{room:1,hidden:1}),mkFoe(mk,rndPt(7,15),{room:1,hidden:1}),
     mkFoe(lk,rndPt(19,29),{room:2,hidden:1}),mkFoe(mk,rndPt(18,30),{room:2,elite:1,hidden:1}),mkFoe(mk,rndPt(18,30),{room:2,hidden:1}),
     mkFoe(bk,T(40,9,8,6),{room:3,cool:100})
   ];
-  return{id:zid,theme:'spire',spireFloor:floor,title:`🔮 หอคอยคริสตัล ชั้น ${floor}/5`,grid:gr,traps:[],spawn:T(2,9),
+  return{id:zid,theme:'spire',spireFloor:floor,title:floor===2?'🔮 หอคอยคริสตัล ชั้น 2/5 · สุสานโครงกระดูก':`🔮 หอคอยคริสตัล ชั้น ${floor}/5`,grid:gr,traps:[],spawn:T(2,9),
     levelAt:tx=>baseLv+(tx>=33?3:tx>=17?1:0),
-    regionAt:()=>zid,biomeAt:()=>floor===5?'sanctum':'crystal',roomAt:tx=>tx>=33?'ห้อง 3: ห้องบอส':tx>=17?'ห้อง 2: ระดับหัวหน้า & ปริศนา':'ห้อง 1: ทั่วไป & ปริศนา',
+    regionAt:()=>zid,biomeAt:()=>floor===5?'sanctum':floor===2?'tower':'crystal',roomAt:tx=>tx>=33?'ห้อง 3: ห้องบอส':tx>=17?'ห้อง 2: ระดับหัวหน้า & ปริศนา':'ห้อง 1: ทั่วไป & ปริศนา',
     props,items:[],npcs:[],foes,lavaTiles:[],puddles:{},puzzle,floor};
 }
 function enterSpire(floor=1){
@@ -1318,7 +1318,7 @@ function talk(id){
       }
       Quest.advance('main1',1);
     });
-    else if(q.step===1)say([[s,'ยังไม่มีดาบรึ? วางไม้ 1 กับแร่เหล็ก 1 ลงช่องบนโต๊ะ จะได้ดาบเหล็กโบโรไว้รับมือฝูงสัตว์จากรอยแยก']]);
+    else if(q.step===1)say([[s,'ยังไม่มีดาบรึ? เก็บแร่หิน 2 ก้อนกับไม้ 1 ชิ้นในถ้ำมาตี "ดาบหิน" หรือใช้ไม้ 1 กับแร่เหล็ก 1 ทำ "ดาบเหล็กโบโร" บนโต๊ะตีเหล็กข้างข้าได้เลย!']]);
     else if(!G.flags.gotGauntScroll){G.flags.gotGauntScroll=1;Inv.add('sc_gaunt');say([[s,'ถือดาบไว้แล้วสินะ! นี่คือคัมภีร์สูตรสนับมือสายฟ้า — แม้แต่คนธรรมดาก็โค่นผู้พิทักษ์ได้ด้วยฝีมือ'],[s,'หินถล่มทางขวาของถ้ำชั้นในปิดเส้นทางสู่หินแห่งรอยแยกอยู่ ทุบมันเปิดซะ']]);}
     else if(!G.flags.golemDown)say([[s,'คาเงะเป็นผู้พิทักษ์ที่ถูกแสงหินบิดเบือน มันป้องกันเก่ง ใช้ท่ากวาดขา (↓+K) ให้เสียหลัก ส่วนโกเลมศิลา หลังทุบพื้นแกนกลางจะเปิดออก!']]);
     else say([[s,'หินก้อนแรกกลับมาอยู่ในมือเจ้าแล้ว! แต่ประตูรอยแยกยังไม่ปิดจนกว่าหินทั้งแปดจะครบ — ประตูเหมืองลาวาในถ้ำคริสตัลรอเจ้าอยู่']]);

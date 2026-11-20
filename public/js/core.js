@@ -232,6 +232,7 @@ function drawWeaponShape(Wp,h,a,o,O,C,seg,blk,tint,K){
   }
 }
 function drawRigRaw(ctx,x,y,sc,dir,P,K,tint){
+  if(K&&K.custom){drawCustomChibi(ctx,x,y,sc,dir,P,K,tint,null);ctx.setTransform(1,0,0,1,0,0);return;}
   const J=rigPoints(P);
   {const W2=K.weapon&&WEAPONS[K.weapon];if(W2&&W2.twoHand&&!K.sheathe){const h=J.fe.end,a=P.wa||0;J.be=ik(J.bs,[h[0]-Math.cos(a)*3.5,h[1]-Math.sin(a)*3.5],5.5,5.5,0);}}   // อาวุธสองมือ: มือหลังจับด้าม
   const rd=RIG_HR?v=>Math.round(v*2)/2:Math.round;
@@ -312,7 +313,117 @@ function drawRigRaw(ctx,x,y,sc,dir,P,K,tint){
 // ใช้โครงกระดูก/ท่าทางเดิม (rigPoints, pose*) ทั้งหมด เปลี่ยนเฉพาะวิธีวาด · ปิดได้ด้วย RIG_HD.on=false (กลับเป็นแบบบล็อกเดิม)
 let RIG_HR=false;const RB=[0,0,0,0],RIGC=document.createElement('canvas'),RX=RIGC.getContext('2d',{willReadFrequently:true});RIGC.width=270;RIGC.height=230;
 const RIG_HD={on:(()=>{try{return localStorage.getItem('cf_righd')!=='0';}catch(e){return true;}})()};
+function drawCustomChibi(ctx,ox,oy,px,dir,P,K,tint,view){
+  const kind=K&&K.custom;if(!kind)return false;
+  const back=view==='up',d=view?-1:dir;
+  ctx.setTransform(px*d,0,0,px,ox,oy);ctx.lineJoin='round';
+  const T=!!tint,C=c=>tint||c,Dk=(c,m)=>tint||shade(c,m),lw=1/px,wv=Math.sin(G.t*.16),bob=Math.sin(G.t*.1)*1.1;
+  const fill=(col,edge)=>{ctx.fillStyle=col;ctx.fill();if(edge&&!T){ctx.strokeStyle=edge;ctx.lineWidth=lw;ctx.stroke();}};
+  const poly=(pts,col,edge)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);ctx.closePath();fill(col,edge);};
+  const ell=(cx,cy,rx,ry,col,edge,rot=0)=>{ctx.beginPath();ctx.ellipse(cx,cy,Math.max(.1,rx),Math.max(.1,ry),rot,0,7);fill(col,edge);};
+  const cap=(a,b,r1,r2,col,edge)=>{const dx=b[0]-a[0],dy=b[1]-a[1],an=Math.atan2(dy,dx),H=Math.PI/2;ctx.beginPath();ctx.arc(a[0],a[1],r1,an+H,an+3*H);ctx.arc(b[0],b[1],r2,an-H,an+H);ctx.closePath();fill(col,edge);};
+  const lean=(P.lean||0)*4,hb=bob+(P.hip?-Math.abs(P.hip+14)*.4:0);
+  if(kind==='skel_wraith'){
+    // ภาพที่ 1: วิญญาณโครงกระดูกคลุมผ้าสีเลือดหมูถือคบเพลิงลุกโชติ
+    const r0=C('#6d1122'),r1=C('#961b32'),rd=Dk('#6d1122',.52),bn=C('#8e6e4a'),bd=Dk('#8e6e4a',.62),fc=C('#e8d298');
+    // หางผ้าคลุมขาดลอยกลางอากาศ + เศษวิญญาณแดงลอยปลิว
+    poly([[-4+lean,-15+hb],[4.5+lean,-15+hb],[3.2,-6+bob],[1,-1+bob],[-1.2,-5+bob],[-2.4,-2+bob],[-3.8,-8+bob]],Dk('#6d1122',.7),rd);
+    poly([[-6+lean,-22+hb],[6.5+lean,-22+hb],[7+lean,-13+hb],[2+lean,-11+hb],[-2+lean,-12+hb],[-7.5+wv*.6,-13+hb]],r0,rd);
+    if(!T){ctx.fillStyle=r1;ctx.fillRect(-3.5+lean,-20+hb,4,2.5);ctx.fillRect(-7.5+wv,-17+hb,1.2,1.2);ctx.fillRect(-9+wv,-21+hb,1,1);}
+    // แขนโครงกระดูกหลัง
+    cap([-3.5+lean,-20+hb],[-5.5,-13+hb],1.05,.9,bn,bd);ell(-5.5,-12+hb,1.4,1.3,bn,bd);
+    // หัวกะโหลกใต้ฮู้ดแดงคลุมปาก
+    poly([[-5.8+lean,-21+hb],[-5.4+lean,-31+hb],[0+lean,-35+hb],[5.2+lean,-31+hb],[4.8+lean,-21+hb]],r0,rd);
+    poly([[-5.4+lean,-31+hb],[-7.6+wv*.7,-33.5+hb],[-5+lean,-29+hb]],r1,rd);
+    if(!back){
+      ell(0.6+lean,-26.5+hb,3.4,3.4,bn,bd);
+      poly([[-2.4+lean,-25+hb],[3.4+lean,-25+hb],[3+lean,-21.5+hb],[-2.6+lean,-21.5+hb]],r1,rd);
+      if(!T){ctx.fillStyle='#0c080a';ctx.fillRect(-.4+lean,-28.2+hb,1.5,1.6);ctx.fillRect(2.1+lean,-28.2+hb,1.4,1.6);ctx.fillStyle=fc;ctx.fillRect(1.1+lean,-26.4+hb,.9,.9);}
+    }
+    // แขนหน้าถือคบเพลิงลุกโชติช่วง
+    const hx=6.8+lean,hy=-19.5+hb;
+    cap([3.5+lean,-20+hb],[hx,hy],1.15,.95,r1,rd);ell(hx,hy,1.3,1.2,bn,bd);
+    cap([hx-1.2,hy+2],[hx+3.8,hy-7],1.0,1.25,C('#6e4828'),Dk('#6e4828',.55));
+    const tx=hx+4.2,ty=hy-7.8,fl=Math.sin(G.t*.32)*.8;
+    poly([[tx-2.6,ty+1],[tx-1.6,ty-4],[tx+fl*.5,ty-8.5-fl],[tx+2.2,ty-3.5],[tx+2.4,ty+1]],C('#ff6a18'),Dk('#ff6a18',.6));
+    poly([[tx-1.4,ty],[tx-.4,ty-4.5],[tx+1.4,ty]],C('#ffd23a'));
+    if(!T){ctx.fillStyle='#fff6b8';ctx.fillRect(tx-.5,ty-2.5,1.3,2);ctx.fillStyle='#ff8a18';ctx.fillRect(tx+fl,ty-10,1.1,1.1);}
+  }else if(kind==='skel_shaman'){
+    // ภาพที่ 2: นักบวชโครงกระดูกหัวโตตาเขียว ถือคทากะโหลก + ไฟเขียวเนโครแมนซี
+    const bn=C('#cfc6ae'),bm=C('#9e947c'),bd=Dk('#9e947c',.5),gr=C('#9eff00'),gd=C('#50a600');
+    // ขากระดูกย่อเข่า + เชิงกราน
+    cap([-2.5,-9],[-4,-5],1.2,1,bm,bd);cap([-4,-5],[-3.5,-.8],1,1.1,bm,bd);ell(-2.5,-.6,2,.9,bn,bd);
+    cap([2.5,-9],[4,-5],1.2,1,bm,bd);cap([4,-5],[3.5,-.8],1,1.1,bm,bd);ell(4.5,-.6,2,.9,bn,bd);
+    poly([[-3.4,-11],[3.4,-11],[2.4,-8],[-2.4,-8]],bm,bd);
+    // ซี่โครงและกระดูกสันหลัง
+    poly([[-3.2,-20+lean*.2],[3.2,-20+lean*.2],[2.6,-11],[-2.6,-11]],Dk('#585042',.7),bd);
+    if(!T){ctx.fillStyle=bn;for(const ry of[-18.5,-16,-13.5])ctx.fillRect(-3.1,ry,6.2,1.3);}
+    // มือหลัง + เปลวไฟเขียวลุกโชติ
+    cap([-3.2,-18.5],[-7.5,-17],1.1,.9,bm,bd);ell(-8.4,-16.8,1.5,1.3,bn,bd);
+    const fx=-8.6,fy=-17.5,fl=Math.sin(G.t*.28)*.9;
+    poly([[fx-2.2,fy+1],[fx-1.5,fy-5],[fx+fl*.5,fy-10-fl],[fx+1.8,fy-4],[fx+2,fy+1]],gd);
+    poly([[fx-1.1,fy],[fx+fl*.3,fy-6.8],[fx+1.1,fy]],gr);
+    if(!T){ctx.fillStyle='#ffffff';ctx.fillRect(fx-.6,fy-2.4,1.2,1.8);}
+    // หัวกะโหลกใหญ่ + ตาเขียวเรืองแสงและกรามเรืองแสง
+    const hy=-25.5;
+    if(!back){
+      ell(.5+lean,hy,6.2,5.3,bn,bd);ell(-1+lean,hy-1.8,3.6,2.4,Dk('#cfc6ae',1.18));
+      poly([[-2.8+lean,hy+3.4],[4.8+lean,hy+3.4],[4.2+lean,hy+6.4],[-2.2+lean,hy+6.2]],bm,bd);
+      if(!T){ctx.fillStyle='#10120c';ctx.fillRect(-1.4+lean,hy-.6,2.8,2.8);ctx.fillRect(2.6+lean,hy-.6,2.8,2.8);ctx.fillRect(1.1+lean,hy+1.9,1.2,1.2);
+        ctx.fillStyle=gr;ctx.fillRect(-1+lean,hy+.4,2.1,1.3);ctx.fillRect(2.9+lean,hy+.4,2.1,1.3);
+        ctx.fillRect(-.8+lean,hy+3.7,4.2,1.2);ctx.fillStyle='#fff';ctx.fillRect(-.4+lean,hy+.6,.7,.7);ctx.fillRect(3.4+lean,hy+.6,.7,.7);}
+    }else{ell(0,hy,6.2,5.3,bm,bd);}
+    // มือหน้า + คทากะโหลกสูง
+    const sx=6.6+lean;
+    cap([3,-18.5],[sx-1,-16],1.1,.9,bm,bd);ell(sx-1,-16,1.4,1.3,bn,bd);
+    cap([sx,-30],[sx,-.8],1.05,1.05,C('#5c4c38'),Dk('#5c4c38',.5));
+    ell(sx-.3,-32.5,3.0,2.8,bn,bd);
+    if(!T&&!back){ctx.fillStyle='#10120c';ctx.fillRect(sx-1.7,-33,1.3,1.2);ctx.fillRect(sx+.5,-33,1.3,1.2);ctx.fillStyle=gr;ctx.fillRect(sx-1.5,-32.8,1,.8);ctx.fillRect(sx+.7,-32.8,1,.8);}
+  }else if(kind==='void_witch'){
+    // ภาพที่ 3: นิกซ์ แม่มดสุญญตา (หมวกแม่มด + วงแหวนทอง + ดวงตาสี่ดวง + หนวดเงาม่วง + ผ้าคลุมเทาขลิบทอง)
+    const ch=C('#3e3c4c'),cd=C('#1a1824'),gd=C('#d4bd88'),pu=C('#a838ff'),pl=C('#efb4ff'),vd=C('#0b0710');
+    const hb2=bob-3.2; // ลอยเหนือพื้น
+    // ขาลอยปลายแหลมพันแถบทองดำ
+    poly([[-2.8,-11+hb2],[-.4,-11+hb2],[-1.5,-1+hb2]],gd,cd);
+    poly([[.4,-11+hb2],[2.8,-11+hb2],[1.5,-1+hb2]],gd,cd);
+    if(!T){ctx.fillStyle=pu;ctx.fillRect(-2.1,-8+hb2,1.2,4);ctx.fillRect(.9,-8+hb2,1.2,4);}
+    // หนวดเงาม่วงด้านหลังปลิวสะบัด
+    for(let i=-1;i<=1;i++){const tw=Math.sin(G.t*.14+i*1.7)*1.8;
+      poly([[i*3.4,-25+hb2],[i*5.8+tw,-20+hb2],[i*7.6+tw,-13+hb2],[i*5.2+tw,-14+hb2],[i*3.8,-22+hb2]],vd,pu);}
+    // เสื้อคลุมยาวสีเทาขลิบทองลายจุดมืด
+    poly([[-4.5,-24+hb2],[4.5,-24+hb2],[8.8,-5+hb2],[4.2,-2+hb2],[-4.2,-2+hb2],[-8.8,-5+hb2]],ch,cd);
+    if(!T){ctx.strokeStyle=gd;ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(-4.4,-24+hb2);ctx.lineTo(-8.8,-5+hb2);ctx.lineTo(-4.2,-2+hb2);ctx.moveTo(4.4,-24+hb2);ctx.lineTo(8.8,-5+hb2);ctx.lineTo(4.2,-2+hb2);ctx.stroke();
+      ctx.fillStyle=cd;ell(-4.5,-11+hb2,1.4,1.6,cd);ell(4.8,-12+hb2,1.5,1.7,cd);ell(0,-16+hb2,1.1,1.3,cd);}
+    // คอปกเกราะสูงประดับลูกแก้วม่วง 3 ดวง
+    poly([[-4.8,-24+hb2],[4.8,-24+hb2],[5.5,-20.5+hb2],[0,-19.5+hb2],[-5.5,-20.5+hb2]],C('#524f64'),cd);
+    if(!T){for(const gx of[-3.3,0,3.3]){ell(gx,-22.2+hb2,1.25,1.25,pu,gd);ctx.fillStyle=pl;ctx.fillRect(gx-.4,-22.7+hb2,.7,.7);}}
+    // ใบหน้าสีดำมืด + ดวงตาม่วง 4 ดวง (ใหญ่ 2 + เล็กบน 2)
+    ell(.4+lean,-26.6+hb2,4.2,4.0,vd);
+    if(!back&&!T){
+      ctx.fillStyle=pu;ctx.fillRect(-1.1+lean,-26.6+hb2,1.5,1.1);ctx.fillRect(1.5+lean,-26.6+hb2,1.5,1.1);
+      ctx.fillStyle=pl;ctx.fillRect(-.4+lean,-28.3+hb2,.9,.8);ctx.fillRect(1.3+lean,-28.3+hb2,.9,.8);
+      ctx.fillStyle='#ffffff';ctx.fillRect(-.7+lean,-26.4+hb2,.6,.6);ctx.fillRect(1.9+lean,-26.4+hb2,.6,.6);
+    }
+    // หนวดเงาห้อยใต้ปีกหมวก
+    for(const sx of[-5.8,5.8]){const tw=Math.cos(G.t*.15+sx)*1.2;poly([[sx,-29+hb2],[sx*1.35+tw,-23+hb2],[sx*1.15+tw,-18+hb2],[sx*.8,-23+hb2]],vd,pu);}
+    // หมวกแม่มดปีกกว้าง + วงแหวนดาราศาสตร์สีทอง + ลูกแก้วม่วงกลางหมวก
+    poly([[-11+lean,-29+hb2],[11+lean,-29+hb2],[6+lean,-31.5+hb2],[-6+lean,-31.5+hb2]],ch,cd);
+    poly([[-5.4+lean,-31.2+hb2],[5.4+lean,-31.2+hb2],[1.4+lean,-40+hb2],[-3.2+wv*.4+lean,-42.5+hb2],[-2.6+lean,-37.5+hb2]],ch,cd);
+    if(!T){ctx.strokeStyle=gd;ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(-11+lean,-29+hb2);ctx.lineTo(11+lean,-29+hb2);ctx.stroke();
+      ctx.strokeStyle=gd;ctx.lineWidth=lw*1.3;ctx.beginPath();ctx.arc(.5+lean,-33.5+hb2,4.2,Math.PI,0);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(.5+lean,-39.5+hb2);ctx.lineTo(.5+lean,-32+hb2);ctx.stroke();
+      ell(.5+lean,-33.2+hb2,1.8,1.8,pu,gd);ctx.fillStyle=pl;ctx.fillRect(lean,-33.8+hb2,.9,.9);}
+    // ไม้เท้าหัวตะขอทอง + ลูกพลังหนวดเงาม่วงข้างตัว
+    const cx=5.5+lean;
+    cap([cx,-22+hb2],[cx,-1+hb2],.85,.85,gd,cd);
+    if(!T){ctx.strokeStyle=gd;ctx.lineWidth=lw*1.8;ctx.beginPath();ctx.arc(cx-1.3,-22.5+hb2,1.8,Math.PI,0);ctx.stroke();}
+    const ox=-6.8+lean,oy2=-16+hb2+wv*.6;
+    ell(ox,oy2,2.4,2.4,pu,pl);if(!T){ctx.strokeStyle=vd;ctx.lineWidth=lw*1.4;ctx.beginPath();ctx.moveTo(ox-3,oy2-1);ctx.quadraticCurveTo(ox,oy2+3,ox+3,oy2-2);ctx.stroke();}
+  }
+  ctx.setTransform(1,0,0,1,0,0);return true;
+}
 function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
+  if(K&&K.custom&&drawCustomChibi(ctx,ox,oy,px,dir,P,K,tint,null)){ctx.setTransform(1,0,0,1,0,0);return;}
   const J=rigPoints(P);
   {const W2=K.weapon&&WEAPONS[K.weapon];if(W2&&W2.twoHand&&!K.sheathe){const h=J.fe.end,a=P.wa||0;J.be=ik(J.bs,[h[0]-Math.cos(a)*3.5,h[1]-Math.sin(a)*3.5],5.5,5.5,0);}}
   ctx.setTransform(px*dir,0,0,px,ox,oy);ctx.lineJoin='round';
@@ -551,6 +662,7 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
 }
 // ===== มุมหน้า/มุมหลัง (เดินลง = หันหน้าเข้ากล้อง · เดินขึ้น = เห็นแผ่นหลัง) สไตล์เดียวกับมุมข้าง =====
 function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
+  if(K&&K.custom&&drawCustomChibi(ctx,ox,oy,px,1,owPose(tt,moving,ph),K,tint,view)){ctx.setTransform(1,0,0,1,0,0);return;}
   ctx.setTransform(px,0,0,px,ox,oy);ctx.lineJoin='round';
   const C=c=>tint||c,Dk=(c,m)=>tint||shade(c,m),lw=1/px,T=!!tint,F=K.sex==='f',back=view==='up',wv=Math.round(Math.sin(tt*.16)*4)/4;
   const fill=(col,edge)=>{ctx.fillStyle=col;ctx.fill();if(edge&&!T){ctx.strokeStyle=edge;ctx.lineWidth=lw;ctx.stroke();}};
