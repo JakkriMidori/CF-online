@@ -114,7 +114,7 @@ class NetCore{
     if(f.st8){const st={};for(const k in f.st8)if(f.st8[k])st[k]=f.st8[k].stacks?{t:f.st8[k].t,stacks:f.st8[k].stacks}:{t:f.st8[k].t};if(Object.keys(st).length)o.st=st;}
     if(f.cd){const cd={};let any=0;for(const k in f.cd)if(f.cd[k]>0){cd[k]=f.cd[k];any=1;}if(any)o.cd=cd;}return o;};
     for(const n of b.nums)if(!n._s){n._s=1;this.evq.push({e:'n',x:Math.round(n.x),y:Math.round(n.y),t:n.txt,c:n.col,z:n.size});}
-    for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0,el:u.el||null,ex:u.exp?1:0,st:u.star?1:0,dm:u.dome?1:0});}
+    for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0,el:u.el||null,ex:u.exp?1:0,st:u.star?1:0,dm:u.dome?1:0,cr:u.crit?1:0});}
     for(const u of b.bolts)if(!u._s){u._s=1;this.evq.push({e:'z',x:Math.round(u.x),t:u.t});}
     for(const pl of b.pillars||[])if(!pl._s){pl._s=1;this.evq.push({e:'pl',x:Math.round(pl.x),mh:pl.maxH,t:pl.t,dl:pl.delay|0,el:pl.el||null,c:pl.col||null,fn:pl.frostnova?1:0});}
     for(const fx of b.moveFx||[])if(!fx._s&&fx.kind!=='fog'){fx._s=1;const w=fx.actor===b.e?1:0;
@@ -152,7 +152,7 @@ class NetCore{
       b.time=s.tm;b.intro=s.it;b.end=s.en;b.msg=s.ms;b.result=s.rs;b.comboT=s.cb.t;b.comboShow=s.cb.n;b.comboWho=s.cb.w?b.e:b.p;if(s.sh>b.shake)b.shake=s.sh;b.hitstop=s.hs;if(s.wh>b.white)b.white=s.wh;if((s.im||0)>0)b.impFrame=s.im;
       b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],wind:!!a[6],m:a[7]?{el:a[7]}:null,life:2,o:null}));
       for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55});
-        else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,el:ev.el||null,big:ev.g,exp:!!ev.ex,star:!!ev.st,dome:!!ev.dm});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
+        else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,el:ev.el||null,big:ev.g,exp:!!ev.ex,star:!!ev.st,dome:!!ev.dm,crit:!!ev.cr});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
         else if(ev.e==='pl'){(b.pillars=b.pillars||[]).push({x:ev.x,h:0,maxH:ev.mh,t:ev.t,delay:ev.dl||0,el:ev.el,col:ev.c,frostnova:!!ev.fn});}
         else if(ev.e==='fx'){const tf=ev.w?b.e:b.p;b.moveFx=b.moveFx||[];
           if(ev.kd==='slash')b.moveFx.push(slashFx({actor:tf,x:ev.x,y:ev.y,dir:ev.d,variant:ev.v||0}));

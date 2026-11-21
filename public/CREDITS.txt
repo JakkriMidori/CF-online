@@ -18,3 +18,9 @@ Cave Forge — เครดิตทรัพยากร / Asset credits
 
 ภาพตัวละคร ฉาก และของตกแต่ง
   วาดด้วยโค้ดใน js/ (core.js, hd2d.js, world.js, battle.js) — สร้างเองทั้งหมด
+
+เอฟเฟกต์พิกเซลอาร์ต (js/sfvfx.js) — 17 เอฟเฟกต์
+  Sprite Fusion open-source pixel art VFX by Hugo Duprez
+  https://www.spritefusion.com/pixel-art-vfx
+  License: MIT, Copyright (c) 2026 Hugo Duprez (ข้อความสัญญาอนุญาตเต็มอยู่ต้นไฟล์ js/sfvfx.js)
+  แปลง TypeScript → JavaScript ด้วย esbuild โดยไม่แก้ตรรกะ · ตัวเชื่อมกับเกมอยู่ใน js/vfx.js

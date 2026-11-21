@@ -43,6 +43,7 @@ const ICO_PATHS={
   featherblade:'<path d="M5 19L16 8M13 5l6 6M4 16l4 4"/><path d="M19 13c-3 0-6 3-6 7 3-1 5-3 6-7z"/>',
   greatsword:'<path d="M12 2l3 4v10H9V6z"/><path d="M6 16h12M12 16v6"/><path d="M12 6v8"/>',
   magicsword:'<path d="M5 19L16 8M13 5l6 6M4 16l4 4"/><path d="M18.5 14l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z"/>',
+  aethersword:'<path d="M4 20l4-4M6 14l4 4"/><path d="M9 15l10-10 1 3-3 1-8 8z"/><path d="M17 2l.7 1.8 1.8.7-1.8.7L17 7l-.7-1.8L14.5 4.5l1.8-.7z"/>',
   staff:'<circle cx="16" cy="7" r="3.5"/><path d="M13.5 9.5L4 20"/><path d="M16 1.8v1.6M21.2 7h-1.6M19.7 3.3l-1.1 1.1"/>',
   dagger:'<path d="M6 18l9-9 4-5-5 4-9 9"/><path d="M4 15l5 5"/><path d="M3 21l2-2"/>',
   wand:'<path d="M4 20L14 10"/><path d="M17 3l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/>',
@@ -63,6 +64,7 @@ const ICO_PATHS={
   log:'<rect x="2.5" y="8.5" width="15" height="7.5" rx="3.7"/><ellipse cx="18" cy="12.25" rx="3" ry="3.75"/><path d="M18 11v2.5"/>',
   ore:'<path d="M4 17l2.5-8L13 5l6 4 1.5 7.5L14 21H8z"/><path d="M9 11l3 2.5M14.5 9l.8 4"/>',
   crystal:'<path d="M12 2l5 7-5 13-5-13z"/><path d="M7 9h10M12 2v20"/>',
+  aether:'<path d="M12 3l4.5 6-4.5 10.5L7.5 9z"/><path d="M7.5 9h9M12 3v16.5"/><ellipse cx="12" cy="11.5" rx="10" ry="3.4" transform="rotate(-18 12 11.5)"/><path d="M19.5 3.5v3M18 5h3M4 18.5v2.5M2.8 19.8h2.4"/>',
   bolt:'<path d="M13.5 2L6 13h5.5L10 22l8-12h-5.5z"/>',
   fang:'<path d="M7 4h10c0 6-2 11.5-5 16C9 15.5 7 10 7 4z"/><path d="M10 7c0 3 .7 6 2 8.5"/>',
   hide:'<path d="M6 4l3 2h6l3-2 2 5-2 3 1 8-5-2h-4l-5 2 1-8-2-3z"/>',
@@ -93,6 +95,7 @@ const BASE_ICO={
   w_club:['club','#c8925a'],w_woodsword:['sword','#9c6a38'],w_stonesword:['sword','#8a867e'],w_sword:['sword','#d8dde6'],w_spear:['spear','#f0e2c0'],w_flame:['flameblade','#ff8a3a'],w_gaunt:['gauntlet','#7fd8ff'],
   w_firepan:['pan','#ff9a3a'],w_hammer:['hammer','#ffd56a'],w_kage:['katana','#b08aff'],w_seraph:['featherblade','#fff2a8'],w_god:['greatsword','#ff5a1a'],
   w_mswd:['magicsword','#c9a0ff'],w_mstaff:['staff','#a98aff'],w_adagger:['dagger','#d88aff'],w_wand_fire:['wand','#ff7a2a'],w_wand_ice:['wand','#bff0ff'],
+  w_aetherking:['aethersword','#ffe878'],
   w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],w_lightless:['greatsword','#9a7ad8'],r_primal:['ring','#ffd23a'],w_mercstaff:['wand','#9ae8b0'],h_alch:['wizardhat','#7af0c0'],a_alch:['robe','#7af0c0'],g_alch:['glove','#7af0c0'],b_alch:['boot','#7af0c0'],w_gs1:['greatsword','#c8ccd8'],w_gs2:['greatsword','#e8c070'],w_gs3:['greatsword','#a98aff'],
   w_wh1:['hammer','#b8bfcc'],w_wh2:['hammer','#7fb8d8'],w_wh3:['hammer','#e8b040'],
   h_mage:['wizardhat','#b58aff'],a_mage:['robe','#b58aff'],p_mage:['pants','#b58aff'],b_mage:['boot','#b58aff'],
@@ -112,7 +115,7 @@ const MAT_ICO={
   wood:['log','#c8925a'],ore:['ore','#b8bfcc'],stoneore:['ore','#8a867e'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['crystal','#eef6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
   potion:['potion','#ff5a6a'],pot_regen:['potion','#7aff9a'],pot_def:['potion','#9fd0ff'],pot_mdef:['potion','#c88aff'],pot_m150:['potion','#ffd23a'],pot_quad:['potion','#ff8ae0'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
-  sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],reset:['scroll','#e8d8b0']
+  sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],aether:['aether','#8af6ff'],reset:['scroll','#e8d8b0']
 };
 const _icoc=(name,col,size)=>`<span class="iic" style="color:${col}">${ico(name,size)}</span>`;
 function bIco(id,size=18){const e=BASE_ICO[id]||[TYPE_ICO[(typeof BASES!=='undefined'&&BASES[id]&&BASES[id].type)]||'gem','#d8dde6'];return _icoc(e[0],e[1],size);}

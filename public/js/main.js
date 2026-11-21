@@ -79,15 +79,15 @@ const GRADE={town:'rgba(255,196,120,.18)',cave:'rgba(255,170,90,.16)',crystal:'r
 let vig=null;
 function fxBiome(inB){try{if(inB)return (typeof SCENE_OF!=='undefined'&&BT&&BT.e&&SCENE_OF[BT.e.kind])||(Z.biomeAt?Z.biomeAt(Math.floor(BT.e.x/16)):'cave');return Z.biomeAt?Z.biomeAt(Math.floor(P.x/16)):'town';}catch(e){return 'town';}}
 function present(){
-  D.imageSmoothingEnabled=false;D.globalCompositeOperation='source-over';D.drawImage(low,0,0,W*S,H*S);D.globalCompositeOperation='soft-light';D.globalAlpha=.20;D.drawImage(low,0,0,W*S,H*S);D.globalAlpha=1;D.globalCompositeOperation='source-over';   // เพิ่มคอนทราสต์พอดี ไม่จ้า
+  D.imageSmoothingEnabled=false;D.globalCompositeOperation='source-over';D.drawImage(low,0,0,W*S,H*S);D.globalCompositeOperation='soft-light';D.globalAlpha=.12;D.drawImage(low,0,0,W*S,H*S);D.globalAlpha=1;D.globalCompositeOperation='source-over';   // เพิ่มคอนทราสต์พอดี ไม่จ้า
   if(!vig){vig=D.createRadialGradient(480,270,240,480,270,650);vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(1,'rgba(0,0,0,.64)');}
   if(!canFilter){D.fillStyle=vig;D.fillRect(0,0,960,540);return;}
   const inB=BT&&(G.mode==='battle'||G.mode==='trans'),bio=fxBiome(inB);
   // 1) bloom แบบบางเบา (ลบเบลอขอบบน-ล่างออกแล้วเพื่อความคมชัดทั้งจอ)
   D.imageSmoothingEnabled=true;
-  BX.clearRect(0,0,W/4,H/4);BX.filter='brightness(.56) contrast(2.2) saturate(1.1)';BX.drawImage(low,0,0,W/4,H/4);BX.filter='none';
+  BX.clearRect(0,0,W/4,H/4);BX.filter='brightness(.5) contrast(2.7) saturate(1.15)';BX.drawImage(low,0,0,W/4,H/4);BX.filter='none';
   BL.clearRect(0,0,W/4,H/4);BL.filter='blur(2px)';BL.drawImage(bloomC,0,0);BL.filter='none';
-  D.save();D.globalCompositeOperation='screen';D.globalAlpha=.025;D.drawImage(blurC,0,0,960,540);D.globalAlpha=.008;D.drawImage(bloomC,0,0,960,540);D.restore();
+  D.save();D.globalCompositeOperation='screen';D.globalAlpha=.032;D.drawImage(blurC,0,0,960,540);D.globalAlpha=.008;D.drawImage(bloomC,0,0,960,540);D.restore();
   // 2) color grade ตามโซน
   D.save();D.globalCompositeOperation='soft-light';D.fillStyle=GRADE[bio]||GRADE.town;D.fillRect(0,0,960,540);D.restore();
   // 3) แสงส่องเฉียงจากด้านบน (โทนจางสบายตา)

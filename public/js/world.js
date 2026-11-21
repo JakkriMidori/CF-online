@@ -86,11 +86,8 @@ const BOSS_CHUNK=["....................","..LL............LL..","..LL...........
 const TRAP={near:64,pitDmg:.08,spikeDmg:.10,spikeCD:90};
 function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/2.4);
   const far=(x,y)=>props.every(o=>Math.hypot(o.x-(x*16+8),o.y-(y*16+8))>(o.inter?TRAP.near:24))&&items.every(i=>Math.hypot(i.x-(x*16+8),i.y-(y*16+8))>20)&&Math.hypot(x*16-16,y*16-9*16)>TRAP.near*1.5;
-  let deadCnt=0;
   for(let k=0,tries=0;k<n&&tries<1500;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<3))continue;
-    let type;
-    if(floor===1&&deadCnt<1&&y!==8&&y!==9){type='deadpit';deadCnt++;}
-    else{const r=rand();type=r<.35&&y!==8&&y!==9?'pit':r<.78?'spike':'alarm';}
+    const r=rand(),type=r<.35&&y!==8&&y!==9?'pit':r<.78?'spike':'alarm';
     out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
   return out;}
 function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge&&!d.passive&&!d.immortal;}
@@ -148,15 +145,6 @@ function makeBossRoom(kind){
   const props=[{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town',locked:1,need},{k:'portal',...T(27,9,8,10),hw:6,inter:'portal',locked:1,need}];
   const wait=bossLeft(kind)>0;if(wait)for(const pr of props)pr.locked=0;
   return{id:R.id,grid,spawn:T(2,9),levelAt:()=>ZONE_INFO[R.id].lv,regionAt:()=>R.id,biomeAt:()=>R.biome,props,items:[],npcs:[],foes:wait?[]:[mkFoe(kind,T(22,9,8,6),{cool:100})],lavaTiles:[],floor:3,theme:R.theme,bossRoom:kind,cleared:wait?1:0,bossWait:wait?kind:null};
-}
-/* ห้องหลุมกับดักปิดตาย: ไม่มีมอนสเตอร์ ไม่มีของ และไม่มีทางออก */
-function makePitRoom(srcZ){
-  const grid=[];for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
-  for(let y=6;y<=11;y++)for(let x=10;x<=19;x++)grid[y][x]='.';
-  for(let x=10;x<=19;x++)grid[5][x]=x%4===2?'^':'#';
-  const bm=(srcZ&&srcZ.biomeAt)?srcZ.biomeAt(0):'cave',th=(srcZ&&srcZ.theme)||'stone',lv=(srcZ&&srcZ.levelAt)?srcZ.levelAt(0):1;
-  return{id:'pitroom',title:'🕳️ หลุมลึกปิดตาย (ไม่มีทางออก)',pitRoom:1,grid,cols:30,rows:17,spawn:T(15,9),levelAt:()=>lv,regionAt:()=>'pitroom',biomeAt:()=>bm==='town'||bm==='interior'?'cave':bm,
-    props:[],items:[],npcs:[],foes:[],traps:[],lavaTiles:[],floor:(srcZ&&srcZ.floor)||1,theme:th};
 }
 function makeSanctum(){return makeBossRoom('seraph');}
 function enterBossRoom(kind){if(bossLeft(kind)>0){loadZone(makeBossRoom(kind));toast(`⏳ ${FOES[kind].n} ยังไม่เกิดใหม่ — อีก ${fmtLeft(bossLeft(kind))}`,3000);return;}loadZone(makeBossRoom(kind));G.shake=6;SFX.hit(true);toast(`⚔️ ${ZONE_INFO[BOSS_ROOMS[kind].id].n} — ประตูถูกผนึก! ชนะหรือตายเท่านั้น`,3500);}
@@ -327,12 +315,12 @@ const SPIRE_RIDDLES=[
   {seq:[2,1,0],clue:'จารึกชั้น 4: "ย้อนรอยธาตุทั้งสาม: อเมทิสต์ (ม่วง) → วารี (ฟ้า) → อัคคี (แดง)"'},
   {seq:[1,0,2],clue:'จารึกชั้น 5 (อาร์คเมจ): "เยือกเย็นดั่งฟ้า (ฟ้า) → ร้อนแรงดั่งแดง (แดง) → เป็นนิรันดร์ดั่งม่วง (ม่วง)"'}
 ];
-function makeSpireFloor(floor=1){
+function makeSpireFloor(floor=1,tower='mage'){
   const C=48,R=17,gr=Array.from({length:R},()=>Array(C).fill('#'));
   for(let x=1;x<C-1;x++)gr[2][x]=x%6===3?'T':'^';
   for(let y=3;y<16;y++)for(let x=1;x<C-1;x++)gr[y][x]=x===16?((y===8||y===9)?':':'#'):x===32?'#':'.';   // ห้อง 3 (x=32): ประตูห้องบอสถูกล็อคจนกว่าจะแก้ปริศนาครบ 3/3
   for(const cx of[7,12,21,27,37,42]){gr[5][cx]='#';gr[12][cx]='#';}
-  const baseLv=50+(floor-1)*10,zid='spire'+floor,rd=SPIRE_RIDDLES[(floor-1)%SPIRE_RIDDLES.length];
+  const isAether=tower==='aether',baseLv=(isAether?55:50)+(floor-1)*10,zid=(isAether?'aspire':'spire')+floor,rd=SPIRE_RIDDLES[(floor-1+(isAether?2:0))%SPIRE_RIDDLES.length];
   const puzzle={seq:rd.seq.slice(),lit:[],solved:false,clue:rd.clue};
   const props=[
     {k:'exitdoor',...T(2,3,8,14),hw:7,inter:'ow_spire_exit'},
@@ -340,38 +328,51 @@ function makeSpireFloor(floor=1){
     {k:'puzzle_rune',ri:0,rc:SPIRE_RUNE_COLS[0],rn:SPIRE_RUNE_NAMES[0],...T(13,13,8,12),hw:8,inter:'puzzle_rune'},
     {k:'puzzle_rune',ri:1,rc:SPIRE_RUNE_COLS[1],rn:SPIRE_RUNE_NAMES[1],...T(20,5,8,12),hw:8,inter:'puzzle_rune'},
     {k:'puzzle_rune',ri:2,rc:SPIRE_RUNE_COLS[2],rn:SPIRE_RUNE_NAMES[2],...T(28,5,8,12),hw:8,inter:'puzzle_rune'},
-    {k:'chest',...T(28,13,8,12),hw:7,inter:'chest',content:{loot:'spireboss',skill:.08}},
+    {k:'chest',...T(28,13,8,12),hw:7,inter:'chest',content:{loot:isAether?(floor<=2?'aspire_rose1':'aspire_thun1'):'spireboss',skill:.12}},
     {k:'bossdoor',...T(32,9,8,8),hw:10,locked:1,spireGate:1,inter:'spire_boss_gate'}
   ];
   if(floor<5)props.push({k:'stairs',...T(45,9,8,10),hw:7,inter:'spire_stairs'});
   else props.push({k:'portal',...T(45,9,8,10),hw:7,inter:'spire_clear'});
-  const bk='spire_b'+floor,mk=floor===1?'spire1_mob':floor===2?'spire2_mob':'spiremob',lk=floor===1?'spire1_leader':floor===2?'spire2_leader':'spireleader',rndPt=(x0,x1)=>{for(let tries=0;tries<24;tries++){const tx=rint(x0,x1),ty=rint(4,14);if(gr[ty][tx]==='.'&&!props.some(o=>Math.abs(o.x-(tx*16+8))<20&&Math.abs(o.y-(ty*16+8))<20))return T(tx,ty);}return T(x0,9);};
+  const bk=isAether?(floor===5?'aether_king':'aspire_b'+floor):('spire_b'+floor);
+  const mk=isAether?(floor<=2?'arose_mob':'athunder_mob'):(floor===1?'spire1_mob':floor===2?'spire2_mob':floor===3?'spire3_mob':'spiremob');
+  const lk=isAether?(floor<=2?'arose_leader':'athunder_leader'):(floor===1?'spire1_leader':floor===2?'spire2_leader':floor===3?'spire3_leader':'spireleader');
+  const rndPt=(x0,x1)=>{for(let tries=0;tries<24;tries++){const tx=rint(x0,x1),ty=rint(4,14);if(gr[ty][tx]==='.'&&!props.some(o=>Math.abs(o.x-(tx*16+8))<20&&Math.abs(o.y-(ty*16+8))<20))return T(tx,ty);}return T(x0,9);};
   const foes=[
     mkFoe(mk,rndPt(6,14),{room:1,hidden:1}),mkFoe(mk,rndPt(6,14),{room:1,hidden:1}),mkFoe(mk,rndPt(7,15),{room:1,hidden:1}),
     mkFoe(lk,rndPt(19,29),{room:2,hidden:1}),mkFoe(mk,rndPt(18,30),{room:2,elite:1,hidden:1}),mkFoe(mk,rndPt(18,30),{room:2,hidden:1}),
     mkFoe(bk,T(40,9,8,6),{room:3,cool:100})
   ];
-  return{id:zid,theme:'spire',spireFloor:floor,title:floor===2?'🔮 หอคอยคริสตัล ชั้น 2/5 · สุสานโครงกระดูก':`🔮 หอคอยคริสตัล ชั้น ${floor}/5`,grid:gr,traps:[],spawn:T(2,9),
+  const title=isAether?(floor===5?'☀️ หอคอยอัศวินแสง ชั้น 5/5 · บัลลังก์ราชา':`⚔️ หอคอยอัศวินแสง ชั้น ${floor}/5`):(floor===2?'🔮 หอคอยคริสตัล ชั้น 2/5 · สุสานโครงกระดูก':floor===3?'💀 หอคอยคริสตัล ชั้น 3/5 · ป้อมปราการจักรพรรดิโครงกระดูก':`🔮 หอคอยคริสตัล ชั้น ${floor}/5`);
+  return{id:zid,theme:'spire',tower,spireFloor:floor,title,grid:gr,traps:[],spawn:T(2,9),
     levelAt:tx=>baseLv+(tx>=33?3:tx>=17?1:0),
-    regionAt:()=>zid,biomeAt:()=>floor===5?'sanctum':floor===2?'tower':'crystal',roomAt:tx=>tx>=33?'ห้อง 3: ห้องบอส':tx>=17?'ห้อง 2: ระดับหัวหน้า & ปริศนา':'ห้อง 1: ทั่วไป & ปริศนา',
+    regionAt:()=>zid,biomeAt:()=>isAether?(floor===5?'sanctum':floor>=3?'tower':'crystal'):(floor===5?'sanctum':floor===2?'tower':'crystal'),roomAt:tx=>tx>=33?'ห้อง 3: ห้องบอส':tx>=17?'ห้อง 2: ระดับหัวหน้า & ปริศนา':'ห้อง 1: ทั่วไป & ปริศนา',
     props,items:[],npcs:[],foes,lavaTiles:[],puddles:{},puzzle,floor};
 }
-function enterSpire(floor=1){
+function enterSpire(floor=1,tower='mage'){
   if(typeof Guild!=='undefined'&&!Guild.canEnterSpire()){
-    toast('🔒 หอคอยคริสตัลปิดผนึก — ต้องมีแรงค์กิลด์สูงกว่า Rank F (อย่างน้อย Rank G) จึงจะเข้าได้!',3600);
+    toast('🔒 หอคอยปิดผนึก — ต้องมีแรงค์กิลด์สูงกว่า Rank F (อย่างน้อย Rank G) จึงจะเข้าได้!',3600);
     SFX.ui&&SFX.ui('error');return false;
   }
-  const f=Math.max(1,Math.min(5,floor|0)),z=makeSpireFloor(f);
+  const f=Math.max(1,Math.min(5,floor|0)),z=makeSpireFloor(f,tower);
   loadZone(z,z.spawn);
   for(const e of Z.foes)e.hidden=FOES[e.kind]&&FOES[e.kind].boss?0:1;   // ลูกน้องซ่อนสุ่มในห้อง 1–2 แบบถ้ำเริ่มต้น, เห็นเฉพาะบอสในห้อง 3
   G.shake=4;SFX.spire&&SFX.spire();
-  toast(`🔮 หอคอยคริสตัล ชั้น ${f}/5 (เริ่มต้น Lv.${50+(f-1)*10}) · แก้ปริศนาผลึก 3/3 เพื่อปลดล็อคห้องบอส`,3400);
+  const base=(tower==='aether'?55:50)+(f-1)*10,nm=tower==='aether'?'⚔️ หอคอยอัศวินแสง Aether':'🔮 หอคอยคริสตัล';
+  toast(`${nm} ชั้น ${f}/5 (เริ่มต้น Lv.${base}) · แก้ปริศนาผลึก 3/3 เพื่อปลดล็อคห้องบอส`,3400);
   Save.save&&Save.save();
 }
+/* debug: วาร์ปเข้าห้องบอสหอคอยชั้น f โดยตรง (ข้ามแรงค์กิลด์ + แก้ปริศนาให้ + ฟื้นเต็ม) */
+function debugSpireBoss(f,tower='mage'){f=Math.max(1,Math.min(5,f|0));const z=makeSpireFloor(f,tower);loadZone(z,z.spawn);
+  const pz=Z.puzzle;if(pz){pz.lit=pz.seq.slice();pz.solved=true;if(Z.grid&&Z.grid[8]){Z.grid[8][32]=':';Z.grid[9][32]=':';}Z.props=Z.props.filter(pr=>!pr.spireGate);}
+  for(const e of Z.foes)e.hidden=FOES[e.kind]&&FOES[e.kind].boss?0:1;
+  const b=Z.foes.find(e=>FOES[e.kind]&&FOES[e.kind].boss);if(!b)return false;
+  b.alive=true;b.cool=180;P.x=b.x-56;P.y=b.y;if(blocked(P.x,P.y))P.x=b.x-40;
+  buildBg();CAM.snap=1;const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;UI.hud&&UI.hud();
+  toast(`🛠 วาร์ปถึงบอสหอคอยชั้น ${f}: ${FOES[b.kind].n} — เดินเข้าไปเพื่อเริ่มสู้`,2800);return true;}
 const World={
   serialize(){const c=CAVE,inInt=Z&&Z.interior,inSp=Z&&Z.theme==='spire',rz=inInt?(Z.retZone&&Z.retZone.id==='city'?'city':'town'):null,rp=inInt?(Z.retPos||TOWN.spawn):null;
     return{rubble:c.rubbleOpen,items:c.items.map(i=>!!i.taken),chests:c.props.map(p=>!!p.opened),
-    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inInt?rz:Z&&(Z.id==='town'||Z.bossRoom||Z.pitRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?T(9,28,8,8):inInt?rp:Z&&(Z.bossRoom||Z.pitRoom)?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
+    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inInt?rz:Z&&(Z.id==='town'||Z.bossRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?(Z.tower==='aether'?T(27,29,8,8):T(9,28,8,8)):inInt?rp:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
   restore(d){CAVE=makeCave();TOWN=makeTown();if(typeof OW!=='undefined'){OVERWORLD=OW.make();CITY=OW.makeCity();}if(d){CAVE.rubbleOpen=d.rubble;if(d.rubble){CAVE.grid[8][19]='.';CAVE.grid[9][19]='.';}
     d.items.forEach((t,i)=>{if(CAVE.items[i])CAVE.items[i].taken=t;});d.chests.forEach((o,i)=>{if(CAVE.props[i])CAVE.props[i].opened=o;});
     d.foes.forEach((f,i)=>{const e=CAVE.foes[i];if(e){e.alive=f.alive;e.elite=f.elite;e.respawn=f.respawn||0;if(!e.alive&&e.respawnable&&!e.respawn)e.respawn=CONFIG.respawnFrames;}});G.visited=d.visited||{};}
@@ -476,7 +477,7 @@ function blocked(x,y,self,tilesOnly){
   for(const o of Z.npcs)if(o!==self&&hitBox(o,x,y))return true;
   return false;
 }
-const LABEL={ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_w:'🔒 หอคอยคริสตัลตะวันตก (ถูกผนึก · เข้าไม่ได้)',ow_spire_s:'🔒 หอคอยคริสตัลทุ่งเหนือ (ถูกผนึก · เข้าไม่ได้)',ow_spire_m:'🔒 หอคอยคริสตัลภูเขาไฟ (ถูกผนึก · เข้าไม่ได้)',ow_spire_n:'🔒 หอคอยคริสตัลเหมันต์ (ถูกผนึก · เข้าไม่ได้)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_boss_gate:'🔒 ประตูห้องบอสหอคอย (แก้ปริศนา 3/3 เพื่อเปิด)',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอสประจำชั้น)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',colosseum:'🏟️ เข้าโคลอสเซียม (ดันเจี้ยนทดสอบแรงค์)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เมืองหลวงออเรีย (ถูกผนึก)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'ดื่มน้ำพุ (ฟื้นเต็ม)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจียน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
+const LABEL={ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_w:'🔒 หอคอยคริสตัลตะวันตก (ถูกผนึก · เข้าไม่ได้)',ow_spire_s:'⚔️ เข้าหอคอยอัศวินแสง Aether (5 ชั้น Lv.55–100)',ow_spire_m:'🔒 หอคอยคริสตัลภูเขาไฟ (ถูกผนึก · เข้าไม่ได้)',ow_spire_n:'🔒 หอคอยคริสตัลเหมันต์ (ถูกผนึก · เข้าไม่ได้)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_boss_gate:'🔒 ประตูห้องบอสหอคอย (แก้ปริศนา 3/3 เพื่อเปิด)',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอสประจำชั้น)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',colosseum:'🏟️ เข้าโคลอสเซียม (ดันเจี้ยนทดสอบแรงค์)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เมืองหลวงออเรีย (ถูกผนึก)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'ดื่มน้ำพุ (ฟื้นเต็ม)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจียน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
 let NEAR=null;
 function findNear(){
   let best=null,bd=44;const c=(o,type)=>{const maxD=o&&o.k==='colosseum'?42:o&&o.k==='house'?36:22;const d=Math.hypot(o.x-P.x,(o.y-P.y)*1.2);if(d<maxD&&d<bd){bd=d;best={o,type};}};
@@ -531,7 +532,12 @@ function interact(n){
   }
   else if(n.type==='reitem'){UI.open('reitem');}
   else if(n.type==='guildmaster'){talk('guildmaster');}
-  else if(n.type==='ow_spire_exit'){if(typeof OW!=='undefined')OW.enter('spire');else loadZone(TOWN,TOWN.spawn);}
+  else if(n.type==='tf_enter'){enterTowerFloor1(o.tower);}
+  else if(n.type==='tf_pillar'){lightPillar(o);}
+  else if(n.type==='tf_exit'){const tw=Z.tower;if(tw==='alch'){loadZone(TOWN,TOWN.gate);toast('⬆️ กลับเมือง Collawarrie');}else if(typeof OW!=='undefined')OW.enter(tw==='aether'?'spire_aether':'spire');Save.save&&Save.save();}
+  else if(n.type==='tf_back'){enterTowerFront(Z.tower||'alch');}
+  else if(n.type==='ow_spire_exit'&&Z&&Z.theme==='spire'&&Z.tower){enterTowerFront(Z.tower);}
+  else if(n.type==='ow_spire_exit'){if(typeof OW!=='undefined')OW.enter(Z&&Z.tower==='aether'?'spire_aether':'spire');else loadZone(TOWN,TOWN.spawn);}
   else if(n.type==='puzzle_clue'&&Z.puzzle){say([['📜 ศิลาจารึกปริศนาหอคอย',Z.puzzle.clue],['คำแนะนำ','ไปที่ห้องบอส (ห้อง 3) แล้วจุดเสาผลึก 3 สีตามลำดับที่ระบุในคำใบ้ให้ถูกต้อง']]);}
   else if(n.type==='puzzle_rune'&&Z.puzzle){
     const pz=Z.puzzle,ri=o.ri;
@@ -564,11 +570,13 @@ function interact(n){
     if(bossAlive){toast('🔒 ทางขึ้นชั้นถัดไปถูกผนึก — ต้องปราบบอสประจำชั้นในห้อง 3 ก่อน!',3000);SFX.ui&&SFX.ui('error');return;}
     if(Z.puzzle&&!Z.puzzle.solved){toast('🔮 ผนึกปริศนายังไม่คลาย — จุดเสาผลึก 3 สีในห้องบอสตามลำดับก่อน!',3200);SFX.ui&&SFX.ui('error');return;}
     if(n.type==='spire_clear'){
-      const first=!G.flags.spireCleared;G.flags.spireCleared=1;G.gold+=first?2000:500;Inv.add('divine',first?2:1);Inv.add('evostone',first?2:1);SFX.level();
-      say([['👑 อาร์คเมจแห่งหอคอยคริสตัล','ยอดเยี่ยมมาก... เจ้าพิชิตหอคอยคริสตัลครบทั้ง 5 ชั้นและผ่านทุกบททดสอบแล้ว!']],[].length?undefined:()=>{toast('🏆 พิชิตหอคอยคริสตัลครบ 5 ชั้น! ได้รับรางวัลใหญ่ + กลับสู่แผนที่โลก',4200);if(typeof OW!=='undefined')OW.enter('spire');});
+      const isA=Z&&Z.tower==='aether',fk=isA?'aetherSpireCleared':'spireCleared',first=!G.flags[fk];G.flags[fk]=1;G.gold+=first?2500:700;Inv.add('divine',first?2:1);Inv.add('evostone',first?2:1);SFX.level();
+      const speaker=isA?'☀️ ราชาอัศวินแสง ผู้ครอบครอง Aether':'👑 อาร์คเมจแห่งหอคอยคริสตัล';
+      const line=isA?'พลังและความมุ่งมั่นของเจ้าช่างน่าชื่นชม... แสงแห่ง Aether จะจดจำชื่อของเจ้าตลอดไป!':'ยอดเยี่ยมมาก... เจ้าพิชิตหอคอยคริสตัลครบทั้ง 5 ชั้นและผ่านทุกบททดสอบแล้ว!';
+      say([[speaker,line]],undefined,()=>{toast(`🏆 พิชิต${isA?'หอคอยอัศวินแสง Aether':'หอคอยคริสตัล'}ครบ 5 ชั้น! ได้รับรางวัลใหญ่ + กลับสู่แผนที่โลก`,4200);if(typeof OW!=='undefined')OW.enter(isA?'spire_aether':'spire');});
       return;
     }
-    enterSpire((Z.spireFloor||1)+1);
+    enterSpire((Z.spireFloor||1)+1,Z.tower||'mage');
   }
   else if(n.type==='craft')UI.open('craft');
   else if(n.type==='pot'){const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;say([['หม้อซุปชีส','ซุปชีสร้อน ๆ หอมกรุ่น... HP และ MP ฟื้นเต็ม!']]);}
@@ -593,8 +601,10 @@ function interact(n){
     {const panDone=G.q&&G.q.pan&&(G.q.pan.step>0||G.q.pan.done);let rc=0;
       for(const zl of[CAVE,Z])if(zl&&Array.isArray(zl.items))for(const it of zl.items){if(it.taken&&(it.it!=='pan'||!panDone)){it.taken=false;rc++;}}
       if(rc)extra+=` · ✨ ทรัพยากรตามฉากเกิดใหม่ ${rc} ชิ้น`;}
+    const wasT=G.flags.respawnTower;G.flags.respawnTower=null;G.flags.respawnTown=1;   /* น้ำพุ = จุดเกิดใหม่ในเมือง (แทนเสาแสงหอที่จุดไว้) */
+    for(let i=0;i<20;i++)EP.push({x:o.x+rnd(-12,12),y:o.y-rnd(4,30),vx:rnd(-.4,.4),vy:-rnd(.4,1.2),l:36,c:i%2?'#9fe8ff':'#ffffff'});
     Save.save&&Save.save();
-    toast('💧 น้ำพุศักดิ์สิทธิ์ — HP และ MP ฟื้นเต็ม'+extra,3200);}
+    toast('💧 น้ำพุศักดิ์สิทธิ์ — HP และ MP ฟื้นเต็ม · ตั้งเป็นจุดเกิดใหม่แล้ว (ตายแล้วจะเกิดที่น้ำพุนี้)'+(wasT?' · ยกเลิกเสาแสงหอเดิม':'')+extra,3800);}
   else if(n.type==='arena'){UI.open('arena');}
   else if(n.type==='bloodstain'){const r=Diff.recover();if(r){SFX.level();toast(`🩸 เก็บคราบเลือดคืน — ทอง +${r.gold} · EXP +${r.xp}`,3000);if(r.ups)UI.levelUp(r.ups);UI.hud();Save.save();}}
   else if(n.type==='shop'||n.type==='store')UI.open('shop');
@@ -606,6 +616,7 @@ function interact(n){
   else if(n.type==='stonedungeon'||n.type==='lavadungeon'||n.type==='icedungeon'||n.type==='towerdungeon'){
     if(!hasLavaKey()){toast('🔒 ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีสก่อน');return;}
     const th=n.type==='stonedungeon'?'stone':n.type==='lavadungeon'?'lava':n.type==='icedungeon'?'ice':'tower';
+    if(th==='tower'){enterTowerFront('alch');return;}   /* หอนักแปรธาตุ: เข้าลานหน้าหอก่อน */
     enterDungeon(1,th);Save.save();
   }
   else if(n.type==='dungeon'){loadZone(CAVE,T(3,11));G.shake=3;toast('⬇️ ลงสู่ถ้ำชีส (ดันเจี้ยน Lv.1-5)');Save.save();}
@@ -627,14 +638,13 @@ function checkTraps(){const tx=Math.floor(P.x/16),ty=Math.floor((P.y-2)/16),S=St
   for(const t of Z.traps){if(t.cd>0)t.cd--;if(t.tx!==tx||t.ty!==ty||t.cd>0)continue;
     if(t.type==='spike'){t.seen=1;t.cd=TRAP.spikeCD;const dm=Math.round(S.maxHP*TRAP.spikeDmg);G.hp=Math.max(1,G.hp-dm);G.shake=5;SFX.hit(false);EP.push({x:P.x,y:P.y-14,vx:0,vy:-.4,l:40,c:'#ff6a5a'});toast(`🗡️ กับดักหนาม! -${dm} HP`,1800);return false;}
     if(t.type==='alarm'){t.seen=1;t.cd=99999;const pool=Z.foes.filter(f=>f.alive&&f.hidden);toast('🔔 เหยียบแผ่นสัญญาณ — ศัตรูได้ยินเสียง!',2200);if(pool.length){encounter(pick(pool));return true;}return false;}
-    if(t.type==='pit'||t.type==='deadpit'){t.seen=1;t.cd=99999;const dm=Math.round(S.maxHP*TRAP.pitDmg);G.hp=Math.max(1,G.hp-dm);G.shake=8;SFX.hit(true);
-      if(t.type==='deadpit'){loadZone(makePitRoom(Z));setTimeout(()=>toast(`🕳️ ตกหลุมกับดัก! ร่วงลงห้องปิดตายที่ไม่มีทางออก (-${dm} HP)`,3400),60);}
-      else if(Z.floor===1&&!Z.bossRoom){const th=Z.theme||'lava';enterDungeon(2,th);setTimeout(()=>toast(`🕳️ ตกหลุม! ร่วงลงมาชั้น 2 (-${dm} HP)`,3000),60);}
+    if(t.type==='pit'){t.seen=1;t.cd=99999;const dm=Math.round(S.maxHP*TRAP.pitDmg);G.hp=Math.max(1,G.hp-dm);G.shake=8;SFX.hit(true);
+      if(Z.floor===1&&!Z.bossRoom){const th=Z.theme||'lava';enterDungeon(2,th);setTimeout(()=>toast(`🕳️ ตกหลุม! ร่วงลงมาชั้น 2 (-${dm} HP)`,3000),60);}
       else{loadZone(Z);setTimeout(()=>toast(`🕳️ ตกหลุมลึก! ปีนกลับขึ้นมาที่จุดเริ่ม (-${dm} HP)`,3000),60);}return true;}}
   return false;}
 // วาดกับดัก: หลุมที่ยังไม่ตกมีรอยร้าวจาง ๆ · หลุม/หนาม/แผ่นสัญญาณที่เจอแล้วแสดงชัด
 function drawTrap(t){const x=t.tx*16+8,y=t.ty*16+9;g.save();
-  if(t.type==='pit'||t.type==='deadpit'){if(t.seen){g.fillStyle='#050304';g.beginPath();g.ellipse(x,y,7.5,5,0,0,7);g.fill();g.strokeStyle='rgba(120,100,80,.8)';g.lineWidth=1;g.beginPath();g.ellipse(x,y-.5,7.8,5.2,0,Math.PI,0);g.stroke();}
+  if(t.type==='pit'){if(t.seen){g.fillStyle='#050304';g.beginPath();g.ellipse(x,y,7.5,5,0,0,7);g.fill();g.strokeStyle='rgba(120,100,80,.8)';g.lineWidth=1;g.beginPath();g.ellipse(x,y-.5,7.8,5.2,0,Math.PI,0);g.stroke();}
     else{g.strokeStyle='rgba(20,14,10,.42)';g.lineWidth=.7;g.beginPath();g.moveTo(x-6,y-1);g.lineTo(x-2,y+1);g.lineTo(x+1,y-2);g.lineTo(x+6,y+1);g.moveTo(x-2,y+1);g.lineTo(x-3,y+4);g.moveTo(x+1,y-2);g.lineTo(x+2,y-4);g.stroke();}}
   else if(t.seen&&t.type==='spike'){g.fillStyle='rgba(30,26,30,.6)';g.fillRect(x-7,y-4,14,8);for(let i=0;i<4;i++)for(let j=0;j<2;j++){const sx=x-5+i*3.4,sy=y-1+j*3.5;g.fillStyle='#b8bcc8';g.beginPath();g.moveTo(sx-1.2,sy);g.lineTo(sx,sy-3.5);g.lineTo(sx+1.2,sy);g.fill();g.fillStyle='#5a5e6a';g.fillRect(sx,sy-3,1,3);}}
   else if(t.seen&&t.type==='alarm'){g.fillStyle='#5a4a3a';g.fillRect(x-6,y-3,12,6);g.fillStyle='#c8a050';g.fillRect(x-4,y-2,8,4);}
@@ -679,11 +689,6 @@ function updFolk(){
 function updExplore(){
   StatSync.frame('P');   // นับเวลาบัฟ/ดีบัฟนอกการต่อสู้
   {const S=StatSync.get();if(G.t%60===0&&(S.hotPct||0)>0&&G.hp>0&&G.hp<S.maxHP){G.hp=Math.min(S.maxHP,G.hp+Math.max(1,Math.round(S.maxHP*S.hotPct)));UI.hud&&UI.hud();}}
-  if(Z&&Z.pitRoom&&G.mode==='explore'){Z.drainT=(Z.drainT||0)+1;if(Z.drainT>=90){Z.drainT=0;const S=StatSync.get(),dm=Math.max(1,Math.ceil(S.maxHP*.20));
-    G.hp-=dm;G.shake=5;SFX.hit&&SFX.hit(false);EP.push({x:P.x,y:P.y-12,vx:0,vy:-.5,l:32,c:'#ff4a5a'});
-    if(G.hp<=0){const souls=Diff.cur().death==='bloodstain',pen=Diff.onDeath(Z.id,P.x,P.y);G.hp=S.maxHP;G.mp=S.maxMP;P.castExit=0;loadZone(TOWN);Save.save&&Save.save();UI.hud&&UI.hud();
-      toast(souls?'💀 คุณตายในห้องปิดตาย — '+(pen||'กลับเมือง Collawarrie'):'💀 พ่ายแพ้ในห้องปิดตาย... ฟื้นที่เมือง Collawarrie (HP เต็ม)'+(pen?' · '+pen:''),4500);return;}
-    UI.hud&&UI.hud();toast(`🕳️ ห้องปิดตายดูดพลังชีวิต! -${dm} HP (-20% Max HP)`,1500);}}
   if(Z.puddles&&G.t%30===0){const k=Math.floor(P.x/16)+','+Math.floor((P.y-2)/16),t=Z.puddles[k];   // แอ่งน้ำยาในหอคอย
     if(t){const S=StatSync.get();if(t==='poison'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.03));toast('🧪 แอ่งพิษ — HP ลดลง',900);}
       else if(t==='burn'){G.hp=Math.max(1,G.hp-Math.round(S.maxHP*.05));toast('🔥 แอ่งเพลิง — HP ลดลง',900);}
@@ -1086,7 +1091,7 @@ function drawExplore(){
     g.fillStyle=`rgba(255,60,40,${.35+p*.2})`;g.fillRect(x-1,y-14-p*2,2,12);if(G.t%6===0)EP.push({x:x+rnd(-5,5),y:y-2,vx:0,vy:-.4,l:30,c:'#ff4a3a'});}});
   for(const n of Z.folk||[])list.push({x:n.x,y:n.y,f:()=>{n._K=n._K||palLook(n.pal,n.id);drawWalker(n.x,n.y,n.face,n._K,n.mv,G.t*.22,n.x|0,null,'folk_'+((parseInt(String(n.id).replace(/\D/g,''))||0)%4+1),n.mv?(Math.abs(n.vy||0)>Math.abs(n.vx||0)?(n.vy>0?'down':'up'):(n.face<0?'left':'right')):'down');}});
   for(const n of Z.npcs)list.push({x:n.x,y:n.y,f:()=>{n.face=P.x<n.x?-1:1;n._K=n._K||palLook(PAL[n.pal],n.id);drawWalker(n.x,n.y,n.face,n._K,0,0,n.x|0,null,'npc_'+n.id,Math.abs(P.y-n.y)>Math.abs(P.x-n.x)?(P.y>n.y?'down':'up'):(n.face<0?'left':'right'));}});
-  for(const t of Z.traps||[])if(t.seen||t.type==='pit'||t.type==='deadpit')list.push({x:t.tx*16+8,y:t.ty*16+1,f:()=>drawTrap(t)});
+  for(const t of Z.traps||[])if(t.seen||t.type==='pit')list.push({x:t.tx*16+8,y:t.ty*16+1,f:()=>drawTrap(t)});
   for(const e of Z.foes)if(e.alive&&!e.hidden)list.push({x:e.x,y:e.y,f:()=>{const d=FOES[e.kind];
     if(e.elite&&G.t%4===0)EP.push({x:e.x+rnd(-6,6),y:e.y-rnd(2,12),vx:0,vy:-.3,l:16,c:'#ffd23a'});
     const mh=(SPR[d.map]||GOLEM).length,mt=e.cool>0&&G.t%8<4?'#ffffff':null;
@@ -1371,3 +1376,75 @@ function talk(id){
       'ศัตรูที่มีดาว ★ คือผู้พิทักษ์ที่ถูกแสงหินบิดเบือน จนจำศัตรูและมิตรไม่ได้แล้ว','คอมโบที่ทำครบชุดจะแรงขึ้น 20% หมั่นฝึกในหน้าสกิล (K) เพื่อพิสูจน์ว่าคนธรรมดาก็เป็นผู้กล้าได้'];say([[l,tips[(G.flags.tip=(G.flags.tip||0)+1)%tips.length]]]);}
   }
 }
+/* =====================================================================
+   ลานหน้าหอ (ทุกหอ) + เสาแสงจุดเกิดใหม่
+   • เดินจากแผนที่โลก/ประตูเมือง → ลานหน้าหอ → ประตูหอ → ชั้น 1 · ออกจากชั้นในหอจะกลับมาที่ลานนี้
+   • เสาแสง: กด E เพื่อจุดไฟ → ฟื้น HP/MP เต็ม และตั้งเป็นจุดเกิดใหม่ (ตายในการต่อสู้ → เกิดที่เสานี้แทนเมือง)
+   ===================================================================== */
+const TOWER_FRONTS={
+  mage:{n:'🔮 ลานหน้าหอคอยคริสตัลจอมเวท',short:'หอคอยคริสตัล',theme:'spire',biome:'crystal',stone:'#5c5470',stone2:'#857c9a',col:'#c858ff',col2:'#7af0ff'},
+  aether:{n:'⚔️ ลานหน้าหอคอยอัศวินแสง Aether',short:'หอคอยอัศวินแสง Aether',theme:'spire',biome:'sanctum',stone:'#6a6252',stone2:'#a8987a',col:'#ffd858',col2:'#fff2a8'},
+  alch:{n:'🧪 ลานหน้าหอคอยนักแปรธาตุ',short:'หอคอยนักแปรธาตุ',theme:'tower',biome:'tower',stone:'#4a5a52',stone2:'#71867a',col:'#7af0c0',col2:'#c8ffe8'}};
+function makeTowerFront(tower){
+  const D=TOWER_FRONTS[tower]||TOWER_FRONTS.mage,C=30,R=24,gr=Array.from({length:R},()=>Array(C).fill('#'));
+  for(let x=1;x<C-1;x++)gr[2][x]=x%6===3?'T':'^';
+  for(let y=3;y<R-1;y++)for(let x=1;x<C-1;x++)gr[y][x]='.';
+  const props=[
+    {k:'towerfacade',...T(15,11,8,0),hw:6,inter:'tf_enter',tower},
+    {k:'lightpillar',...T(15,16,8,8),hw:7,inter:'tf_pillar',tower},
+    {k:'exitdoor',...T(2,3,8,14),hw:7,inter:'tf_exit'},
+    {k:'crystal',...T(5,11,8,8),hw:5},{k:'crystal',...T(25,11,8,8),hw:5},{k:'crystal',...T(7,20,8,8),hw:5},{k:'crystal',...T(23,20,8,8),hw:5},{k:'crystal',...T(4,5,8,8),hw:5},{k:'crystal',...T(26,5,8,8),hw:5},
+    {k:'lamp',...T(10,15,8,8),hw:4},{k:'lamp',...T(20,15,8,8),hw:4},{k:'lamp',...T(10,19,8,8),hw:4},{k:'lamp',...T(20,19,8,8),hw:4}];
+  for(const dx of[-36,-28,-20,-12,12,20,28,36])props.push({k:'tfwall',x:T(15,11).x+dx,y:T(15,11).y-6,hw:6});   // ฐานหอ (ทึบ มองไม่เห็น) เว้นช่องประตูตรงกลาง
+  return{id:'tfront_'+tower,theme:D.theme,tower,towerFront:1,safe:1,title:D.n,grid:gr,traps:[],spawn:T(15,22),pillarSpawn:T(15,18),
+    levelAt:()=>1,regionAt:()=>'tfront_'+tower,biomeAt:()=>D.biome,props,items:[],npcs:[],foes:[],lavaTiles:[],puddles:{},floor:1};}
+function enterTowerFront(tower,atPillar){const z=makeTowerFront(tower);loadZone(z,atPillar?z.pillarSpawn:z.spawn);CAM.snap=1;G.shake=2;
+  if(!atPillar)toast(`${TOWER_FRONTS[tower].n} — เดินเข้าประตูหอด้านบน · จุดเสาแสงเพื่อตั้งจุดเกิดใหม่`,3400);Save.save&&Save.save();return true;}
+function enterTowerFloor1(tower){
+  if(tower==='alch'){if(typeof hasLavaKey==='function'&&!hasLavaKey()){toast('🔒 ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีสก่อน');return;}enterDungeon(1,'tower');
+    for(const o of Z.props||[])if(o.k==='exitdoor'&&o.inter==='town'){o.inter='tf_back';}Z.tower='alch';Save.save&&Save.save();return;}
+  enterSpire(1,tower);}
+function lightPillar(o){const D=TOWER_FRONTS[o.tower]||TOWER_FRONTS.mage,was=G.flags.respawnTower===o.tower;G.flags.respawnTower=o.tower;
+  const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;SFX.level&&SFX.level();G.shake=3;
+  for(let i=0;i<26;i++)EP.push({x:o.x+rnd(-8,8),y:o.y-rnd(4,70),vx:rnd(-.5,.5),vy:-rnd(.4,1.6),l:40,c:i%2?D.col:D.col2});
+  if(typeof VFX!=='undefined'){const q=PJ.pt(o.x,o.y);VFX.add('e','holy-light',{x:q.x*2,ground:q.y*2,width:.5,hold:.4});}
+  toast(was?`✨ เสาแสงสว่างอยู่แล้ว — ฟื้น HP/MP เต็ม`:`✨ จุดเสาแสงแล้ว! ถ้าตาย จะเกิดใหม่ที่${D.short}นี้ · ฟื้น HP/MP เต็ม`,3600);UI.hud&&UI.hud();Save.save&&Save.save();}
+SOLID_PROP.add('towerfacade');SOLID_PROP.add('lightpillar');SOLID_PROP.add('tfwall');HDP.tfwall=function(){};
+LABEL.fountain='💧 พักที่น้ำพุ (ฟื้นเต็ม + ตั้งจุดเกิดใหม่)';
+Object.assign(LABEL,{tf_enter:'🚪 เข้าสู่หอคอย (ชั้น 1)',tf_pillar:'✨ จุดเสาแสง (ตั้งจุดเกิดใหม่ + ฟื้นเต็ม)',tf_exit:'⬅️ ออกจากลานหน้าหอ',tf_back:'⬅️ กลับลานหน้าหอ'});
+/* ---- ภาพ: หน้าหอ + เสาแสง ---- */
+HDP.towerfacade=function(o){const D=TOWER_FRONTS[o.tower]||TOWER_FRONTS.mage,x=o.x|0,y=o.y|0,t=G.t,p=.5+Math.sin(t*.07)*.35;
+  const shd=(h,m)=>{const n=parseInt(h.slice(1),16);return`rgb(${Math.min(255,(n>>16&255)*m)|0},${Math.min(255,(n>>8&255)*m)|0},${Math.min(255,(n&255)*m)|0})`;};
+  shadow(g,x,y,40);
+  // ตัวหอ 2 ช่วง (ฐานกว้าง + ช่วงบนเรียว) ไล่แสงซ้ายสว่าง ขวามืด
+  for(const [w,h,by] of [[84,46,y],[60,40,y-46]]){const gr=g.createLinearGradient(x-w/2,0,x+w/2,0);gr.addColorStop(0,D.stone2);gr.addColorStop(.45,D.stone);gr.addColorStop(1,shd(D.stone,.55));
+    g.fillStyle=gr;g.fillRect(x-w/2,by-h,w,h);g.fillStyle='rgba(0,0,0,.16)';for(let ry=by-h+6;ry<by;ry+=6){g.fillRect(x-w/2,ry,w,1);for(let rx=x-w/2+((ry>>1)%2?4:9);rx<x+w/2;rx+=10)g.fillRect(rx,ry-5,1,5);}
+    g.fillStyle=shd(D.stone,.45);g.fillRect(x-w/2-3,by-h-3,w+6,4);g.fillStyle=D.stone2;g.fillRect(x-w/2-3,by-h-3,w+6,1);}
+  // ยอดแหลม + ผลึกลอย
+  g.fillStyle=shd(D.stone,.5);g.beginPath();g.moveTo(x-32,y-86);g.lineTo(x,y-118);g.lineTo(x+32,y-86);g.closePath();g.fill();
+  const cy=y-128+Math.sin(t*.05)*2;const rg=g.createRadialGradient(x,cy,1,x,cy,20);rg.addColorStop(0,`rgba(255,255,255,${.45+p*.3})`);rg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=rg;g.beginPath();g.arc(x,cy,20,0,7);g.fill();
+  g.fillStyle=D.col2;g.beginPath();g.moveTo(x,cy-11);g.lineTo(x+5,cy);g.lineTo(x,cy+8);g.closePath();g.fill();g.fillStyle=D.col;g.beginPath();g.moveTo(x,cy-11);g.lineTo(x-5,cy);g.lineTo(x,cy+8);g.closePath();g.fill();
+  // แถบรูนเรืองแสง 2 แถบ + หน้าต่าง
+  for(const [ry,w] of [[y-30,84],[y-70,60]]){g.globalAlpha=.4+.5*Math.max(0,Math.sin(t*.08+ry));g.fillStyle=D.col2;g.fillRect(x-w/2+2,ry,w-4,1);for(let rx=x-w/2+5;rx<x+w/2-3;rx+=6)g.fillRect(rx,ry-1,1,3);g.globalAlpha=1;}
+  for(const wx of [-18,18]){g.fillStyle='#120c1c';g.fillRect(x+wx-3,y-64,6,10);g.fillStyle=`rgba(${D.col===TOWER_FRONTS.aether.col?'255,220,120':'200,150,255'},${.5+p*.4})`;g.fillRect(x+wx-2,y-63,4,8);}
+  // ประตูโค้งใหญ่ + แสงจากภายใน + บันได
+  g.fillStyle=shd(D.stone,.4);g.beginPath();g.moveTo(x-14,y);g.lineTo(x-14,y-24);g.arc(x,y-24,14,Math.PI,0);g.lineTo(x+14,y);g.closePath();g.fill();
+  g.fillStyle='#0e0816';g.beginPath();g.moveTo(x-11,y);g.lineTo(x-11,y-24);g.arc(x,y-24,11,Math.PI,0);g.lineTo(x+11,y);g.closePath();g.fill();
+  const dg=g.createLinearGradient(0,y-34,0,y);dg.addColorStop(0,'rgba(0,0,0,0)');dg.addColorStop(1,D.col2);g.globalAlpha=.35+p*.35;g.fillStyle=dg;g.fillRect(x-10,y-34,20,34);g.globalAlpha=1;
+  g.fillStyle=D.stone2;g.fillRect(x-20,y,40,3);g.fillStyle=shd(D.stone,.7);g.fillRect(x-24,y+3,48,3);
+  // ธงสองข้างประตู
+  for(const bx of[-30,30]){g.fillStyle=shd(D.stone,.4);g.fillRect(x+bx-1,y-44,2,40);const sw=Math.sin(t*.06+bx)*1.5;g.fillStyle=D.col;g.beginPath();g.moveTo(x+bx,y-42);g.lineTo(x+bx+(bx<0?-8:8)+sw,y-40);g.lineTo(x+bx+(bx<0?-7:7)+sw,y-24);g.lineTo(x+bx,y-28);g.closePath();g.fill();}
+  if(t%8===0)EP.push({x:x+rnd(-10,10),y:y-rnd(2,30),vx:rnd(-.1,.1),vy:-.35,l:30,c:D.col2});};
+HDP.lightpillar=function(o){const D=TOWER_FRONTS[o.tower]||TOWER_FRONTS.mage,x=o.x|0,y=o.y|0,t=G.t,lit=G.flags&&G.flags.respawnTower===o.tower,p=.5+Math.sin(t*.1)*.5;
+  shadow(g,x,y,12);
+  // ฐานหิน 3 ขั้น + วงเวท
+  g.fillStyle='#3a3446';g.fillRect(x-11,y-4,22,4);g.fillStyle='#5a5268';g.fillRect(x-8,y-8,16,4);g.fillStyle='#7a7090';g.fillRect(x-5,y-14,10,6);
+  g.strokeStyle=lit?D.col2:'rgba(160,150,190,.45)';g.lineWidth=1;g.globalAlpha=lit?.5+p*.4:.4;g.beginPath();g.ellipse(x,y-1,16+(lit?p*2:0),5,0,0,7);g.stroke();g.globalAlpha=1;
+  if(lit){// ลำแสงสว่างพุ่งขึ้นฟ้า + แกนขาว + ประกาย
+    const h=86,lg=g.createLinearGradient(0,y-14-h,0,y-14);lg.addColorStop(0,'rgba(255,255,255,0)');lg.addColorStop(.35,D.col2);lg.addColorStop(1,D.col);
+    g.globalAlpha=.32+p*.18;g.fillStyle=lg;g.fillRect(x-7,y-14-h,14,h);g.globalAlpha=.75;g.fillStyle='#ffffff';g.fillRect(x-1,y-14-h*.8,2,h*.8);g.globalAlpha=1;
+    const rg=g.createRadialGradient(x,y-16,1,x,y-16,18);rg.addColorStop(0,'rgba(255,255,255,.8)');rg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=rg;g.beginPath();g.arc(x,y-16,18,0,7);g.fill();
+    if(t%5===0)EP.push({x:x+rnd(-5,5),y:y-rnd(14,40),vx:rnd(-.1,.1),vy:-rnd(.5,1.1),l:44,c:t%10?D.col2:'#ffffff'});
+  }else{// ยังไม่จุด: เปลวเล็กริบหรี่บนยอด
+    g.fillStyle=D.col;g.globalAlpha=.5+p*.3;g.fillRect(x-1,y-18-((t>>3)%2),2,3);g.globalAlpha=1;
+    if(t%24===0)EP.push({x:x,y:y-18,vx:rnd(-.05,.05),vy:-.25,l:24,c:D.col});}};

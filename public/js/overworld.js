@@ -7,7 +7,7 @@ const OW_COLS = 72, OW_ROWS = 48;
 
 const OW_LOCATIONS = [
   { id:'ow_spire',   k:'ow_spire',   kind:'spire',   tx:9,  ty:27, icon:'🔮', tag:'T',  n:'หอคอยคริสตัลจอมเวท',       lv:'Lv.50–95 · 5 ชั้น (Rank G+)', island:'south', dest:'spire',   desc:'หอคอยอเมทิสต์ 5 ชั้น ทางทิศตะวันตกของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) มีห้องทั่วไป · หัวหน้า · บอส ต้องแก้ปริศนาคริสตัลเพื่อขึ้นชั้นถัดไป' },
-  { id:'ow_spire_s', k:'ow_spire_s', kind:'spire_locked', tx:27, ty:28, icon:'🔒', tag:'T2', n:'หอคอยคริสตัลทุ่งเหนือ (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'south', dest:'spire_s', locked:1, desc:'หอคอยคริสตัลบนทุ่งหญ้าทางตอนเหนือของเกาะใต้ ยังถูกผนึกและไม่สามารถเข้าไปได้' },
+  { id:'ow_spire_s', k:'ow_spire_s', kind:'spire', tx:27, ty:28, icon:'⚔️', tag:'T2', n:'หอคอยอัศวินแสง Aether', lv:'Lv.55–100 · 5 ชั้น (Rank G+)', island:'south', dest:'spire_aether', desc:'หอคอยศักดิ์สิทธิ์ 5 ชั้นบนทุ่งเหนือของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) พิทักษ์โดยจอมดาบกุหลาบ เทพสายฟ้าทอง และบอสใหญ่ชั้น 5: ราชาอัศวินแสง ผู้ครอบครอง Aether' },
   { id:'ow_town',    k:'ow_town',    kind:'town',    tx:20, ty:40, icon:'🏰', tag:'1',  n:'เมือง Collawarrie',         lv:'เมืองหลัก · เขตปลอดภัย',    island:'south', dest:'town',    desc:'เมืองท่ากลางหุบเขา ร้านค้า ตีเหล็ก กิลด์นักผจญภัย ลานประลอง และประตูสู่ดันเจี้ยนทั้งหมด' },
   { id:'ow_port',    k:'ow_port',    kind:'port',    tx:34, ty:31, icon:'⚓', tag:'⚓', n:'ท่าเรือเกาะใต้',            lv:'สะพานถูกตัด · ข้ามไม่ได้',   island:'south', dest:'port',    desc:'ท่าเรือริมฝั่งตะวันออก สะพานข้ามเกาะถูกตัดขาดทั้งหมด ไม่สามารถข้ามไปยังเกาะกลางและเกาะเหนือได้' },
   { id:'ow_outpost', k:'ow_outpost', kind:'outpost', tx:50, ty:26, icon:'⛺', tag:'2',  n:'จุดพักแรมเกาะกลาง',        lv:'🔒 ข้ามทะเลไม่ได้',         island:'mid',   dest:'outpost', desc:'ค่ายพักนักเดินทางบนเกาะหินแดง ปัจจุบันสะพานถูกตัดขาด ไม่สามารถเดินทางข้ามมาได้' },
@@ -285,33 +285,72 @@ const OW = {
       return true;
     }
     if (k.startsWith('ow_spire')) {
-      const sealed = !!(o.loc && o.loc.locked);
-      const p = .5 + Math.sin(G.t * .08) * .35;
-      shadow(g, x, y, 22);
-      // เนินหินและฐานผลึกอเมทิสต์
-      g.fillStyle = sealed ? '#454846' : '#4e5c42'; g.beginPath(); g.ellipse(x, y - 2, 20, 7, 0, 0, 7); g.fill();
-      g.fillStyle = sealed ? '#46414b' : '#5c545e'; g.fillRect(x - 10, y - 42, 20, 40);
-      g.fillStyle = sealed ? '#2e2a34' : '#423a46'; g.fillRect(x + 2, y - 42, 8, 40);
-      // ทางเดินเวียนเกลียวพันรอบหอคอย
-      g.strokeStyle = sealed ? '#66606d' : '#8b808e'; g.lineWidth = 2.6;
-      for (const yy of [-10, -22, -33]) { g.beginPath(); g.moveTo(x - 13, yy + 3 + y); g.quadraticCurveTo(x, yy + y, x + 13, yy - 3 + y); g.stroke(); }
-      // ประตูหิน + มงกุฎคริสตัลบนยอดและฐาน
-      g.fillStyle = '#1e102c'; g.fillRect(x - 4, y - 10, 8, 9);
-      g.fillStyle = sealed ? '#ff5a6a' : '#7af0d8'; g.fillRect(x - 1, y - 8, 2, 5);
-      for (const [cx2, cy2, w2, h2] of [[-11, -11, 4, 8], [-6, -13, 4, 10], [6, -13, 4, 9], [11, -11, 4, 7]]) {
-        g.fillStyle = sealed ? '#5b3a78' : '#a838e8'; g.beginPath(); g.moveTo(x + cx2 - w2 / 2, y + cy2 + h2); g.lineTo(x + cx2, y + cy2); g.lineTo(x + cx2 + w2 / 2, y + cy2 + h2); g.fill();
+      /* หอคอยคริสตัลจอมเวท (โมเดลใหม่): หอหินเรียว 3 ชั้น · แถบรูนเรืองแสง · ระเบียง · ประตูโค้ง + คบไฟ · ผลึกยักษ์ลอยบนยอด + เศษผลึกโคจร */
+      const sealed = !!(o.loc && o.loc.locked), t = G.t, isAether = !sealed && o.loc && o.loc.id === 'ow_spire_s';
+      const p = .5 + Math.sin(t * .08) * .35, bob = Math.sin(t * .05) * 2;
+      const C = sealed
+        ? { lit: '#6a6470', mid: '#4e4956', dk: '#34303c', edge: '#22202a', rune: '#ff5a6a', cr1: '#5b3a78', cr2: '#7e54a4', cr3: '#a88ac8', moss: '#454846' }
+        : isAether
+        ? { lit: '#e2d8be', mid: '#a89c7e', dk: '#625842', edge: '#2c2518', rune: '#ffe878', cr1: '#ca8a04', cr2: '#facc15', cr3: '#fef9c3', moss: '#527442' }
+        : { lit: '#9a90a8', mid: '#6e6680', dk: '#463f58', edge: '#2a2438', rune: '#7af0ff', cr1: '#8a2ad8', cr2: '#c858ff', cr3: '#f4c8ff', moss: '#4e6a42' };
+      const cry = (cx, cy, w, h, c1, c2) => {   // ผลึกแหลม 2 ด้าน (ด้านสว่าง/ด้านมืด)
+        g.fillStyle = c1; g.beginPath(); g.moveTo(cx - w / 2, cy); g.lineTo(cx, cy - h); g.lineTo(cx, cy); g.closePath(); g.fill();
+        g.fillStyle = c2; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx, cy - h); g.lineTo(cx + w / 2, cy); g.closePath(); g.fill(); };
+      shadow(g, x, y, 26);
+      // ฐานเนินหิน + กอผลึก
+      g.fillStyle = C.moss; g.beginPath(); g.ellipse(x, y - 1, 24, 8, 0, 0, 7); g.fill();
+      g.fillStyle = C.dk; g.beginPath(); g.ellipse(x, y - 3, 19, 6, 0, 0, 7); g.fill();
+      // ตัวหอ 3 ชั้น (กว้าง → แคบ)
+      const tiers = [[y - 4, 26, 26], [y - 30, 21, 22], [y - 52, 16, 18]];
+      for (let ti = 0; ti < tiers.length; ti++) {
+        const [by, w, h] = tiers[ti], lx = x - w / 2;
+        g.fillStyle = C.mid; g.fillRect(lx, by - h, w, h);
+        g.fillStyle = C.lit; g.fillRect(lx, by - h, Math.round(w * .38), h);           // ด้านรับแสง
+        g.fillStyle = C.dk; g.fillRect(lx + Math.round(w * .7), by - h, w - Math.round(w * .7), h);   // ด้านเงา
+        g.fillStyle = 'rgba(0,0,0,.18)';                                              // แนวก้อนหิน
+        for (let ry = by - h + 5; ry < by - 1; ry += 5) { g.fillRect(lx, ry, w, 1); for (let rx = lx + ((ry >> 2) % 2 ? 3 : 6); rx < lx + w - 1; rx += 7) g.fillRect(rx, ry - 4, 1, 4); }
+        g.fillStyle = C.edge; g.fillRect(lx - 2, by - h - 2, w + 4, 3);               // ระเบียงหิน
+        g.fillStyle = C.lit; g.fillRect(lx - 2, by - h - 2, w + 4, 1);
+        // แถบรูนเรืองแสง (กะพริบไล่ตามชั้น)
+        const ra = sealed ? .35 : .45 + .45 * Math.max(0, Math.sin(t * .09 - ti * 1.3));
+        g.globalAlpha = ra; g.fillStyle = C.rune; g.fillRect(lx + 1, by - Math.round(h * .55), w - 2, 1);
+        for (let rx = lx + 3; rx < lx + w - 2; rx += 4) g.fillRect(rx, by - Math.round(h * .55) - 1, 1, 3);
+        g.globalAlpha = 1;
+        // หน้าต่างโค้งเรืองแสงชั้นบน
+        if (ti > 0) { g.fillStyle = C.edge; g.fillRect(x - 2, by - h + 4, 4, 6); g.fillStyle = sealed ? '#3a2a40' : `rgba(200,140,255,${.55 + p * .4})`; g.fillRect(x - 1, by - h + 5, 2, 4); }
       }
-      for (const [cx2, cy2, w2, h2, col] of [[-8, -48, 5, 11, sealed ? '#523470' : '#9a28d8'], [-3, -55, 6, 16, sealed ? '#68428c' : '#c858ff'], [2, -57, 6, 18, sealed ? '#7e54a4' : '#f0a8ff'], [8, -51, 5, 13, sealed ? '#5e3b80' : '#b842f0']]) {
-        g.fillStyle = col; g.beginPath(); g.moveTo(x + cx2 - w2 / 2, y + cy2 + h2); g.lineTo(x + cx2, y + cy2); g.lineTo(x + cx2 + w2 / 2, y + cy2 + h2); g.fill();
+      // ประตูโค้ง + เสาคบไฟ
+      g.fillStyle = C.edge; g.beginPath(); g.moveTo(x - 5, y - 4); g.lineTo(x - 5, y - 13); g.arc(x, y - 13, 5, Math.PI, 0); g.lineTo(x + 5, y - 4); g.closePath(); g.fill();
+      g.fillStyle = sealed ? '#2a1a22' : '#1a0f2c'; g.beginPath(); g.moveTo(x - 3.5, y - 4); g.lineTo(x - 3.5, y - 13); g.arc(x, y - 13, 3.5, Math.PI, 0); g.lineTo(x + 3.5, y - 4); g.closePath(); g.fill();
+      if (!sealed) { g.fillStyle = `rgba(122,240,255,${.35 + p * .4})`; g.fillRect(x - 2, y - 12, 4, 8); }
+      for (const sx of [-8, 8]) { g.fillStyle = C.dk; g.fillRect(x + sx - 1, y - 12, 2, 8);
+        const fc = sealed ? '#ff5a6a' : (t + sx) % 12 < 6 ? '#7af0ff' : '#c8f8ff'; g.fillStyle = fc; g.fillRect(x + sx - 1, y - 15, 2, 3);
+        if (!sealed && t % 16 === 0) EP.push({ x: x + sx, y: y - 16, vx: rnd(-.05, .05), vy: -.3, l: 20, c: '#9ff4ff' }); }
+      // กอผลึกรอบฐาน
+      for (const [cx2, w2, h2] of [[-17, 5, 9], [-13, 4, 6], [13, 5, 8], [18, 4, 11], [-20, 3, 5]]) cry(x + cx2, y - 1, w2, h2, C.cr2, C.cr1);
+      // ยอดแหลม + มงกุฎผลึก
+      const ty = y - 72;
+      g.fillStyle = C.edge; g.beginPath(); g.moveTo(x - 9, ty + 2); g.lineTo(x, ty - 6); g.lineTo(x + 9, ty + 2); g.closePath(); g.fill();
+      for (const [cx2, w2, h2] of [[-6, 4, 8], [6, 4, 7], [-2, 4, 11], [2, 4, 10]]) cry(x + cx2, ty + 1, w2, h2, C.cr3, C.cr1);
+      // ผลึกยักษ์ลอย + รัศมี + เศษผลึกโคจร
+      const fy = ty - 16 + bob;
+      if (!sealed) {
+        const gr = g.createRadialGradient(x, fy, 1, x, fy, 18); gr.addColorStop(0, `rgba(240,190,255,${.5 * p + .25})`); gr.addColorStop(1, 'rgba(200,120,255,0)');
+        g.fillStyle = gr; g.beginPath(); g.arc(x, fy, 18, 0, 7); g.fill();
+        g.globalAlpha = .12 + p * .1; g.fillStyle = '#e8b8ff'; g.fillRect(x - 1, fy - 60, 2, 50); g.globalAlpha = 1;   // ลำแสงสู่ฟ้า
       }
-      if (sealed) {
-        g.strokeStyle = 'rgba(255,90,106,.75)'; g.lineWidth = 1.4; g.beginPath(); g.ellipse(x, y - 8, 15, 7, 0, 0, 7); g.stroke();
-        g.fillStyle = '#d84040'; g.fillRect(x - 3, y - 22, 6, 5);
-        g.strokeStyle = '#ffd27a'; g.lineWidth = 1.1; g.beginPath(); g.arc(x, y - 22, 2.2, Math.PI, 0); g.stroke();
-      } else {
-        g.fillStyle = `rgba(218,120,255,${p * .45})`; g.beginPath(); g.arc(x, y - 47, 13, 0, 7); g.fill();
-        if (G.t % 10 === 0) EP.push({ x: x + rnd(-10, 10), y: y - rnd(12, 54), vx: rnd(-.06, .06), vy: -.25, l: 24, c: '#e49aff' });
-      }
+      g.fillStyle = C.cr3; g.beginPath(); g.moveTo(x, fy - 9); g.lineTo(x + 4, fy); g.lineTo(x, fy + 7); g.closePath(); g.fill();
+      g.fillStyle = C.cr2; g.beginPath(); g.moveTo(x, fy - 9); g.lineTo(x - 4, fy); g.lineTo(x, fy + 7); g.closePath(); g.fill();
+      g.fillStyle = '#ffffff'; g.globalAlpha = sealed ? .3 : .85; g.fillRect(x - 1, fy - 5, 1, 4); g.globalAlpha = 1;
+      for (let k2 = 0; k2 < 3; k2++) {
+        const a = t * .035 + k2 * 2.094, ox = Math.cos(a) * 11, oy = Math.sin(a) * 3.5, front = Math.sin(a) > 0;
+        g.globalAlpha = front ? 1 : .55; cry(x + ox, fy + 3 + oy, 3, 5, C.cr3, C.cr2); g.globalAlpha = 1; }
+      if (sealed) {   // โซ่ผนึก + กุญแจ + วงเวทแดง
+        g.strokeStyle = 'rgba(255,90,106,.7)'; g.lineWidth = 1.3; g.beginPath(); g.ellipse(x, y - 4, 20, 7, 0, 0, 7); g.stroke();
+        g.strokeStyle = '#8a8a96'; g.lineWidth = 1.4;
+        for (const [a1, a2] of [[[-13, -46], [13, -12]], [[13, -46], [-13, -12]]]) { g.beginPath(); g.moveTo(x + a1[0], y + a1[1]); g.lineTo(x + a2[0], y + a2[1]); g.stroke(); }
+        g.fillStyle = '#d84040'; g.fillRect(x - 3, y - 31, 6, 5); g.strokeStyle = '#ffd27a'; g.lineWidth = 1.1; g.beginPath(); g.arc(x, y - 31, 2.2, Math.PI, 0); g.stroke();
+      } else if (t % 9 === 0) EP.push({ x: x + rnd(-12, 12), y: y - rnd(10, 80), vx: rnd(-.06, .06), vy: -.25, l: 26, c: pick(['#e49aff', '#9ff4ff', '#ffffff']) });
       return true;
     }
     if (k === 'ow_outpost') {
@@ -397,8 +436,9 @@ const OW = {
   interact(type) {
     if (type === 'ow_town') { loadZone(TOWN, TOWN.southGateSpawn || TOWN.spawn); toast('🏰 เข้าสู่เมือง Collawarrie'); Save.save(); return true; }
     if (type === 'ow_city') { OW.enterCity(); return true; }
-    if (type === 'ow_spire') { if (typeof enterSpire === 'function') enterSpire(1); return true; }
-    if (type === 'ow_spire_w' || type === 'ow_spire_s' || type === 'ow_spire_m' || type === 'ow_spire_n') {
+    if (type === 'ow_spire') { if (typeof enterTowerFront === 'function') enterTowerFront('mage'); else if (typeof enterSpire === 'function') enterSpire(1, 'mage'); return true; }
+    if (type === 'ow_spire_s') { if (typeof enterTowerFront === 'function') enterTowerFront('aether'); else if (typeof enterSpire === 'function') enterSpire(1, 'aether'); return true; }
+    if (type === 'ow_spire_w' || type === 'ow_spire_m' || type === 'ow_spire_n') {
       const loc = OW_LOCATIONS.find(l => l.id === type);
       toast(`🔒 ${(loc && loc.n) || 'หอคอยคริสตัล'} — ม่านพลังผนึกอยู่ ยังไม่สามารถเข้าได้ในขณะนี้`, 2800);
       SFX.ui && SFX.ui('error');

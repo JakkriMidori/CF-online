@@ -221,6 +221,11 @@ function drawWeaponShape(Wp,h,a,o,O,C,seg,blk,tint,K){
         for(const u of[4.5,8.5,12.5]){S(u,0,u+2,-1.6,.85,'#5ff0ff');S(u+1.2,0,u+3.2,1.6,.85,'#35d6e6');}
         B(6,-2.3+Math.sin(t*.4)*.5,1.5,1.5,'#5ff0ff');B(11,2.3-Math.cos(t*.4)*.5,1.5,1.5,'#e2b3ff');
       }else S(2,0,L-1.5,0,.9,'#a64df0');break;
+    case'aethersword':grip(4,'#141620');B(-4.4,0,2.8,3.2,'#e2c088');B(-4.4,0,1.4,1.6,'#40a8ff');   // ด้ามจับ + ทับทิมสีฟ้า
+      S(0,-4.8,0,4.8,2.4,'#d8ae58');S(.4,-4,.4,4,1,'#fff4cc');B(.5,0,2.4,2.4,'#40a8ff');B(.5,0,1.1,1.1,'#ffffff');   // กระบังดาบทองคำ + แกนเอเธอร์ฟ้า
+      S(1.6,0,L-3,0,3.8,'#181b26');S(1.8,-1.1,L-1.8,-1.1,1.5,'#e2c088');S(L-3,0,L+1.4,0,2,'#fff0b0');   // ใบดาบเหล็กดำขลิบทองปลายแสง
+      if(glow){S(2.2,1.2,L-1.2,1.2,1,'#ffd866');S(2.4,0,L-2,0,.7,'#ffffff');
+        const sy=Math.sin(t*.3)*.6;B(L*.55,-2.2+sy,2.2,.6,'#fff4c0');B(L*.55,-2.2+sy,.6,2.2,'#fff4c0');}break;
     case'scythe':S(-8,0,L,0,1.5,'#3a2a3a');S(L-8,0,L-8,2.5,1,'#6a4a5a');   // ด้าม + มือจับรอง
       for(let k=0;k<=12;k++){const tt=k/12,u=L-.5-4.5*tt*tt,v=1+11*tt,w=tt<.4?3:tt<.8?2:1;B(u,v,w,w,col);}
       if(glow)for(let k=1;k<=11;k+=2){const tt=k/12;B(L-1.5-4.5*tt*tt,1+11*tt,1,1,fx);}break;
@@ -379,6 +384,77 @@ function drawCustomChibi(ctx,ox,oy,px,dir,P,K,tint,view){
     cap([sx,-30],[sx,-.8],1.05,1.05,C('#5c4c38'),Dk('#5c4c38',.5));
     ell(sx-.3,-32.5,3.0,2.8,bn,bd);
     if(!T&&!back){ctx.fillStyle='#10120c';ctx.fillRect(sx-1.7,-33,1.3,1.2);ctx.fillRect(sx+.5,-33,1.3,1.2);ctx.fillStyle=gr;ctx.fillRect(sx-1.5,-32.8,1,.8);ctx.fillRect(sx+.7,-32.8,1,.8);}
+  }else if(kind==='spire_knight'){
+    /* บอสหอคอยชั้น 3–5 (โมเดลใหม่): นักรบหญิงสูงเพรียว ชุดรัดรูปเข้ม + เกราะขาวงาช้าง · หน้ากากตาเรืองแสง · อาวุธยาวประจำตัว
+       ใช้ข้อต่อจาก rigPoints จึงขยับแขน/ขา/อาวุธตามท่าโจมตีจริง */
+    ctx.scale(1.16,1.16);const S2=1.1,J0=rigPoints(P),j=q=>[q[0],q[1]*S2],J={hip:j(J0.hip),sh:j(J0.sh),hd:j(J0.hd),fs:j(J0.fs),bs:j(J0.bs),fe:{j:j(J0.fe.j),end:j(J0.fe.end)},be:{j:j(J0.be.j),end:j(J0.be.end)},fhp:j(J0.fhp),bhp:j(J0.bhp),fk:{j:j(J0.fk.j),end:j(J0.fk.end)},bk:{j:j(J0.bk.j),end:j(J0.bk.end)}};
+    const ac=C(K.acc||'#c858ff'),acl=C(K.acc2||'#f4c8ff'),ad2=Dk(K.acc||'#c858ff',.55),su=C(K.suit||'#1c1a26'),sud=Dk(K.suit||'#1c1a26',.6),ar=C(K.armor||'#ece6d8'),ard=Dk(K.armor||'#ece6d8',.72),arl=C('#ffffff'),hc=C(K.hair||'#eef0f4'),hcd=Dk(K.hair||'#eef0f4',.7),sk=C(K.skin||'#f2ece4'),gl=C(K.glow||K.acc||'#c858ff');
+    const t=G.t,a=P.wa==null?-.9:P.wa,hx=J.fe.end[0],hy=J.fe.end[1];
+    const H=[J.sh[0]+.7,J.sh[1]-4.6],hs=K.khair||'bob',sw2=Math.sin(t*.08)*1.1;
+    // ---- ผมด้านหลัง (หางม้า/ผมยาว) วาดก่อนลำตัว ----
+    if(hs==='ponytail'){cap([H[0]-1.8,H[1]-2.4],[H[0]-6+sw2,H[1]+9],1.5,.6,hc,hcd);cap([H[0]-6+sw2,H[1]+9],[H[0]-4.6+sw2*1.3,H[1]+17],.7,.3,hc,hcd);}
+    if(hs==='long'){poly([[H[0]-3.4,H[1]-2],[H[0]+1.2,H[1]-2.6],[H[0]-.6,H[1]+8],[H[0]-2.2+sw2*.4,H[1]+15],[H[0]-4.6+sw2*.6,H[1]+14],[H[0]-4.4,H[1]+4]],hc,hcd);}
+    // ---- ผ้าคลุม/ชายเสื้อด้านหลัง ----
+    if(K.cape){const cc=C(K.cape),cd2=Dk(K.cape,.55),ci=C(K.capeIn||K.cape),sw=Math.sin(t*.07)*1.6;
+      poly([[J.bs[0]-.5,J.bs[1]],[J.fs[0]+.5,J.fs[1]],[J.hip[0]-2,J.hip[1]+4],[-7+sw,-1],[-12+sw*1.4,-.5],[-9+sw,-12],[J.bs[0]-3,J.bs[1]+5]],cc,cd2);
+      if(!T){poly([[J.bs[0]-1.5,J.bs[1]+3],[-9.5+sw*1.2,-2],[-11.5+sw*1.4,-1],[-8.5+sw,-11]],ci);}}
+    // ---- ขาหลัง ----
+    cap(J.bhp,J.bk.j,1.35,1.1,sud,sud);cap(J.bk.j,J.bk.end,1.15,.95,ard,Dk(K.armor||'#ece6d8',.5));ell(J.bk.end[0]+.6,J.bk.end[1]-.4,1.6,.8,ard);
+    // ---- แขนหลัง ----
+    cap(J.bs,J.be.j,1.05,.9,sud,sud);cap(J.be.j,J.be.end,1.0,.9,ard,ard);ell(J.be.end[0],J.be.end[1],1.0,1.0,ard);
+    // ---- อาวุธ (ด้ามยาว หมุนตามมุมอาวุธของท่า) ----
+    const W=K.kweapon||'scythe',ca=Math.cos(a),sa=Math.sin(a),pt=(l,o=0)=>[hx+ca*l-sa*o,hy+sa*l+ca*o];
+    const shaftC=C(K.shaft||'#3a2a44');
+    const drawWeapon=()=>{
+      cap(pt(-11),pt(K.wlen||26),.55,.55,shaftC,Dk(K.shaft||'#3a2a44',.5));
+      const L=K.wlen||26;
+      if(W==='scythe'){   // ใบเคียวโค้งไล่สีเพลิงอเมทิสต์
+        const b0=pt(L-1,0),b1=pt(L+1.5,-1.2),b2=pt(L-3,-8),b3=pt(L-10,-11.5),b4=pt(L-5,-6.5),b5=pt(L-1.5,-3);
+        poly([b0,b1,b2,b3,b4,b5],ac,ad2);if(!T){poly([pt(L-.5,-1),pt(L-3.2,-7.2),pt(L-8.5,-10.4),pt(L-4.2,-6.2)],acl);
+          ctx.fillStyle=C('#ffb24a');ctx.fillRect(pt(L-9,-10.6)[0]-.5,pt(L-9,-10.6)[1]-.5,1.2,1.2);}
+        ell(pt(-11)[0],pt(-11)[1],1.1,1.1,ac,ad2);
+      }else if(W==='halberd'){   // ทวนผลึกน้ำแข็ง + ขวานข้าง
+        poly([pt(L,0),pt(L+3,-1.6),pt(L+9,0),pt(L+3,1.6)],ac,ad2);if(!T)poly([pt(L+1,0),pt(L+3,-.8),pt(L+7,0)],acl);
+        poly([pt(L-1,.4),pt(L-1,4.5),pt(L-4.5,5.5),pt(L-4,.4)],ar,ard);
+        if(!T){ctx.fillStyle=gl;const g1=pt(L-2.2,2.6);ctx.fillRect(g1[0]-.5,g1[1]-.5,1,1);}
+        for(const q of[-6,-8.5]){const r=pt(q,0);ell(r[0],r[1],.9,.9,ac);}
+      }else if(W==='starstaff'){   // ไม้เท้าดาวสี่แฉกทอง + ผลึกห้อย
+        const c0=pt(L+2),gold=C('#ffd858'),gd2=Dk('#ffd858',.55),sp=4.6+Math.sin(t*.12)*.5;
+        if(!T){ctx.globalAlpha*=.35;ell(c0[0],c0[1],sp*1.3,sp*1.3,gl);ctx.globalAlpha/=.35;}
+        poly([[c0[0],c0[1]-sp*1.5],[c0[0]+1.2,c0[1]-1.2],[c0[0]+sp*1.5,c0[1]],[c0[0]+1.2,c0[1]+1.2],[c0[0],c0[1]+sp*1.5],[c0[0]-1.2,c0[1]+1.2],[c0[0]-sp*1.5,c0[1]],[c0[0]-1.2,c0[1]-1.2]],gold,gd2);
+        ell(c0[0],c0[1],1.4,1.4,ac,acl);
+        const hg=pt(L-4,2.5+Math.sin(t*.1));poly([[hg[0],hg[1]-1.8],[hg[0]+1,hg[1]],[hg[0],hg[1]+2.2],[hg[0]-1,hg[1]]],acl,ad2);
+      }};
+    if(W==='scythe')drawWeapon();
+    // ---- ลำตัว: ชุดรัดรูป + เกราะอก + กระโปรงเกราะ ----
+    const sx=J.sh[0],sy=J.sh[1],hpx=J.hip[0],hpy=J.hip[1];
+    poly([[hpx-2.6,hpy+1],[hpx+2.6,hpy+1],[sx+2.9,sy+.5],[sx-2.7,sy+.5]],su,sud);
+    poly([[sx-2.4,sy+.6],[sx+3.1,sy+.6],[sx+2.6,sy+5.2],[sx+.3,sy+6.6],[sx-2.0,sy+5.0]],ar,ard);
+    if(!T){ctx.fillStyle=ac;ctx.fillRect(sx-.2,sy+2,1.2,2.2);ctx.fillStyle=arl;ctx.fillRect(sx+1.2,sy+1.1,1.2,.8);}
+    poly([[hpx-2.8,hpy-.6],[hpx+2.9,hpy-.6],[hpx+2.6,hpy+.6],[hpx-2.6,hpy+.6]],ac,ad2);   // เข็มขัดสีประจำตัว
+    poly([[hpx-3.0,hpy+.4],[hpx-.2,hpy+.4],[hpx-1.2,hpy+4.4],[hpx-3.6,hpy+3.4]],ar,ard);
+    poly([[hpx+.2,hpy+.4],[hpx+3.2,hpy+.4],[hpx+3.8,hpy+3.6],[hpx+1.4,hpy+4.6]],ar,ard);
+    if(K.skirt){const kc=C(K.skirt),kd=Dk(K.skirt,.55);poly([[hpx-3.4,hpy+.8],[hpx+3.6,hpy+.8],[hpx+5.4,hpy+8+Math.sin(t*.09)*.4],[hpx-5.2,hpy+7.6]],kc,kd);}
+    // ---- ขาหน้า (ต้นขาชุดเข้ม · หน้าแข้งเกราะขาว) ----
+    cap(J.fhp,J.fk.j,1.4,1.15,su,sud);cap(J.fk.j,J.fk.end,1.2,1.0,ar,ard);
+    ell(J.fk.j[0]+.3,J.fk.j[1],1.25,1.1,arl,ard);ell(J.fk.end[0]+.8,J.fk.end[1]-.4,1.8,.85,ar,ard);
+    // ---- ศีรษะ: หน้ากากตาเรืองแสง + ทรงผม ----
+    cap([J.sh[0]+.3,J.sh[1]+.5],[H[0],H[1]+2.4],1.0,.9,sk,Dk(K.skin||'#f2ece4',.7));   // คอ
+    ell(H[0],H[1],3.2,3.5,sk,Dk(K.skin||'#f2ece4',.7));
+    poly([[H[0]-3.5,H[1]-.6],[H[0]-3.2,H[1]-3.6],[H[0]-.4,H[1]-4.6],[H[0]+2.8,H[1]-3.4],[H[0]+3.5,H[1]-1.2],[H[0]+1.4,H[1]-2.2],[H[0]-.6,H[1]-1.2],[H[0]-1.6,H[1]+2.6],[H[0]-3.6,H[1]+2.2]],hc,hcd);
+    if(hs==='bob'){poly([[H[0]-3.6,H[1]-1],[H[0]-2.4,H[1]+3.4],[H[0]-.8,H[1]+3.2],[H[0]-1.4,H[1]]],hc,hcd);poly([[H[0]+3.2,H[1]-1],[H[0]+3.6,H[1]+2.6],[H[0]+2.4,H[1]+2.4]],hc,hcd);}
+    if(!back&&!T){ctx.fillStyle=gl;ctx.fillRect(H[0]+.4,H[1]+.1,2.9,.75);ctx.fillStyle='#ffffff';ctx.fillRect(H[0]+2.2,H[1]+.1,.8,.75);
+      ctx.globalAlpha*=.4;ctx.fillStyle=gl;ctx.fillRect(H[0]+.1,H[1]-.3,3.6,1.5);ctx.globalAlpha/=.4;}
+    if(K.horn){poly([[H[0]-.8,H[1]-4.2],[H[0]-2.6,H[1]-8.4],[H[0]+.4,H[1]-4.6]],ac,ad2);poly([[H[0]+1.6,H[1]-3.8],[H[0]+2.6,H[1]-7.6],[H[0]+2.8,H[1]-3.4]],ac,ad2);}
+    if(K.crownK){const gold=C('#ffd858');poly([[H[0]-2.6,H[1]-3.8],[H[0]-2.2,H[1]-6.8],[H[0]-1,H[1]-5],[H[0]+.4,H[1]-8.2],[H[0]+1.6,H[1]-5],[H[0]+2.8,H[1]-6.8],[H[0]+2.8,H[1]-3.6]],gold,Dk('#ffd858',.55));if(!T){ctx.fillStyle=ac;ctx.fillRect(H[0]-.1,H[1]-5.6,1,1);}}
+    if(K.haloK&&!T){ctx.strokeStyle=gl;ctx.lineWidth=lw*1.6;ctx.globalAlpha*=.85;ctx.beginPath();ctx.ellipse(H[0]-.5,H[1]-6.5+Math.sin(t*.09)*.4,4.2,1.3,-.15,0,7);ctx.stroke();ctx.globalAlpha/=.85;}
+    // ---- แขนหน้า + บ่าเกราะ ----
+    cap(J.fs,J.fe.j,1.1,.95,su,sud);cap(J.fe.j,J.fe.end,1.05,.95,ar,ard);ell(hx,hy,1.1,1.1,ar,ard);
+    ell(J.fs[0]+.2,J.fs[1]+.4,2.2,1.6,ar,ard,-.3);if(!T){ctx.fillStyle=ac;ctx.fillRect(J.fs[0]-.6,J.fs[1]+1.2,1.6,.6);}
+    if(W!=='scythe')drawWeapon();
+    // ---- อนุภาคประจำตัว (ถ่าน/เกล็ดน้ำแข็ง/ประกายดาว) ----
+    if(!T)for(let i=0;i<7;i++){const u=((t*.012+i*.143)%1),px2=Math.sin(i*2.3+t*.03)*9,py2=-2-u*38;ctx.globalAlpha=Math.max(0,1-u)*.9;ctx.fillStyle=i%2?gl:acl;ctx.fillRect(px2,py2,i%3?.8:1.2,i%3?.8:1.2);}
+    ctx.globalAlpha=1;
   }else if(kind==='void_witch'){
     // ภาพที่ 3: นิกซ์ แม่มดสุญญตา (หมวกแม่มด + วงแหวนทอง + ดวงตาสี่ดวง + หนวดเงาม่วง + ผ้าคลุมเทาขลิบทอง)
     const ch=C('#3e3c4c'),cd=C('#1a1824'),gd=C('#d4bd88'),pu=C('#a838ff'),pl=C('#efb4ff'),vd=C('#0b0710');
@@ -419,6 +495,77 @@ function drawCustomChibi(ctx,ox,oy,px,dir,P,K,tint,view){
     if(!T){ctx.strokeStyle=gd;ctx.lineWidth=lw*1.8;ctx.beginPath();ctx.arc(cx-1.3,-22.5+hb2,1.8,Math.PI,0);ctx.stroke();}
     const ox=-6.8+lean,oy2=-16+hb2+wv*.6;
     ell(ox,oy2,2.4,2.4,pu,pl);if(!T){ctx.strokeStyle=vd;ctx.lineWidth=lw*1.4;ctx.beginPath();ctx.moveTo(ox-3,oy2-1);ctx.quadraticCurveTo(ox,oy2+3,ox+3,oy2-2);ctx.stroke();}
+  }else if(kind==='skel_warrior'||kind==='skel_knight'||kind==='skel_overlord'){
+    /* มอนและบอสโครงกระดูกหอคอยชั้น 3: 1) นักรบโครงกระดูกเกราะฟ้า (Warrior) 2) อัศวินโครงกระดูกเกราะดำไฟเขียว (Elite Knight) 3) จักรพรรดิโครงกระดูกเคียวเพลิงมรณะ (Skeleton Overlord Boss) */
+    const isBoss=kind==='skel_overlord',isKnight=kind==='skel_knight';
+    const scK=isBoss?1.24:isKnight?1.12:1.04;ctx.scale(scK,scK);
+    const J=rigPoints(P),a=P.wa==null?(isBoss?-1.05:-.85):P.wa,hx=J.fe.end[0],hy=J.fe.end[1],t=G.t;
+    const pal=isBoss?{bn:C('#c8b4a8'),bd:Dk('#c8b4a8',.5),ar:C('#2a1424'),ad:Dk('#2a1424',.5),ah:C('#8a2648'),gl:C('#ff9428'),gl2:C('#ffd866'),sk:C('#481224'),aur:'#7e2ae8'}
+      :isKnight?{bn:C('#bcb8ac'),bd:Dk('#bcb8ac',.52),ar:C('#24292e'),ad:Dk('#24292e',.5),ah:C('#48545c'),gl:C('#5eff7a'),gl2:C('#ccffd6'),sk:C('#1a2822'),aur:'#5eff7a'}
+      :{bn:C('#d8d4ca'),bd:Dk('#d8d4ca',.55),ar:C('#566270'),ad:Dk('#566270',.52),ah:C('#8fa4ba'),gl:C('#5ef0ff'),gl2:C('#d8fbff'),sk:C('#2e343e'),aur:null};
+    // 1) ออร่าควันมืด/เปลวไฟด้านหลังสำหรับอัศวินและจอมทัพ
+    if(!T&&pal.aur){
+      ctx.globalAlpha*=.35;
+      for(let i=0;i<(isBoss?5:3);i++){const ph=t*.08+i*1.3,wx=Math.sin(ph)*7-(isBoss?2:1),wy=-10-(i*5)+Math.cos(ph*1.2)*2;
+        ell(wx,wy,isBoss?6.5:4.5,isBoss?4.2:2.8,pal.aur);}
+      if(isBoss)for(let i=0;i<3;i++){const tw=Math.sin(t*.12+i)*1.8;poly([[J.sh[0]-2,J.sh[1]],[-9+tw,-2],[-12+tw*1.2,-12],[J.bs[0]-2,J.bs[1]]],Dk('#361248',.6),pal.ah);}
+      ctx.globalAlpha/=.35;
+    }
+    // 2) ขาหลัง + แขนหลัง (กระดูก + สนับเกราะ)
+    cap(J.bhp,J.bk.j,1.15,1.0,pal.bd,pal.ad);cap(J.bk.j,J.bk.end,1.25,1.05,pal.ar,pal.ad);ell(J.bk.end[0]+.6,J.bk.end[1]-.4,1.7,.85,pal.ad);
+    cap(J.bs,J.be.j,.95,.85,pal.bd,pal.ad);cap(J.be.j,J.be.end,.95,.85,pal.ar,pal.ad);
+    // 3) ผ้าคลุมเอวขาดริ้ว/เกราะสะโพกหนาม
+    const Hp=J.hip,Sh=J.sh,fl=Math.sin(t*.11)*.9;
+    poly([[Hp[0]-3.4,Hp[1]],[Hp[0]+3.4,Hp[1]],[Hp[0]+4.4+fl*.4,Hp[1]+8.5],[Hp[0]+1.8,Hp[1]+6],[Hp[0]-.2,Hp[1]+9],[Hp[0]-2.4,Hp[1]+6.2],[Hp[0]-4.6+fl,Hp[1]+8.5]],pal.sk,pal.ad);
+    if(!T&&(isKnight||isBoss))poly([[Hp[0]-3.6,Hp[1]+.2],[Hp[0]+3.6,Hp[1]+.2],[Hp[0]+4.0,Hp[1]+3.5],[Hp[0]+1.4,Hp[1]+4.5],[Hp[0]-1.2,Hp[1]+4.5],[Hp[0]-3.8,Hp[1]+3.2]],pal.ar,pal.ah);
+    // 4) โครงอก + ซี่โครงเรืองแสงธาตุประจำตัว (ฟ้า / เขียว / ไฟส้ม)
+    poly([[Hp[0]-2.6,Hp[1]+.4],[Hp[0]+2.6,Hp[1]+.4],[Sh[0]+3.5,Sh[1]+.2],[Sh[0]-3.2,Sh[1]+.2]],pal.ar,pal.ad);
+    if(!T){
+      poly([[Hp[0]-1.8,Hp[1]],[Hp[0]+1.8,Hp[1]],[Sh[0]+2.2,Sh[1]+1.2],[Sh[0]-2.0,Sh[1]+1.2]],Dk(pal.gl,.45));
+      ctx.fillStyle=pal.gl;for(const u2 of[.28,.5,.72]){const ry=Hp[1]+(Sh[1]-Hp[1])*u2,rx=Hp[0]+(Sh[0]-Hp[0])*u2;ctx.fillRect(rx-2.1,ry-.5,4.2,1.1);}
+      ctx.fillStyle=pal.gl2;ctx.fillRect(Sh[0]-.8,Sh[1]+3,.6,4);
+    }
+    poly([[Sh[0]-3.4,Sh[1]+.4],[Sh[0]+3.6,Sh[1]+.4],[Sh[0]+2.6,Sh[1]+3.0],[Sh[0]-2.6,Sh[1]+3.0]],pal.ah,pal.ad);
+    // 5) ขาหน้า + สนับแข้งมีหนาม
+    cap(J.fhp,J.fk.j,1.2,1.0,pal.bn,pal.ad);cap(J.fk.j,J.fk.end,1.35,1.1,pal.ar,pal.ad);ell(J.fk.j[0]+.2,J.fk.j[1],1.2,1.1,pal.ah,pal.ad);ell(J.fk.end[0]+.8,J.fk.end[1]-.4,1.9,.9,pal.ar,pal.ad);
+    // 6) หัวกะโหลก / หมวกหนาม / เขาจอมทัพ
+    const H=[Sh[0]+.5,Sh[1]-4.2];
+    cap([Sh[0],Sh[1]+.4],[H[0],H[1]+2.2],.85,.75,pal.bd);
+    ell(H[0],H[1]-.4,3.4,3.4,pal.bn,pal.bd);
+    poly([[H[0]-2.1,H[1]+1.5],[H[0]+2.3,H[1]+1.5],[H[0]+1.9,H[1]+3.6],[H[0]-1.7,H[1]+3.6]],pal.bn,pal.bd);   // กราม
+    if(!T&&!back){
+      ctx.fillStyle='#100c12';ctx.fillRect(H[0]+.1,H[1]-1.2,1.5,1.4);ctx.fillRect(H[0]+2.0,H[1]-1.2,1.4,1.4);
+      ctx.fillStyle=pal.gl;ctx.fillRect(H[0]+.4,H[1]-.9,.95,.9);ctx.fillRect(H[0]+2.2,H[1]-.9,.9,.9);
+      ctx.fillStyle='#18141a';ctx.fillRect(H[0]-.8,H[1]+2.2,2.6,.7);
+    }
+    if(isKnight||isBoss){
+      // หมวกเหล็กมีหนาม/เขาสำหรับอัศวินชั้นยอดและจักรพรรดิโครงกระดูก
+      poly([[H[0]-3.8,H[1]-.8],[H[0]-3.2,H[1]-4.4],[H[0]-1.4,H[1]-6.2],[H[0]+.2,H[1]-4.2],[H[0]+1.8,H[1]-6.4],[H[0]+3.6,H[1]-3.2],[H[0]+3.2,H[1]-1.2],[H[0]+.6,H[1]-2.2]],pal.ar,pal.ah);
+      if(isBoss){poly([[H[0]-1.8,H[1]-4.2],[H[0]-4.6,H[1]-9.4],[H[0]-.4,H[1]-5.2]],pal.ah,pal.ad);poly([[H[0]+1.6,H[1]-4.2],[H[0]+4.4,H[1]-9.6],[H[0]+2.6,H[1]-4.6]],pal.ah,pal.ad);}
+    }
+    // 7) แขนหน้า + เกราะไหล่ + อาวุธประจำตัว (หมุนตาม P.wa ของท่าโจมตี)
+    cap(J.fs,J.fe.j,1.0,.9,pal.bn,pal.ad);cap(J.fe.j,J.fe.end,1.15,1.0,pal.ar,pal.ad);ell(hx,hy,1.15,1.1,pal.ar,pal.ad);
+    poly([[Sh[0]-1.2,Sh[1]+1.5],[Sh[0]+.8,Sh[1]-1.4],[Sh[0]+3.6,Sh[1]+.2],[Sh[0]+2.6,Sh[1]+2.4]],pal.ar,pal.ah);
+    if(isKnight||isBoss)poly([[Sh[0]+.2,Sh[1]-1.2],[Sh[0]-1.4,Sh[1]-4.2],[Sh[0]+1.8,Sh[1]-2.0]],pal.ah,pal.ad);
+    const ca=Math.cos(a),sa=Math.sin(a),pt=(l,o=0)=>[hx+ca*l-sa*o,hy+sa*l+ca*o];
+    if(isBoss){
+      // เคียวยักษ์จักรพรรดิโครงกระดูก (ม่วงแดง + เปลวพลังงาน)
+      cap(pt(-10),pt(23),.6,.6,C('#3a1c2e'),pal.ad);
+      const L=23;
+      poly([pt(L-1,0),pt(L+2,-1.6),pt(L-3.5,-9.5),pt(L-11,-13),pt(L-5.5,-7.2),pt(L-1.5,-3)],C('#c8387a'),pal.ad);
+      if(!T){poly([pt(L-.6,-1),pt(L-3.5,-8.2),pt(L-9.4,-11.6),pt(L-4.6,-6.8)],pal.gl);ctx.fillStyle=pal.gl2;ctx.fillRect(pt(L-9.8,-11.8)[0]-.6,pt(L-9.8,-11.8)[1]-.6,1.3,1.3);}
+    }else if(isKnight){
+      // ค้อนหนามอัศวินโครงกระดูก (หัวหนามเรืองแสงเขียว)
+      cap(pt(-5),pt(14),.55,.55,pal.ar,pal.ad);
+      const m0=pt(14.5);ell(m0[0],m0[1],2.8,2.8,pal.ar,pal.gl);
+      if(!T){for(const ang2 of[0,1.57,3.14,4.71])ell(m0[0]+Math.cos(ang2)*2.9,m0[1]+Math.sin(ang2)*2.9,.8,.8,pal.gl);ell(m0[0],m0[1],1.1,1.1,pal.gl2);}
+    }else{
+      // ดาบยาวนักรบโครงกระดูก (อักขระฟ้าเรืองแสง)
+      cap(pt(-4),pt(1.5),.5,.5,pal.ar,pal.ad);
+      poly([pt(1,-1.5),pt(2,-1.5),pt(2,1.5),pt(1,1.5)],pal.ah,pal.ad);
+      poly([pt(2,-1.1),pt(14,-1.0),pt(17.5,0),pt(14,1.0),pt(2,1.1)],C('#a8b8c8'),pal.ad);
+      if(!T){ctx.strokeStyle=pal.gl;ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(...pt(2.5,0));ctx.lineTo(...pt(14.5,0));ctx.stroke();}
+    }
   }
   ctx.setTransform(1,0,0,1,0,0);return true;
 }
@@ -540,10 +687,13 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
   }
   else if(K.arch==='furcoat'){
     const H=J.hip,co=C(K.coatCol||'#ba241d'),cd=Dk(K.coatCol||'#ba241d',.58);
+    if(K.shoulderFur&&!T){const fc=C(K.furCol||'#eef3f8'),fd=Dk(K.furCol||'#eef3f8',.68),S0=J.sh;
+      poly([[S0[0]-1,S0[1]-1],[S0[0]-6.5,S0[1]+1.5],[S0[0]-7.8+wv*.4,S0[1]+10],[S0[0]-4.2+wv*.3,S0[1]+12],[S0[0]-1.2,S0[1]+6]],fc,fd);}
     poly([tp(.1,2.6),tp(.1,-2.2),[H[0]-6.4+cw,H[1]+8.4],[H[0]-1.8+cw*.4,H[1]+9.8],[H[0]+4.2,H[1]+8.4],[H[0]+2.6,H[1]+1.5]],co,cd);
     if(!T){poly([[H[0]-3.6+cw*.5,H[1]+8.8],[H[0]-2.0+cw*.4,H[1]+9.4],[H[0]-1.4,H[1]+1.8]],Dk(co,.75));
+      if(K.coatTrim){ctx.strokeStyle=C(K.coatTrim);ctx.lineWidth=lw*1.4;ctx.beginPath();ctx.moveTo(...tp(.85,2.4));ctx.lineTo(H[0]+4.0,H[1]+8.2);ctx.lineTo(H[0]-6.0+cw,H[1]+8.2);ctx.stroke();}
       ctx.fillStyle=cd;ctx.fillRect(H[0]+.8,H[1]+3.5,2.4,2.4);
-      if(K.furCol)poly([tp(.88,3.2),tp(1.06,1.2),tp(1.06,-2.4),tp(.84,-3.2),tp(.72,0)],C(K.furCol),Dk(K.furCol,.62));}
+      if(K.furCol&&!K.shoulderFur)poly([tp(.88,3.2),tp(1.06,1.2),tp(1.06,-2.4),tp(.84,-3.2),tp(.72,0)],C(K.furCol),Dk(K.furCol,.62));}
   }else if(K.arch==='sash'){
     const H=J.hip,sc=C(K.sashCol||'#c83424'),sd2=Dk(K.sashCol||'#c83424',.58);
     poly([tp(.12,bw[0]+.1),tp(-.26,bw[0]+.8),tp(-.22,-bw[0]-.8),tp(.12,-bw[0]-.1)],Dk(K.body,.86),bd);
@@ -658,6 +808,10 @@ function drawChibi(ctx,ox,oy,px,dir,P,K,tint){
     if(R2){ctx.fillStyle=K.pauldronRTrim;ctx.fillRect(q[0]+.7,q[1]-.2,.85,.85);ctx.fillRect(q[0]-1.3,q[1]+.1,.7,.7);}else{ctx.fillStyle=K.pauldronLStitch[0];ctx.fillRect(q[0]-.9,q[1]-.3,1,.8);ctx.fillStyle=K.pauldronLStitch[1];ctx.fillRect(q[0]+.4,q[1]+.1,1,.8);}}
   else if(K.pads&&!T){const q=ad(J.sh,.4,.7);ell(q[0],q[1],K.plate?2.9:2.4,K.plate?2.1:1.7,K.trim||'#8a8f9a',shade(K.trim||'#8a8f9a',.5));ell(q[0]+.3,q[1]-.7,1.3,.5,shade(K.trim||'#8a8f9a',1.5));}
   if(K.ring&&!T){ctx.fillStyle=K.ring;ctx.fillRect(J.fe.end[0]+.6,J.fe.end[1]-.4,.6,.6);}
+  if(K.aetherStar&&!T){const sx=J.fe.end[0]+1.8,sy=J.fe.end[1]-1.2+wv*.4,sp=2.6+Math.sin(G.t*.14)*.5;
+    ctx.fillStyle='rgba(255,216,102,.32)';ctx.beginPath();ctx.arc(sx,sy,sp*1.5,0,7);ctx.fill();
+    ctx.fillStyle='#ffe078';ctx.fillRect(sx-sp,sy-.45,sp*2,.9);ctx.fillRect(sx-.45,sy-sp,.9,sp*2);
+    ctx.fillStyle='#ffffff';ctx.fillRect(sx-.6,sy-.6,1.2,1.2);}
   ctx.setTransform(1,0,0,1,0,0);
 }
 // ===== มุมหน้า/มุมหลัง (เดินลง = หันหน้าเข้ากล้อง · เดินขึ้น = เห็นแผ่นหลัง) สไตล์เดียวกับมุมข้าง =====
@@ -714,9 +868,10 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
       const co=C(K.coatCol||'#ba241d'),cd=Dk(co,.58),w2=wv*.25;
       poly([[-2.7,hipY-1],[2.7,hipY-1],[3.4,hipY+4.5],[-3.4,hipY+4.5]],bc,bd);
       if(!back)for(const sd of[-1,1]){poly([[sd*1.6,shY+1],[sd*3.4,shY+1],[sd*(6.2+w2),hipY+8.4],[sd*2.1,hipY+8.8]],co,cd);
-        if(!T){ctx.fillStyle=cd;ctx.fillRect(sd*3.2-1,hipY+3,2,2.2);}}
+        if(!T){ctx.fillStyle=cd;ctx.fillRect(sd*3.2-1,hipY+3,2,2.2);if(K.coatTrim){ctx.strokeStyle=C(K.coatTrim);ctx.lineWidth=lw*1.2;ctx.beginPath();ctx.moveTo(sd*1.7,shY+1);ctx.lineTo(sd*2.1,hipY+8.7);ctx.stroke();}}}
       else poly([[-3.1,shY+1],[3.1,shY+1],[6.2+w2,hipY+8.8],[-6.2+w2,hipY+8.8]],co,cd);
-      if(K.furCol&&!T)poly([[-3.5,shY+.4],[3.5,shY+.4],[2.8,shY+2.4],[-2.8,shY+2.4]],C(K.furCol),Dk(K.furCol,.62));
+      if(K.shoulderFur&&!T){poly([[-2.5,shY-1],[-6.4,shY+1],[-7.2+w2,shY+10],[-3.8+w2,shY+11],[-2.2,shY+4]],C(K.furCol||'#eef3f8'),Dk(K.furCol||'#eef3f8',.62));}
+      else if(K.furCol&&!T)poly([[-3.5,shY+.4],[3.5,shY+.4],[2.8,shY+2.4],[-2.8,shY+2.4]],C(K.furCol),Dk(K.furCol,.62));
     }else if(K.arch==='sash'){
       const sc=C(K.sashCol||'#c83424'),sd2=Dk(sc,.58);
       if(!T){poly([[-2.7,shY+.2],[-1.7,shY+.2],[2.6,hipY-1],[1.6,hipY-1]],sc,sd2);
@@ -767,6 +922,7 @@ function drawChibiFB(ctx,ox,oy,px,view,ph,moving,K,tint,tt){
   else{arm(-1,sw*1.2,sl,hd);const hR=arm(1,-sw*1.2,Dk(K.sleeve||K.body,.92),Dk(K.gloves||K.skin,.92));torso();
     if(Wp&&!bigW){const up=['staff','wand','spear','scythe'].includes(Wp.shape);drawWeaponShape(Wp,[-4.3,shY+7.6+sw*1.2],up?-Math.PI/2-.18:Math.PI/2+.32,0,false,C,segU,blkU,tint,K);}   // ไม้เท้า/หอก ถือตั้งขึ้น · ดาบสั้นถือลง
     {const h=[-4.3,shY+7.6+sw*1.2];ell(h[0],h[1],1.3,1.25,hd,Dk(K.gloves||K.skin,.6));}
+    if(!T&&K.aetherStar){const sx=4.6,sy=shY+6.6-sw*.8,sp=2.4+Math.sin(tt*.14)*.45;ctx.fillStyle='rgba(255,216,102,.32)';ctx.beginPath();ctx.arc(sx,sy,sp*1.5,0,7);ctx.fill();ctx.fillStyle='#ffe078';ctx.fillRect(sx-sp,sy-.45,sp*2,.9);ctx.fillRect(sx-.45,sy-sp,.9,sp*2);ctx.fillStyle='#ffffff';ctx.fillRect(sx-.55,sy-.55,1.1,1.1);}
     if(!T&&K.orbCol&&!Wp){const ox2=5.8,oy2=shY+3.6+wv*.7;ell(ox2,oy2,2.0,2.2,C(K.orbCol),Dk(K.orbCol,.6));ell(ox2,oy2-1.8,1.0,1.2,'#ffd84a');ell(ox2,oy2,.85,.85,'#fffbe6');}}
   if(K.pads&&!T&&!K.outfit){const pc=K.trim||'#8a8f9a';for(const sx of[-1,1]){ell(sx*3.5,shY+.9,K.plate?2.3:1.9,K.plate?1.7:1.4,pc,shade(pc,.5));ell(sx*3.5-.3,shY+.3,1,.4,shade(pc,1.5));}}
   // ---- หัว ----
@@ -1169,7 +1325,7 @@ function lighting(ls,dark){
   L.globalCompositeOperation='destination-out';
   for(const l of ls){const gr=L.createRadialGradient(l.x,l.y,0,l.x,l.y,l.r);gr.addColorStop(0,'rgba(0,0,0,.92)');gr.addColorStop(.5,'rgba(0,0,0,.65)');gr.addColorStop(1,'rgba(0,0,0,0)');L.fillStyle=gr;L.fillRect(l.x-l.r,l.y-l.r,l.r*2,l.r*2);}
   L.globalCompositeOperation='source-over';g.drawImage(lc,0,0);
-  g.globalCompositeOperation='screen';g.globalAlpha=.28;   /* แสงสีแบบนุ่มนวล สบายตา ไม่แสบตา */
+  g.globalCompositeOperation='screen';g.globalAlpha=.18;   /* แสงสีแบบนุ่มนวล สบายตา ไม่แสบตา */
   for(const l of ls)if(l.c){const gr=g.createRadialGradient(l.x,l.y,0,l.x,l.y,l.r*.85);gr.addColorStop(0,l.c);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(l.x-l.r,l.y-l.r,l.r*2,l.r*2);}
   g.globalCompositeOperation='source-over';g.globalAlpha=1;
 }

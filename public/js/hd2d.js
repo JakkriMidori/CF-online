@@ -389,7 +389,7 @@ const HDP=(()=>{
 /* ---------- ฉากต่อสู้แบบไดออรามา: ผนังไกล (เบลอ+หมอก) · พื้นมุมเอียง · เสาหน้ากล้อง (เบลอ) ---------- */
 const HDB=(()=>{
   const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w*RES;c.height=h*RES;const x=c.getContext('2d');x.setTransform(RES,0,0,RES,0,0);return[c,x];};
-  const FLOORB={cave:'cave',stone:'cave',lava:'lava',cathedral:'sanctum',frost:'ice',tower:'tower',arena:'cave'};
+  const FLOORB={cave:'cave',stone:'cave',lava:'lava',cathedral:'sanctum',frost:'ice',tower:'tower',arena:'cave',rose:'tower',aether:'sanctum'};
   const mul=(a,m)=>a.map(v=>Math.min(255,v*m));
   const col=(a,m=1,al=1)=>`rgba(${Math.min(255,a[0]*m)|0},${Math.min(255,a[1]*m)|0},${Math.min(255,a[2]*m)|0},${al})`;
   function wall(x,P,scene){
@@ -409,9 +409,9 @@ const HDB=(()=>{
       x.strokeStyle='rgba(255,120,40,.7)';x.lineWidth=.8;for(let i=0;i<20;i++){const sx=hash(i,3)*W,sy=20+hash(3,i)*170;x.beginPath();x.moveTo(sx,sy);x.lineTo(sx+4,sy+6);x.lineTo(sx+1,sy+12);x.stroke();}}
     if(scene==='frost'){for(let i=0;i<40;i++){const sx=hash(i,7)*W,h=6+hash(7,i)*26;x.fillStyle='rgba(225,245,255,.85)';x.beginPath();x.moveTo(sx-3,0);x.lineTo(sx+3,0);x.lineTo(sx,h);x.fill();}
       for(let y=16;y<206;y+=48){x.fillStyle='rgba(240,250,255,.55)';x.fillRect(0,y-1,W,2);}}
-    if(scene==='cathedral'){const cx=240,top=40,aw=70;const cols=['#ff6a6a','#ffd26a','#6ab4ff','#9aff9a','#c89aff'];
+    if(scene==='cathedral'||scene==='aether'){const cx=240,top=40,aw=70;const cols=scene==='aether'?['#ffe878','#fff6c0','#7af0ff','#ffd23a','#ffffff']:['#ff6a6a','#ffd26a','#6ab4ff','#9aff9a','#c89aff'];
       for(let i=0;i<24;i++){x.fillStyle=cols[i%5]+'cc';x.fillRect(cx-28+(i%6)*9.5,top+20+(i/6|0)*20,8,18);}x.fillStyle='rgba(255,250,230,.5)';x.beginPath();x.arc(cx,top+aw/2,18,0,7);x.fill();
-      for(const bx of [60,420]){x.fillStyle='#7a1a2a';x.fillRect(bx-8,20,16,70);x.fillStyle='#d8b050';x.fillRect(bx-8,20,16,3);x.beginPath();x.moveTo(bx-8,90);x.lineTo(bx,82);x.lineTo(bx+8,90);x.fillStyle='#7a1a2a';x.fill();}}
+      for(const bx of [60,420]){x.fillStyle=scene==='aether'?'#1a2440':'#7a1a2a';x.fillRect(bx-8,20,16,70);x.fillStyle='#d8b050';x.fillRect(bx-8,20,16,3);x.beginPath();x.moveTo(bx-8,90);x.lineTo(bx,82);x.lineTo(bx+8,90);x.fillStyle=scene==='aether'?'#1a2440':'#7a1a2a';x.fill();}}
     if(scene==='tower'){x.font='10px serif';for(let i=0;i<30;i++){const sx=hash(i,9)*W,sy=10+hash(9,i)*180;x.fillStyle=`rgba(122,240,192,${.25+hash(i,2)*.5})`;x.fillText('ᚠᚢᚦᚨᚱᚲᚷᚹ'[i%8],sx,sy);}}
     if(scene==='arena'){for(let r=0;r<5;r++)for(let i=0;i<70;i++){const sx=i*7+(r%2)*3,sy=16+r*12;x.fillStyle=`rgba(${20+hash(i,r)*40|0},${16+hash(r,i)*30|0},${14},.9)`;x.beginPath();x.arc(sx,sy,2.6,0,7);x.fill();x.fillRect(sx-3,sy+2,6,6);}
       for(let i=0;i<8;i++){x.fillStyle=i%2?'#8a1a1a':'#c8a040';x.fillRect(30+i*56,78,30,24);x.beginPath();x.moveTo(30+i*56,102);x.lineTo(45+i*56,110);x.lineTo(60+i*56,102);x.fill();}}

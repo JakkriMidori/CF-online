@@ -5,12 +5,14 @@
 let BT=null;
 const maxGuard=f=>((f&&((f.isP&&!BT?.vs&&G.talent==='parryman')||f.talent==='parryman'))?TALENT_PASSIVE.parryman.guardMax:CONFIG.guard.max);
 function mkF(o){const f=Object.assign({x:0,y:GY,vx:0,vy:0,dir:1,onGround:true,state:'idle',st:0,phase:null,pt:0,move:null,didHit:false,hitN:0,hitCD:0,
-  flash:0,invuln:0,combo:0,hist:[],lastN:5,lastFT:-99,lastBT:-99,backPressT:-99,airUsed:0,jug:0,walkT:0,think:40,guard:0,aiChain:0,trail:[],gc:false,
+  flash:0,invuln:0,combo:0,hist:[],lastN:5,lastFT:-99,lastBT:-99,lastRT:-99,lastLT:-99,backPressT:-99,dashCharges:CONFIG.dashMax||2,dashCD:0,airUsed:0,jug:0,walkT:0,think:40,guard:0,guardCD:0,noGuardT:0,_blkRollSeq:-1,_projBlkCD:0,aiChain:0,trail:[],gc:false,
   penalty:0,failedThis:false,cmb:null,fullMove:null,buffT:0,armorBuff:0,kingAuraT:0,parryBuffT:0,rootT:0,hits:0,weakT:0,ph:0},o);f.guardLeft=maxGuard(f);f.guardBroken=0;f.S0=f.S;f.mods=[];Status.init(f);return f;}
 /* ฉากหลังการต่อสู้ — แยกตามคู่ต่อสู้ (สไตล์ Elden Ring: มืด มีหมอก เน้นแสงทองเล็กน้อย) */
 const SCENE_OF={rat:'cave',shade:'cave',kage:'cave',lavarat:'lava',lavaking:'lava',rat2:'cave',
   golem:'stone',rockling:'stone',mudslime:'stone',seraph:'cathedral',mslime:'tower',homunc:'tower',gargoyle:'tower',homunculus:'tower',
-  frostslime:'frost',frostwolf:'frost',iceknight:'frost',icegolem:'frost',arena:'arena',egel:'arena',rankg2:'arena',rankg3:'arena'};
+  frostslime:'frost',frostwolf:'frost',iceknight:'frost',icegolem:'frost',arena:'arena',egel:'arena',rankg2:'arena',rankg3:'arena',
+  arose_mob:'rose',arose_leader:'rose',aspire_b1:'rose',aspire_b2:'rose',
+  athunder_mob:'tower',athunder_leader:'tower',aspire_b3:'aether',aspire_b4:'aether',aether_king:'aether'};
 const SCENE_PAL={
   cave:{sky:['#0c0a10','#1a1420'],wall:[58,50,64],wallD:[36,30,42],fog:'rgba(120,110,140,.18)',glow:'#e8c674',floor:[46,40,48]},
   stone:{sky:['#07090a','#161a18'],wall:[70,74,66],wallD:[40,44,38],fog:'rgba(170,190,160,.14)',glow:'#9fe6b8',floor:[52,56,50]},
@@ -18,7 +20,9 @@ const SCENE_PAL={
   cathedral:{sky:['#0a0c14','#1a2236'],wall:[84,92,110],wallD:[46,52,66],fog:'rgba(210,225,255,.16)',glow:'#fff2b8',floor:[70,76,92]},
   frost:{sky:['#060b12','#12202e'],wall:[120,150,170],wallD:[70,92,112],fog:'rgba(200,230,255,.2)',glow:'#bfe4ff',floor:[110,140,160]},
   tower:{sky:['#08060c','#1a1226'],wall:[66,54,84],wallD:[38,30,52],fog:'rgba(140,240,190,.14)',glow:'#7af0c0',floor:[50,42,62]},
-  arena:{sky:['#0b0a0c','#1c1714'],wall:[88,72,58],wallD:[52,42,34],fog:'rgba(200,170,120,.12)',glow:'#f3c969',floor:[96,74,52]}
+  arena:{sky:['#0b0a0c','#1c1714'],wall:[88,72,58],wallD:[52,42,34],fog:'rgba(200,170,120,.12)',glow:'#f3c969',floor:[96,74,52]},
+  rose:{sky:['#14060e','#2c0c1c'],wall:[82,42,58],wallD:[48,24,36],fog:'rgba(255,100,140,.15)',glow:'#ff7a9e',floor:[64,34,48]},
+  aether:{sky:['#0b0d18','#1c2238'],wall:[78,86,112],wallD:[42,48,68],fog:'rgba(255,228,140,.14)',glow:'#ffe878',floor:[60,68,90]}
 };
 function buildBattleBg(scene){
   if(typeof BT!=='undefined')buildBattleBg.last=scene;if(AS.bg(BB,scene))return;   // มีฉากหลังจาก AI → ใช้ภาพ
@@ -247,30 +251,49 @@ function shieldFx(o){
   };
 }
 function fogFx(o={}){
-  const area=o.area||{x:0,y:0,w:BW,h:GY+24},col=o.col||'#94e8ff',backPuffs=[],frontPuffs=[];
-  for(let i=0;i<14;i++)backPuffs.push({x:area.x+((i/14)*area.w),y:area.y+area.h*(.38+(i%5)*.13),rx:54+(i%3)*26,ry:16+(i%4)*5,vx:.22+(i%3)*.12,ph:i*1.3,a:.08+(i%3)*.03});
-  for(let i=0;i<12;i++)frontPuffs.push({x:area.x+((i/12)*area.w),y:GY-6-(i%4)*14,rx:46+(i%4)*18,ry:11+(i%3)*4,vx:-(.35+(i%4)*.14),ph:i*1.9,a:.1+(i%3)*.035});
-  return{t:0,kind:'fog',area,col,backPuffs,frontPuffs,
-    update(dt){
-      this.t+=(dt||1/60)*60;const aw=this.area.w+140,ax0=this.area.x-70;
-      for(const q of this.backPuffs){q.x+=q.vx;if(q.x>ax0+aw)q.x=ax0;}
-      for(const q of this.frontPuffs){q.x+=q.vx;if(q.x<ax0)q.x=ax0+aw;}
-    },
+  /* หมอกพิกเซลหลายชั้น (สไตล์หมอกม้วนตัวเลื่อนช้า ๆ ขอบบนเป็นคลื่น · ไล่ความทึบแบบ dither) */
+  const area=o.area||{x:0,y:0,w:BW,h:GY+24},col=o.col||'#94e8ff',TW=512;
+  const hexRGB=h=>{const n=parseInt(h.slice(1),16);return[n>>16&255,n>>8&255,n&255];},C=hexRGB(col),BAY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+  const mix=(a,b,k)=>a.map((v,i)=>Math.round(v+(b[i]-v)*k));
+  function band(seed,H,amp,dens,light){   // พื้นผิวหมอก 1 แถบ (ต่อกันได้แนวนอน)
+    const c=document.createElement('canvas');c.width=TW;c.height=H;const x=c.getContext('2d'),im=x.createImageData(TW,H),d=im.data;
+    const waves=[[2,amp*.55,seed],[5,amp*.3,seed*1.7],[11,amp*.15,seed*2.3],[23,amp*.08,seed*3.1]];
+    const top=px=>H*.35+waves.reduce((s,[k,a,ph])=>s+Math.sin(px/TW*Math.PI*2*k+ph)*a,0);
+    const base=mix([70,76,110],C,.45),hi=mix([210,216,240],C,.25+light*.2);
+    for(let px=0;px<TW;px++){const t0=top(px);for(let py=0;py<H;py++){if(py<t0)continue;const u=(py-t0)/Math.max(1,H-t0),edge=py-t0;
+        let a=dens*Math.min(1,.35+u*1.1)*(1-Math.max(0,u-.82)*3.5);if(a<=0)continue;
+        const th=(BAY[(py&3)*4+(px&3)]+.5)/16;const q=a>th?Math.min(1,Math.round(a*4)/4+.25):a*.35;if(q<.06)continue;
+        const cc=edge<1.2?hi:edge<3?mix(hi,base,.5):base,i4=(py*TW+px)*4;d[i4]=cc[0];d[i4+1]=cc[1];d[i4+2]=cc[2];d[i4+3]=Math.round(q*255*(edge<1.2?1:.82));}}
+    x.putImageData(im,0,0);return c;}
+  // ชั้นหลัง 3 แถบ (ไกล→ใกล้) + ชั้นหน้า 2 แถบเลียพื้น
+  const back=[{c:band(1.3,80,12,.75,0),y:GY-150,v:.10,a:.8},{c:band(2.7,84,13,.85,.3),y:GY-112,v:.18,a:.9},{c:band(4.1,84,14,.9,.6),y:GY-74,v:.28,a:.95}];
+  const front=[{c:band(5.9,60,9,.8,.8),y:GY-34,v:-.36,a:.7},{c:band(7.3,50,8,.75,1),y:GY-12,v:.5,a:.65}];
+  for(const l of [...back,...front])l.x=0;
+  return{t:0,kind:'fog',area,col,back,front,
+    update(dt){this.t+=(dt||1/60)*60;for(const l of [...this.back,...this.front])l.x=(l.x+l.v+TW*100)%TW;},
     done(){return false;},
+    draw(frameOrG,layer){const gg=frameOrG||g,list=layer==='back'?this.back:this.front,S=1/BZ,tw=TW*S;
+      gg.save();const sm=gg.imageSmoothingEnabled;gg.imageSmoothingEnabled=false;
+      for(const l of list){const bob=Math.sin(this.t*.012+l.v*20)*2;gg.globalAlpha=l.a;
+        for(let ox=-l.x*S-tw;ox<this.area.x+this.area.w+tw;ox+=tw)gg.drawImage(l.c,Math.round(ox),Math.round(l.y+bob),tw,l.c.height*S);}
+      gg.imageSmoothingEnabled=sm;gg.restore();}};
+}/* ดาว 4 แฉก Aether */
+function aetherVfx(o){
+  const f=o.actor,maxT=76,stars=[];
+  for(let i=0;i<14;i++)stars.push({x:rnd(40,BW-40),y:rnd(18,GY-24),vy:rnd(-.4,.3),sz:rnd(4,9),ph:rnd(0,6.28)});
+  return{t:0,maxT,actor:f,stars,
+    update(dt){this.t+=(dt||1/60)*60;},
+    done(){return this.t>=this.maxT;},
     draw(frameOrG,layer){
-      const gg=frameOrG||g,isBack=layer==='back',list=isBack?this.backPuffs:this.frontPuffs;
-      gg.save();
-      for(const q of list){
-        const sy=q.y+Math.sin(this.t*.025+q.ph)*3;
-        gg.globalAlpha=q.a;gg.fillStyle=isBack?'#7bcce8':this.col;
-        gg.beginPath();gg.ellipse(q.x,sy,q.rx,q.ry,0,0,7);gg.fill();
-        gg.globalAlpha=q.a*.7;gg.fillStyle='#e2f9ff';
-        gg.fillRect((q.x-q.rx*.5)|0,(sy-q.ry*.3)|0,(q.rx)|0,2);
-      }
-      if(!isBack){
-        const gr=gg.createLinearGradient(0,GY-54,0,GY+20);
-        gr.addColorStop(0,'rgba(148,232,255,0)');gr.addColorStop(1,'rgba(110,205,245,.16)');
-        gg.fillStyle=gr;gg.fillRect(this.area.x,GY-54,this.area.w,74);
+      const gg=frameOrG||g,u=Math.max(0,1-this.t/this.maxT);if(u<=0)return;gg.save();
+      const cx=this.actor?this.actor.x:240,cy=(this.actor?this.actor.y:GY)-62;
+      if(layer==='back'){
+        gg.translate(cx,cy);gg.rotate(this.t*.03);gg.globalAlpha=u*.65;
+        gg.strokeStyle='#ffe878';gg.lineWidth=2;gg.beginPath();gg.arc(0,0,34+Math.sin(this.t*.2)*4,0,7);gg.stroke();
+        gg.fillStyle='#fff4b8';for(const ang of[0,Math.PI/2]){gg.save();gg.rotate(ang);gg.beginPath();gg.moveTo(-4,0);gg.lineTo(0,-42);gg.lineTo(4,0);gg.lineTo(0,42);gg.closePath();gg.fill();gg.restore();}
+      }else{
+        for(const s of this.stars){const p=Math.max(0,Math.sin(this.t*.18+s.ph));if(p<.2)continue;const sz=s.sz*p;gg.globalAlpha=u*p;
+          gg.fillStyle='#ffe878';gg.fillRect(s.x-sz,s.y-1,sz*2,2);gg.fillRect(s.x-1,s.y-sz,2,sz*2);gg.fillStyle='#ffffff';gg.fillRect(s.x-2,s.y-2,4,4);}
       }
       gg.restore();
     }
@@ -290,7 +313,7 @@ function beginMove(f,m){
     if(pSnap)for(let i=0;i<5;i++)f.trail.push({x:x0+(x1-x0)*(i/5),y:f.y,P:pSnap,d:dir,c:'#8ef2ff'});
     spawnMoveFx('blink',f,x0,x1,dir);num(f,'⚡ Blink!','#9ef6ff',16,-36);SFX.dodge();return true;
   }
-  startAtk(f,m);if(m.air)f.airUsed++;if(m.rise)f.airUsed=99;
+  startAtk(f,m);f.__x0=f.x;if(m.air)f.airUsed++;if(m.rise)f.airUsed=99;
   if(f.isP||f.isP2){f.lastMove=m;f.lastT=40;}if(f.isP){BT.lastMove=m;BT.lastT=40;}
   if(m.super){BT.flash={t:m.super===2?66:46,f,m};SFX.flash();BT.white=6;}
   if(m.hpCost)f.hp=Math.max(1,f.hp-Math.round(f.maxHp*m.hpCost));
@@ -347,9 +370,11 @@ function control(p,e){
   if(p.state==='ko'||BT.result)return;
   if(p.drinkT>0){p.drinkT--;p.hp=Math.min(p.S.maxHP,p.hp+p.drinkH);p.state='idle';p.vx*=.8;if(p.drinkT%6===0)BT.parts.push({x:p.x+rnd(-6,6),y:p.y-rnd(10,40),vx:0,vy:-.6,l:26,c:'#7aff9a',s:2});return;}   // กำลังดื่มยา: ขยับไม่ได้ชั่วครู่
   const frz=p.st8&&p.st8.freeze?.55:1,actTick=!p.st8||!p.st8.freeze||p.__frzAct;
-  if(p.cd&&actTick)for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;if(actTick&&p.dashCD>0)p.dashCD--;if(actTick&&p.potCD>0)p.potCD--;
+  if(p.cd&&actTick)for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;
+  if(actTick&&p.dashCD>0){p.dashCD--;if(p.dashCD<=0){const mx=CONFIG.dashMax||2;if((p.dashCharges??mx)<mx){p.dashCharges++;if(p.dashCharges<mx)p.dashCD=CONFIG.dashCD;}}}
+  if(actTick&&p.potCD>0)p.potCD--;
   const n=numDir(p);if(n!==p.lastN){p.hist.push({n,t:G.t});if(p.hist.length>14)p.hist.shift();p.lastN=n;}
-  const K=kk(p),fwdK=p.dir>0?K.R:K.L,backK=p.dir>0?K.L:K.R,holdB=down(...backK),Dn=down(...K.D),Rt=down(...K.R),Lt=down(...K.L);
+  const K=kk(p),backK=p.dir>0?K.L:K.R,holdB=down(...backK),Dn=down(...K.D),Rt=down(...K.R),Lt=down(...K.L);
   const blk=down(...(K.B||[]));if(tap(...(K.B||[])))p.backPressT=G.t;   // กด E ตรงจังหวะ = ปัดป้อง
   if(p.skBuf){if(--p.skBuf.ttl<=0)p.skBuf=null;else if(actionable(p)||p.state==='land'){const s=p.skBuf.slot;p.skBuf=null;useSkill(p,s,true);}}
   for(let i=0;i<4;i++)if(tap(...(p.skk?p.skk[i]:skillKeys(i))))useSkill(p,i);
@@ -359,6 +384,24 @@ function control(p,e){
       else if(actionable(p)&&p.mp<p.S.maxMP){const g=Math.min(p.S.maxMP-p.mp,Math.round(p.S.maxMP*.35));p.mana--;p.mp+=g;p.potCD=CONFIG.potionCD;fxMana(p);num(p,'+'+g+' MP','#7ab8ff',18,-30);SFX.mana();}}
     else{const fc=BT;const id=Mana.bestPotion(p,p.S);if(!(fc.mana>0))BT.small={t:'ยามานาใช้ครบ 3 ครั้งแล้วในไฟต์นี้',l:60};else if(!id)BT.small={t:'ไม่มียามานา',l:50};else{const r=Mana.drink(p,p.S,id);if(r.ok){fc.mana--;fxMana(p);num(p,'+'+r.gained+' MP','#7ab8ff',18,-30);SFX.mana();}else BT.small={t:r.err,l:50};}}}
   if(!BT.vs&&(tap(KB.flee)||fleeTap)){fleeTap=false;tryFlee(p,e);if(BT.result)return;}
+  const spd=p.S.spd*frz,swift=p.S.passives.has('swift')?.7:1;
+  const dashSt=['attack','hurt','airhurt','gstun','air','land','prejump','holdparry'];
+  if(!(p.rootT>0)&&!(p.st8&&p.st8.stun)&&p.hp>0&&(actionable(p)||dashSt.includes(p.state))&&tap(...K.X)){
+    const dc=p.dashCharges??(CONFIG.dashMax||2);
+    if(dc<=0)setSmall(p,'พุ่งหลบยังไม่พร้อม ('+((p.dashCD||0)/60).toFixed(1)+' วิ)',30);   // พุ่งหลบ (Space): 2 ชาร์จ · คูลดาวน์ชาร์จละ 2 วิ
+    else{
+      const wasHurt=['hurt','airhurt','gstun'].includes(p.state),wasAtk=p.state==='attack';
+      const dd=holdB?-p.dir:p.dir;
+      if(wasAtk){p.move=null;p.cmb=null;p.fullMove=null;p.penalty=0;p.skBuf=null;p.hitN=0;p.phase=null;}
+      if(wasHurt){p.jug=0;p.flash=0;p.vy=0;}
+      p.dashCharges=dc-1;if(!(p.dashCD>0))p.dashCD=CONFIG.dashCD;
+      p.state=holdB?'backdash':'dash';p.st=CONFIG.dashFrames;
+      p.invuln=Math.max(p.invuln||0,CONFIG.dashFrames+4);p.dashV=dd*CONFIG.dashSpeed*frz;p.vx=p.dashV;
+      spawnMoveFx('dash',p,p.x,p.x+dd*54,dd);SFX.dodge();
+      if(wasHurt)num(p,'⚡ หลุดคอมโบ!','#8ef2ff',15,-34);
+      return;
+    }
+  }
   if(tap(...K.J))pressAttack(p,'J');else if(tap(...K.K))pressAttack(p,'K');
   if(!actionable(p))return;
   if(p.rootT>0){
@@ -366,11 +409,8 @@ function control(p,e){
     if(blk&&p.guardBroken<=0){p.state=Dn?'cblock':'block';return;}
     if(Dn){p.state='crouch';return;}p.state='idle';return;
   }
-  const spd=p.S.spd*frz,swift=p.S.passives.has('swift')?.7:1;
-  if(tap(...K.X)){if((p.dashCD||0)>0)BT.small={t:'พุ่งหลบยังไม่พร้อม ('+(p.dashCD/60).toFixed(1)+' วิ)',l:30};   // พุ่งหลบ: อมตะตลอดท่า · คูลดาวน์ 1.5 วิ (ไม่ใช้สตามินา)
-    else{const dd=holdB?-p.dir:p.dir;p.dashCD=CONFIG.dashCD;p.state=holdB?'backdash':'dash';p.st=CONFIG.dashFrames;p.invuln=CONFIG.dashFrames+4;p.dashV=dd*CONFIG.dashSpeed*frz;p.vx=p.dashV;spawnMoveFx('dash',p,p.x,p.x+dd*54,dd);SFX.dodge();return;}}
-  if(tap(...fwdK)&&!Dn){if(G.t-p.lastFT<12&&p.sta>=CONFIG.staCost.dash*swift){p.sta-=CONFIG.staCost.dash*swift;p.state='dash';p.st=18;p.vx=p.dir*4.6*spd;spawnMoveFx('dash',p,p.x,p.x+p.dir*50,p.dir);SFX.dodge();return;}p.lastFT=G.t;}
-  if(tap(...backK)&&!Dn){if(G.t-p.lastBT<12&&p.sta>=CONFIG.staCost.dash*swift){p.sta-=CONFIG.staCost.dash*swift;p.state='backdash';p.st=16;p.vx=-p.dir*4.2*frz;p.invuln=8;spawnMoveFx('dash',p,p.x,p.x-p.dir*45,-p.dir);SFX.dodge();return;}p.lastBT=G.t;}
+  if(tap(...K.R)&&!Dn){if(G.t-p.lastRT<=16&&p.sta>=CONFIG.staCost.dash*swift){p.sta-=CONFIG.staCost.dash*swift;p.lastRT=-99;p.state='dodge';p.st=14;p.invuln=Math.max(p.invuln||0,10);p.dashV=3.8*frz;p.vx=p.dashV;spawnMoveFx('dash',p,p.x,p.x+36,1);SFX.dodge();return;}p.lastRT=G.t;p.lastLT=-99;}
+  if(tap(...K.L)&&!Dn){if(G.t-p.lastLT<=16&&p.sta>=CONFIG.staCost.dash*swift){p.sta-=CONFIG.staCost.dash*swift;p.lastLT=-99;p.state='dodge';p.st=14;p.invuln=Math.max(p.invuln||0,10);p.dashV=-3.8*frz;p.vx=p.dashV;spawnMoveFx('dash',p,p.x,p.x-36,-1);SFX.dodge();return;}p.lastLT=G.t;p.lastRT=-99;}
   if(down(...K.U)){p.state='prejump';p.st=4;p.jumpVx=(Rt?1:Lt?-1:0)*2.4*spd;return;}
   const threat=(e.state==='attack'&&Math.abs(e.x-p.x)<170)||BT.proj.some(q=>q.o!==p&&Math.abs(q.x-p.x)<170&&Math.sign(p.x-q.x)===Math.sign(q.vx));
   if(blk&&p.guardBroken<=0){p.state=Dn?'cblock':'block';return;}   // ถือ E = ป้องกัน (ถือ E + S = ป้องกันต่ำ)
@@ -431,7 +471,8 @@ Status.onSynergy=(f,name,src)=>{if(!BT)return;
   if(name==='plasma'){const r=calcDamage(src.S,f.S,{coef:1.0,type:'magic',el:'lightning'});dealDamage(src,f,r.dmg,'#9fe6ff');num(f,'💥 ระเบิดพลาสมา!','#9fe6ff',20,-60);BT.bolts.push({x:f.x,t:12});SFX.crit();}
   if(name==='toxicfire')num(f,'☠🔥 ไอพิษลุกไหม้! พิษ +2','#c8ff5a',16,-60);};
 function dealDamage(a,t,dmg,col){
-  if(G.god&&t.isP)dmg=0;t.hp=Math.max(0,t.hp-dmg);
+  if(G.god&&t.isP)dmg=0;if(G.oneHit&&a&&(a.isP||a.isP2)&&!t.isP&&!(BT&&BT.vs)&&dmg>0){dmg=Math.max(dmg,t.hp);if(t.def&&t.def.revive)t.reviveN=t.def.revive;}   /* debug: ตีทีเดียวตาย */
+  t.hp=Math.max(0,t.hp-dmg);
   if(t.def&&t.def.immortal){if(t.hp<=1){t.hp=t.maxHp;t.dhp=t.maxHp;num(t,'♾️ อมตะ!','#ffd23a',15,-48);}return;}
   const tal=BT&&BT.vs?t.talent:(t.isP?G.talent:null);   // อารีนา: พรสวรรค์เป็นของนักสู้แต่ละคน (ส่งมากับชุดต่อสู้)
   if((t.isP||t.isP2)&&t.hp<=0&&tal==='undying'&&(t.reviveN||0)<TALENT_PASSIVE.undying.revives){const invF=TALENT_PASSIVE.undying.reviveInvuln||180;t.revived=true;t.reviveN=(t.reviveN||0)+1;t.hp=Math.round(t.maxHp*TALENT_PASSIVE.undying.reviveHp);Status.cleanse(t);t.invuln=Math.max(t.invuln||0,invF);t.state='idle';t.onGround=t.y>=GY;
@@ -465,13 +506,13 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(m.beam||m.rain&&false)gd=gd==='parry'?'block':gd;
   if(t.state==='holdparry'){
     t.state='idle';t.st=0;t.invuln=20;t.parryBuffT=180;t.guardLeft=maxGuard(t);
-    sparks(t.x,t.y-50,'#e8fbff',30);b.bursts.push({x:t.x,y:t.y-50,t:0,col:'#7ad8ff',big:1});
+    sparks(t.x,t.y-50,'#e8fbff',12);b.bursts.push({x:t.x,y:t.y-50,t:0,col:'#7ad8ff',big:1});
     b.hitstop=14;b.shake=5;SFX.parry();num(t,'ปัดป้อง! True DMG 3 วิ','#e8fbff',22,-26);return;}
   if(gd==='parry'){t.guardLeft=maxGuard(t);Ult.gain(t,'perfectBlock',a.name+':'+seq);t.sta=Math.min(t.S.maxSTA,t.sta+30);b.hitstop=14;b.shake=4;if(!b.vs)G.stats.parries++;
     const isPM=(t.isP&&!BT?.vs&&G.talent==='parryman')||t.talent==='parryman'||(t.S&&t.S.passives&&t.S.passives.has('royalparry'));
-    if(isPM){t.parryBuffT=180;num(t,'ปัดป้อง! True DMG 3 วิ','#e8fbff',22,-26);sparks(hx,hy,'#d8f8ff',26);b.bursts.push({x:hx,y:hy,t:0,col:'#7ad8ff',big:1});SFX.parry();return;}
+    if(isPM){t.parryBuffT=180;num(t,'ปัดป้อง! True DMG 3 วิ','#e8fbff',22,-26);sparks(hx,hy,'#d8f8ff',10);b.bursts.push({x:hx,y:hy,t:0,col:'#7ad8ff',big:1});SFX.parry();return;}
     a.state='parried';a.st=50;a.move=null;a.vx=Math.sign(a.x-t.x)*3;
-    num(t,'ปัดป้อง!','#f3c969',24);sparks(hx,hy,'#ffe27a',24);b.bursts.push({x:hx,y:hy,t:0,col:'#ffe27a',big:1});SFX.parry();return;}
+    num(t,'ปัดป้อง!','#f3c969',24);sparks(hx,hy,'#ffe27a',10);b.bursts.push({x:hx,y:hy,t:0,col:'#ffe27a',big:1});SFX.parry();return;}
   const lastHit=!m.multi||t.__lastHitCheck;
   const h={coef:(m.dmg/10)*mul,type:(a.def&&a.def.allMagic)?'magic':m.type||'phys',el:m.el||(a.rig?WEAPONS[a.wpn].el:(a.def&&a.def.el)||'phys'),ignoreDef:!!m.ignoreDef||a.parryBuffT>0,trueDmg:a.parryBuffT>0,
     forceCrit:!!(m.lastCrit&&a.hitN===m.multi-1)||(a.jackpot>0)||!!m.alwaysCrit||!!(a.def&&a.def.alwaysCrit),defPen:Math.max(a.jackpot>0?(a.jackpotPen||0):0,m.defPen||0),fullCombo:a.fullMove===m,weakPoint:t.weakT>0&&t.def&&t.def.weakPoint?t.def.weakPoint.mul:0,
@@ -479,6 +520,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
     lvDiff:!BT.vs?(a.lv||1)-(t.lv||1):0,isP:!!a.isP};
   if(gd==='block'&&--t.guardLeft<=0){t.guardLeft=0;t.guardBroken=CONFIG.guard.breakT;num(t,'การ์ดแตก!','#ff6a4a',22,-60);sparks(hx,hy,'#ff8a5a',22);SFX.crit();b.shake=6;}   // บล็อกครั้งที่ 4 ยังกันได้ แล้วการ์ดแตก 8 วิ
   if(gd==='block'){const r=calcDamage(a.S,t.S,h),blkMul=((t.isP&&!BT?.vs&&G.talent==='parryman')||t.talent==='parryman')?.08:.1,chip=Math.max(1,Math.round(r.dmg*blkMul));dealDamage(a,t,chip);t.gc=(t.isP||t.isP2)?down(...kk(t).D):t.state==='cblock';t.state='gstun';
+    if(!t.isP&&!t.isP2){t.guard=0;t.guardCD=Math.max(t.guardCD||0,t.def&&t.def.boss?210:270);}
     t.st=Math.round(m.hs*.6)+2;t.vx=a.dir*(m.kb*.7+1.2);b.hitstop=5;sparks(hx,hy,'#9fd0ff',10);b.bursts.push({x:hx,y:hy,t:0,col:'#9fd0ff'});num(t,'กัน '+chip,'#9fd0ff',14);SFX.block();return;}
   const r=calcDamage(a.S,t.S,h);
   if(a.kingAuraT>0){r.dmg=Math.round(r.dmg*1.25);r.mods.kingAura=1.25;}
@@ -508,6 +550,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(t.revived&&t.invuln>100)return;
   a.hits++;
   if(t.hp>0){
+    if(!t.isP&&!t.isP2)t.guard=0;
     if(armored){t.flash=6;b.hitstop=4;}
     else if(t.st8.stun){t.flash=8;t.vx=a.dir*m.kb*.5;}
     else if(t.def&&t.def.boss){t.move=null;t.flash=8;t.state='hurt';t.st=Math.round(m.hs*.6);t.vx=a.dir*m.kb*.15;}   // บอส: ไม่ล้ม ไม่ลอย ไม่กระเด็น
@@ -517,11 +560,11 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   }
   a.combo=wasStun?a.combo+1:1;if(a.combo>=2){a.comboShow=a.combo;a.comboT=90;b.comboT=90;b.comboWho=a;b.comboShow=a.combo;}if(a.isP&&!b.vs)G.stats.maxCombo=Math.max(G.stats.maxCombo,a.combo);
   b.hitstop=Math.max(b.hitstop,m.super?3:r.crit?8:m.dmg>=12?8:m.dmg>=7?6:4);
-  if(r.crit||a.parryBuffT>0||m.super)b.impFrame=m.super?3:2;
-  const hc=a.parryBuffT>0?'#d8f8ff':(ELC[h.el]||'#ffe27a');
-  b.bursts.push({x:hx,y:hy,t:0,col:hc,el:h.el,big:r.crit||m.dmg>=12||!!m.super,exp:!!(m.super||h.el==='fire'||m.quake||r.crit),star:!!(r.crit||a.parryBuffT>0||m.super),dome:!!(m.super||m.quake)});
-  sparks(hx,hy,hc,r.crit||m.dmg>=12?16:10);
-  if(h.type==='phys'){for(let i=0;i<(r.crit?10:6);i++)b.parts.push({x:hx,y:hy,vx:a.dir*rnd(1.2,4.2),vy:rnd(-3.2,.4),l:rnd(16,28)|0,c:i%3?'#d8283a':'#ff5a6a',s:rnd(2,3)|0,grav:1});}
+  if(r.crit||a.parryBuffT>0||m.super)b.impFrame=m.super?2:1;
+  const hc=a.parryBuffT>0?'#d8f8ff':(ELC[h.el]||(a.rig?WEAPONS[a.wpn].fx:'#ffe27a'));
+  b.bursts.push({x:hx,y:hy,t:0,col:hc,el:h.el,big:!!(m.super||(r.crit&&m.dmg>=14)||m.dmg>=16),exp:!!(m.super||m.quake),star:!!(r.crit||a.parryBuffT>0||m.super),dome:!!(m.super||m.quake),crit:r.crit});
+  sparks(hx,hy,hc,r.crit||m.dmg>=12?8:5);
+  if(h.type==='phys'){for(let i=0;i<(r.crit?5:3);i++)b.parts.push({x:hx,y:hy,vx:a.dir*rnd(1.2,4.2),vy:rnd(-3.2,.4),l:rnd(14,24)|0,c:i%3?'#d8283a':'#ff5a6a',s:rnd(2,3)|0,grav:1});}
   const mg=h.type==='magic',dc=a.parryBuffT>0?'#ffffff':mg?(r.crit?'#9a3aea':'#c88aff'):(r.crit?'#e6a800':'#ffe24a');   /* True=ขาว · เวท=ม่วง · กายภาพ=เหลือง */
   const pre=a.parryBuffT>0?'True ':'';
   if(r.crit){num(t,pre+r.dmg+' CRIT!',dc,30);SFX.crit();}else num(t,pre+r.dmg,dc,h.fullCombo?26:20);
@@ -536,7 +579,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(chaosCh&&rand()<chaosCh)tryStatus(t,'chaos',1,a,4);
   if(a.S&&a.S.blindChance&&rand()<a.S.blindChance)tryStatus(t,'blind',1,a,5);   // ไลต์เลส: ตาบอด 5 วิ   // ค้อนศึก: โอกาสสตัน   // statusDur = ระยะเวลาสถานะของท่านี้ (วิ)   // 0 = ปิดสถานะนั้น
   if(m.armorBreak&&t.hp>0){StatSync.addMod(t,{id:'armorbreak',n:m.armorBreak.n||'เกราะแตก',kind:'debuff',stat:'def',op:'mul',v:m.armorBreak.def,ttl:m.armorBreak.t});num(t,(m.armorBreak.n||'เกราะแตก')+'!','#ff9a5a',16,-46);}
-  const pr=ELEM_PROC[h.el];if(pr&&rand()<pr.c&&!(shattered&&pr.s==='freeze'))tryStatus(t,pr.s,1,a,pr.s==='freeze'?8:0);
+  // ลบโอกาสติดสถานะอัตโนมัติตามธาตุ (ELEM_PROC) — คงเฉพาะสถานะที่ระบุไว้ในท่า/อุปกรณ์โดยตรง
   if(!shattered&&t.hp>0&&((a.def&&a.def.freezeChance)||m.freezeChance)&&h.el!=='ice'&&rand()<(m.freezeChance||a.def.freezeChance))tryStatus(t,'freeze',1,a,8);
   if(t.hp>0&&a.def&&a.def.burnChance&&rand()<a.def.burnChance)tryStatus(t,'burn',1,a,3);
   if(m.instantShatter&&t.hp>0&&(!m.multi||a.hitN===0)){if(!t.st8.freeze)Status.apply(t,'freeze',1,a,8);iceShatterFx(t);t.st8.freeze=null;if(!shattered)num(t,'💥❄️ น้ำแข็งแตก!','#e8fbff',24,-56);}
@@ -547,8 +590,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(ps.has('vampire')&&r.crit){const heal=Math.round(a.maxHp*.02);a.hp=Math.min(a.maxHp,a.hp+heal);num(a,'+'+heal,'#6aff8a',14);}
   if(t.S.passives.has('thorns')&&!isProj){const ref=Math.max(1,Math.round(r.dmg*.1));dealDamage(t,a,ref);num(a,'หนาม '+ref,'#c8a0ff',13);}
   if(a.isP&&!BT.vs&&Prog.addMastery(a.wpn,1))num(a,'ความชำนาญอาวุธ Lv.'+Prog.masteryLv(a.wpn)+'!','#5affb0',15,-80);
-  b.shake=Math.min(8,2+m.dmg*.25);const col=a.rig?WEAPONS[a.wpn].fx:'#ff6a5a';
-  sparks(hx,hy,r.crit?'#ffb02a':col,10+Math.min(20,m.dmg));b.bursts.push({x:hx,y:hy,t:0,col:r.crit?'#ffb02a':col,big:r.crit||m.dmg>=12});
+  b.shake=Math.min(6,1.5+m.dmg*.18);
   SFX.hit(m.dmg>=12);
 }
 function spawnProj(f,m){
@@ -559,9 +601,12 @@ function spawnProj(f,m){
 function updAtk(f,o){
   const m=f.move;f.pt++;
   if(f.phase==='startup'){
+    if(m.vfx==='aether_light'&&f.pt===1){BT.moveFx=BT.moveFx||[];BT.moveFx.push(aetherVfx({actor:f,o}));}
+    if(m.lightJudge&&f.pt===1){f._ljX=o?clamp(o.x,38,BW-38):clamp(f.x+f.dir*90,38,BW-38);const stF=atkStartup(f,m);BT.pillars=BT.pillars||[];BT.pillars.push({x:f._ljX,h:0,maxH:GY,t:stF+m.a+18,delay:0,skyJudge:1,telegraph:stF,col:'#ffe878'});}
     if(m.inv)f.invuln=Math.max(f.invuln,2);if(m.lunge)f.x+=f.dir*m.lunge*.3;
     if(f.pt>=atkStartup(f,m)){f.phase='active';f.pt=0;SFX.swing();
       if(m.lunge>=4)spawnMoveFx('dash',f,f.x,f.x+f.dir*60,f.dir);
+      if(m.lightJudge){f._ljX=f._ljX??(o?clamp(o.x,38,BW-38):clamp(f.x+f.dir*90,38,BW-38));BT.shake=Math.max(BT.shake,6);SFX.flash();for(let i=0;i<14;i++)BT.parts.push({x:f._ljX+rnd(-22,22),y:rnd(12,GY-12),vx:rnd(-1.6,1.6),vy:rnd(1.5,4.2),l:22,c:i%2?'#fff6c8':'#ffd858',s:2});}
       if(m.swap&&o){const nx=clamp(o.x+f.dir*34,24,BW-24);for(let i=0;i<14;i++)BT.parts.push({x:f.x,y:f.y-50+rnd(-20,20),vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),l:20,c:'#c9a0ff',s:3});
         f.x=nx;f.dir=o.x>f.x?1:-1;for(let i=0;i<14;i++)BT.parts.push({x:f.x,y:f.y-50+rnd(-20,20),vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),l:20,c:'#c9a0ff',s:3});}   // วาร์ปไปด้านหลังศัตรู
       if(m.rider){f.onGround=false;f.vy=f.y<GY-20?3.2:-3.5;BT.shake=4;}   // บนพื้น: เด้งขึ้นแล้วพุ่ง · กลางอากาศ: พุ่งดิ่งเฉียงลง
@@ -572,7 +617,7 @@ function updAtk(f,o){
       if(m.frostnova){BT.pillars=BT.pillars||[];const nr=m.reach||240;for(const k of[-.88,-.62,-.38,-.16,.16,.38,.62,.88]){const ox=Math.round(nr*k),ak=Math.abs(k);BT.pillars.push({x:clamp(f.x+ox,20,BW-20),h:0,maxH:ak<.25?96:ak<.5?82:ak<.7?68:54,t:38,delay:ak>.75?6:ak>.5?4:ak>.25?2:0,el:'ice',col:'#5cd8ff',frostnova:1});}
         BT.shake=8;SFX.magic('ice');for(let i=0;i<36;i++)BT.parts.push({x:f.x+rnd(-nr*.92,nr*.92),y:GY-rnd(4,78),vx:rnd(-1.4,1.4),vy:rnd(-2.0,-.3),l:30,c:i%2?'#ffffff':'#8ef2ff',s:i%3?2:3});}
       if(m.buff&&m.buff.fireShield)applyMoveBuff(f,m);
-      if(m.anim==='cast'&&!m.proj&&!m.buff&&!m.kingAura&&!m.rain&&!m.pillars&&!m.beam&&!m.strike&&!m.frostnova){BT.pillars=BT.pillars||[];BT.pillars.push({x:f.x+f.dir*Math.min(72,m.reach||54),h:0,maxH:94,t:34,delay:0,el:m.el||'fire',col:ELC[m.el||'fire']});}
+      if(m.anim==='cast'&&!m.proj&&!m.buff&&!m.kingAura&&!m.rain&&!m.pillars&&!m.beam&&!m.strike&&!m.frostnova&&!m.lightJudge){BT.pillars=BT.pillars||[];BT.pillars.push({x:f.x+f.dir*Math.min(72,m.reach||54),h:0,maxH:94,t:34,delay:0,el:m.el||'fire',col:ELC[m.el||'fire']});}
       if(m.pillars){BT.pillars=BT.pillars||[];const dir=Math.sign(o.x-f.x)||f.dir,dist=Math.max(48,Math.abs(o.x-f.x)+20),cnt=Math.max(3,Math.ceil(dist/44));
         for(let i=0;i<cnt;i++){const px=f.x+dir*(28+i*44);BT.pillars.push({x:px,h:0,maxH:56+((i%2)*14),t:42,delay:i*3});}SFX.crit();}}
   }else if(f.phase==='active'){
@@ -581,7 +626,7 @@ function updAtk(f,o){
     const n=m.multi||1;
     if(m.slashFx&&f.pt===1)f.__slN=0;
     if(m.slashFx&&(f.__slN||0)<n){const step=Math.max(2,Math.floor(m.a/n));if((f.pt-1)%step===0){BT.moveFx=BT.moveFx||[];BT.moveFx.push(slashFx({actor:f,x:f.x+f.dir*36,y:f.y-54,dir:f.dir,variant:f.__slN||0}));f.__slN=(f.__slN||0)+1;SFX.swing();}}
-    if(!m.proj&&!m.strike&&!m.buff&&!m.jackpot&&f.hitN<n&&f.hitCD<=0&&(m.beam?beamHits(f,o):m.frostnova?(Math.abs(o.x-f.x)<=(m.reach||240)+o.hw&&o.y>=GY-130):(m.rain||m.pillars)?(o.onGround&&o.state!=='down'):inBox(f,o,m))){applyHit(f,o,m,1/n);f.hitN++;f.hitCD=Math.max(2,Math.floor(m.a/n));}
+    if(!m.proj&&!m.strike&&!m.buff&&!m.jackpot&&f.hitN<n&&f.hitCD<=0&&(m.lightJudge?(Math.abs(o.x-(f._ljX??o.x))<=68&&o.state!=='down'):m.beam?beamHits(f,o):m.frostnova?(Math.abs(o.x-f.x)<=(m.reach||240)+o.hw&&o.y>=GY-130):(m.rain||m.pillars)?(o.onGround&&o.state!=='down'):inBox(f,o,m))){applyHit(f,o,m,1/n,m.lightJudge?f._ljX:undefined,m.lightJudge?o.y-o.h*.7:undefined);f.hitN++;f.hitCD=Math.max(2,Math.floor(m.a/n));}
     if(f.pt>=m.a){f.phase='recovery';f.pt=0;}
   }else if(f.pt>=atkRecovery(f,m)+(f.penalty||0))endAtk(f);
 }
@@ -592,13 +637,14 @@ function endAtk(f){
   f.state=prev&&prev.crouch?'crouch':'idle';
   if(!f.isP&&f.aiChain>0&&f.didHit&&prev&&f.rig){f.aiChain--;const w=WEAPONS[f.wpn];let nm=null;
     if(prev.kind==='light'&&prev.idx+1<w.light.length)nm=w.light[prev.idx+1];else if(rand()<.5)nm=w.heavy;if(nm){startAtk(f,nm);return;}}
+  if(!f.isP&&!f.isP2){f.guard=0;f.noGuardT=Math.max(f.noGuardT||0,48);}   // หลังออกท่าจบ เปิดช่องให้ผู้เล่นสวนกลับ ไม่ยกบล็อคทันที
   f.move=null;
 }
 function land(f){
   f.y=GY;f.vy=0;f.onGround=true;f.airUsed=0;
   if(f.state==='airhurt'){f.state='down';f.st=f.hp<=0?999:36;f.invuln=44;f.vx*=.3;f.jug=0;BT.shake=Math.max(BT.shake,3);
     for(let i=0;i<10;i++)BT.parts.push({x:f.x+rnd(-14,14),y:GY,vx:rnd(-1.5,1.5),vy:rnd(-1.5,-.3),l:22,c:'rgba(200,180,150,.8)',s:2});}
-  else if(f.state==='attack'){f.state='land';f.st=f.move&&f.move.rise?12:4;f.move=null;}
+  else if(f.state==='attack'){if(!f.isP&&!f.isP2){f.guard=0;f.noGuardT=Math.max(f.noGuardT||0,36);}f.state='land';f.st=f.move&&f.move.rise?12:4;f.move=null;}
   else if(f.state==='air'){f.state='land';f.st=4;}
 }
 function stepF(f,o){
@@ -617,6 +663,7 @@ function stepF(f,o){
   const frzRate=f.st8&&f.st8.freeze?.55:1,actTick=!f.st8||!f.st8.freeze||f.__frzAct!==false;
   if(f.skcd&&actTick)for(const id in f.skcd)if(f.skcd[id]>0)f.skcd[id]--;   // คูลดาวน์สกิลของศัตรู (ช้าลงเมื่อถูกแช่แข็ง)
   if(f.rangedCD>0&&actTick)f.rangedCD--;
+  if(!f.isP&&!f.isP2&&actTick){if(f.dashCD>0)f.dashCD--;if(f.guardCD>0)f.guardCD--;if(f.noGuardT>0)f.noGuardT--;if(f._projBlkCD>0)f._projBlkCD--;}   // คูลดาวน์ Dash (5 วิ) & guard ของศัตรู
   StatSync.frame(f);   // นับเวลาบัฟ/ดีบัฟ หมดแล้วถอดและคำนวณใหม่ทันที
   f.dhp+=(f.hp-f.dhp)*.05;
   if(f.isP||f.isP2){const busy=f.state==='attack';f.sta=Math.min(f.S.maxSTA,f.sta+(busy?0:CONFIG.regen.sta/60*Diff.cur().staRegen*frzRate));if(actTick)Mana.regen(f,f.S,true);}
@@ -632,7 +679,7 @@ function stepF(f,o){
   if(f.look&&f.look.aura&&G.t%4===0)BT.parts.push({x:f.x+rnd(-14,14),y:f.y-rnd(10,90),vx:rnd(-.2,.2),vy:-.9,l:20,c:f.look.aura,s:2});
   if(f.elite&&G.t%3===0)BT.parts.push({x:f.x+rnd(-f.hw,f.hw),y:f.y-rnd(0,f.h),vx:0,vy:-.7,l:16,c:'#ffd23a',s:2});
   if(f.look&&f.look.trail&&['walk','dash','air'].includes(f.state)&&G.t%3===0)BT.parts.push({x:f.x-f.dir*6,y:f.y-rnd(0,8),vx:-f.dir*.6,vy:-.2,l:16,c:f.look.trail,s:2});
-  if(f.dashV){if(f.state==='dash'||f.state==='backdash')f.vx=f.dashV;else{f.dashV=0;f.vx*=.3;}}   // พุ่งหลบ: ความเร็วคงที่ พุ่งทะลุตัวศัตรู
+  if(f.dashV){if(f.state==='dash'||f.state==='backdash'||f.state==='dodge')f.vx=f.dashV;else{f.dashV=0;f.vx*=.3;}}   // พุ่งหลบ/กลิ้งหลบ: ความเร็วคงที่
   if(!f.onGround){f.vy+=GRAV;f.y+=f.vy;f.x+=f.vx;if(f.y>=GY)land(f);}else{f.x+=f.vx;f.vx*=.8;if(Math.abs(f.vx)<.05)f.vx=0;}
   const lying=f.state==='down'||f.state==='ko';f.x=clamp(f.x,lying?46:20,lying?BW-46:BW-20);
   if(['dash','backdash'].includes(f.state)||(f.state==='attack'&&f.move&&(f.move.super||f.move.lunge))||f.state==='dodge'){if(G.t%2===0){f.trail.push({x:f.x,y:f.y,P:f.rig?poseFor(f):null,d:f.dir,c:'#8ef2ff'});if(f.trail.length>5)f.trail.shift();}}
@@ -641,8 +688,8 @@ function stepF(f,o){
     case'attack':if(actTick)updAtk(f,o);break;
     case'holdparry':{const held=f.isP&&!f.isP2?down(...skillKeys(f.holdSlot)):true;if(!held||(actTick&&--f.st<=0))f.state='idle';break;}
     case'prejump':if(actTick&&--f.st<=0){f.state='air';f.onGround=false;f.vy=-6.6*(frzRate<1?.76:1);f.vx=f.jumpVx||0;f.airUsed=0;SFX.jump();}break;
-    case'hurt':case'gstun':case'parried':if(actTick&&--f.st<=0)f.state='idle';break;
-    case'land':case'dash':case'backdash':case'dodge':case'getup':if(actTick&&--f.st<=0)f.state='idle';break;
+    case'hurt':case'gstun':case'parried':if(actTick&&--f.st<=0){f.state='idle';if(!f.isP&&!f.isP2)f.guard=0;}break;
+    case'land':case'dash':case'backdash':case'dodge':case'getup':if(actTick&&--f.st<=0)f.state=f.onGround?'idle':'air';break;
     case'down':if(--f.st<=0){if(f.hp<=0)f.state='ko';else{f.state='getup';f.st=14;f.invuln=16;}}break;
   }
   if(actionable(f)||f.state==='land')f.dir=o.x>f.x?1:-1;
@@ -655,22 +702,21 @@ function stepF(f,o){
     BT.phaseMsg={t:ph.n,l:120};BT.shake=8;BT.white=6;SFX.flash();Status.cleanse(f);}});
   if(f.auraBurn&&G.t%120===0&&Math.abs(o.x-f.x)<110)tryStatus(o,'burn',1,f);
   if(f.auraPoison&&G.t%120===0&&Math.abs(o.x-f.x)<110)tryStatus(o,'poison',1,f);
-  if(f.elemCycle&&f.hp>0&&(f.elT=(f.elT||0)-1)<=0){f.elT=600;const E=['fire','ice','lightning'],e=E[(E.indexOf(f.curEl)+1)%3];f.curEl=e;   // เฟส 3: สลับธาตุที่ต้านทุก 10 วิ
-    f.S.res=Object.assign({},f.S.res,{fire:0,ice:0,lightning:0,[e]:.7});if(f.S0)f.S0.res=Object.assign({},f.S.res);BT.phaseMsg={t:'ต้านธาตุ'+ELN[e]+' — เปลี่ยนวิธีโจมตี!',l:100};SFX.flash();}
+  if(f.elemCycle&&f.hp>0&&(f.elT=(f.elT||0)-1)<=0){f.elT=600;}
 }
 /* ---------- AI ---------- */
 /* ศัตรูใช้สกิล: อ่านจาก FOES[kind].skills — เคารพค่า user ของสกิล (ใช้ได้เฉพาะ 'all' หรือ 'enemy')
-   ท่าสุดยอด: ใช้เมื่อ HP ต่ำกว่า 60% · ท่าระยะไกล: ระยะ > 110 · ท่าระยะประชิด: ระยะ < 100 · คูลดาวน์ตามสกิล */
+   ท่าสุดยอด: ใช้เมื่อ HP ต่ำกว่า 60% (หรือเกจพอ; บอสชั้น 5 สุ่มสลับระหว่าง 2 ท่าสุดยอด) · ท่าระยะไกล: ระยะ > 110 · ท่าระยะประชิด: ระยะ < 100 · คูลดาวน์ตามสกิล */
 const RANGED_SK=s=>s.type!=='buff'&&!!(s.proj||s.beam||s.rain||s.anim==='cast');
 function enemyCast(e,p,dist){
   const list=(e.def&&e.def.skills||[]).filter(id=>skillUsable(id,'enemy'));if(!list.length)return false;
   e.skcd=e.skcd||{};
   const bz=e.def.boss?aiCfg(e):null,chance=bz?bz.rigSkillChance:.45;
   const ready=list.filter(id=>!(e.skcd[id]>0));if(!ready.length)return false;
-  const ult=ready.find(id=>SKILLS[id].tier==='ultimate');
+  const ults=ready.filter(id=>SKILLS[id].tier==='ultimate'&&((e.ult||0)>=(SKILLS[id].gauge||100)||((SKILLS[id].gauge||100)>=100&&e.hp<e.maxHp*.6)));
   let pick_=null;
-  if(ult&&((e.ult||0)>=(SKILLS[ult].gauge||100)||((SKILLS[ult].gauge||100)>=100&&e.hp<e.maxHp*.6)))pick_=ult;
-  else{const c=ready.filter(id=>{const sk=SKILLS[id];if(sk.tier==='ultimate')return false;if(sk.type==='buff')return sk.buff&&sk.buff.fireShield?!(e.fireShieldT>0):!(e.invuln>0);if(sk.frostnova)return dist<=(sk.reach||240);if(e.kind==='duelist'&&RANGED_SK(sk)&&(e.rangedCD||0)>0)return false;return RANGED_SK(sk)?dist>110:dist<100;});if(c.length&&rand()<chance)pick_=pick(c);}
+  if(ults.length)pick_=pick(ults);
+  else{const c=ready.filter(id=>{const sk=SKILLS[id];if(sk.tier==='ultimate')return false;if(sk.type==='buff')return sk.buff&&sk.buff.fireShield?!(e.fireShieldT>0):!(e.invuln>0);if(sk.frostnova)return dist<=(sk.reach||240);if(e.kind==='duelist'&&RANGED_SK(sk)&&(e.rangedCD||0)>0)return false;if(sk.lightJudge)return true;return RANGED_SK(sk)?dist>110:dist<100;});if(c.length&&rand()<chance)pick_=pick(c);}
   if(!pick_)return false;
   const s=SKILLS[pick_],m=Skills.move(pick_,e.wpn||'fist',Math.max(0,TIERS.indexOf(s.tier)));if(!m)return false;
   if(e.rig){if(!beginMove(e,m))return false;}else startAtk(e,m);
@@ -680,25 +726,50 @@ function enemyCast(e,p,dist){
   e.skcd[pick_]=Math.round((isDuelRanged?Math.max(6,s.cd||6):(s.cd||8))*60*(bz&&!s.bossOnly&&!isDuelRanged?bz.cdMul:1));e.think=Math.round((bz?rint(12,24):rint(24,42))*(e.cdMul||1)*ai.cdMul);
   num(e,s.n,s.tier==='ultimate'?'#ffd23a':'#ff9a8a',s.tier==='ultimate'?20:14,-70);if(s.tier==='ultimate'){BT.shake=6;SFX.flash();}
   return true;}
+/* พุ่งหลบ (Dash) ของมอนสเตอร์และบอสทุกตัว: คูลดาวน์ 5 วิ (300 เฟรม) */
+function enemyDash(e,dir){
+  if(!e||(e.def&&e.def.passive)||(e.dashCD||0)>0||e.rootT>0||(e.st8&&e.st8.stun))return false;
+  const dd=dir||(e.dir||1),frz=e.st8&&e.st8.freeze?.55:1,isBack=dd!==e.dir;
+  e.dashCD=CONFIG.enemyDashCD;
+  e.state=isBack?'backdash':'dash';e.st=CONFIG.dashFrames;
+  e.invuln=Math.max(e.invuln||0,10);
+  e.dashV=dd*CONFIG.dashSpeed*.85*frz;e.vx=e.dashV;
+  spawnMoveFx('dash',e,e.x,e.x+dd*54,dd);SFX.dodge();
+  return true;
+}
 function aiRig(e,p){
   if(e.def&&e.def.passive){e.state='idle';e.vx=0;return;}
   if(e.state==='air'&&e.aiAir&&Math.abs(p.x-e.x)<70&&e.vy>-1.5&&e.airUsed<1){beginMove(e,UNI.akick);e.aiAir=0;return;}
   if(!actionable(e)||p.state==='ko')return;
   if(e.rootT>0){e.state='idle';return;}
   const dx=p.x-e.x,dist=Math.abs(dx),w=WEAPONS[e.wpn],act=!e.st8||!e.st8.freeze||e.__frzAct!==false;if(act){e.think--;if(e.ultT>0)e.ultT--;}
-  const pThreat=(p.state==='attack'&&dist<120&&p.phase!=='recovery')||BT.proj.some(q=>q.o===p&&Math.abs(q.x-e.x)<120);
-  const gRate=e.kind==='duelist'?.018:.045,gLen=e.kind==='duelist'?12:24;
-  if(pThreat&&(e.guard>0||rand()<gRate*Diff.cur().guard)){e.guard=e.guard>0?e.guard-1:gLen;e.state=(p.move&&p.move.low)?'cblock':'block';return;}
-  e.guard=0;
+  const pAtk=p.state==='attack'&&dist<115&&p.phase!=='recovery';
+  const pProj=BT.proj.some(q=>q.o===p&&Math.abs(q.x-e.x)<115);
+  const pThreat=pAtk||pProj,canBlk=e.guardBroken<=0&&!(e.guardCD>0)&&!(e.noGuardT>0);
+  if(e.guard>0){
+    if(pThreat&&canBlk&&--e.guard>0){e.state=(p.move&&p.move.low)?'cblock':'block';return;}
+    e.guard=0;e.guardCD=Math.max(e.guardCD||0,e.def&&e.def.boss?180:240);e.state='idle';
+  }
+  if(pThreat&&canBlk){
+    const sameAtk=pAtk&&!pProj&&e._blkRollSeq===p.moveSeq;
+    if(!sameAtk&&(!pProj||!(e._projBlkCD>0))){
+      if(pAtk)e._blkRollSeq=p.moveSeq;
+      if(pProj)e._projBlkCD=90;
+      const gBase=e.kind==='duelist'?.10:(e.def&&e.def.boss)?.16:.12;
+      if(rand()<Math.min(.28,gBase*Math.min(1.4,Diff.cur().guard))){e.guard=e.kind==='duelist'?10:14;e.state=(p.move&&p.move.low)?'cblock':'block';return;}
+    }
+  }
   if(!p.onGround&&dist<80&&p.vy>-3&&rand()<.06&&skillUsable('rising','enemy')){beginMove(e,Skills.move('rising',e.wpn,1));return;}
   if(e.think>0){const fm=(e.st8&&e.st8.freeze?.55:1);if(dist>80){e.x+=Math.sign(dx)*1.7*e.spdMul*fm;e.state='walk';e.walkT++;}else if(dist<40){e.x-=Math.sign(dx)*1.3*fm;e.state='walk';e.walkT--;}else e.state='idle';return;}
-  const r=rand();
+  const r=rand(),ai=aiCfg(e);
   if(enemyCast(e,p,dist))return;   // สกิลที่ศัตรูใส่ไว้ (FOES[x].skills)
+  if(!(e.dashCD>0)&&((dist>115&&r<.42)||(dist<55&&r<.28))&&enemyDash(e,dist<55?-(Math.sign(dx)||e.dir):(Math.sign(dx)||e.dir))){
+    e.think=Math.round((e.def&&e.def.boss?rint(12,28):rint(22,52))*e.cdMul*ai.cdMul);return;
+  }
   if(dist>150&&r<.55&&!(e.def&&e.def.noWave)&&!(e.skcd&&e.skcd.slashwave>0)&&!(e.rangedCD>0)&&skillUsable('slashwave','enemy')){if(beginMove(e,Skills.move('slashwave',e.wpn,0))){e.skcd=e.skcd||{};e.skcd.slashwave=Math.round((SKILLS.slashwave.cd||4)*60);if(e.kind==='duelist')e.rangedCD=300;}}
   else if(dist>90&&r<.75){e.state='prejump';e.st=4;e.jumpVx=Math.sign(dx)*2.6;e.aiAir=1;}
   else if(dist<75){if(r<.25)beginMove(e,UNI.sweep);else if(r<.35)beginMove(e,UNI.kick);else{e.aiChain=2;beginMove(e,w.light[0]);}}
-  else{e.state='dash';e.st=14;e.vx=e.dir*4.2;}
-  const ai=aiCfg(e);
+  else if(!enemyDash(e,e.dir)){const fm=(e.st8&&e.st8.freeze?.55:1);e.x+=Math.sign(dx)*1.7*e.spdMul*fm;e.state='walk';e.walkT++;}
   e.think=Math.round((e.def&&e.def.boss?rint(12,28):rint(22,52))*e.cdMul*ai.cdMul);
 }
 // มอนสเตอร์และบอสทุกตัว (ยกเว้น bbqy) ออกท่า/ฟื้นตัว/คูลดาวน์เร็วขึ้น: สตาร์ทอัปและฟื้นตัวสั้นลง คิดเร็วขึ้น เดินเร็วขึ้น
@@ -712,9 +783,15 @@ const isSpecialMove=m=>!!(m.beam||m.rain||m.quake||m.proj||m.multi||m.kd||m.lung
 function aiMon(e,p){
   if(e.def&&e.def.passive){e.state='idle';e.vx=0;return;}
   if(!actionable(e)||p.state==='ko')return;
-  const d=e.def,dx=p.x-e.x,dist=Math.abs(dx),ai=aiCfg(e),bz=d.boss?ai:null,cdm=e.cdMul*(e.elite?.85:1)*ai.cdMul,moves=e.moves||[];e.think--;
+  const d=e.def,dx=p.x-e.x,dist=Math.abs(dx),ai=aiCfg(e),bz=d.boss?ai:null,cdm=e.cdMul*(e.elite?.85:1)*ai.cdMul,moves=e.moves||[];
+  const act=!e.st8||!e.st8.freeze||e.__frzAct!==false;if(act)e.think--;
   if(e.rootT>0){e.state='idle';return;}
   if(e.think<=0&&enemyCast(e,p,dist))return;
+  if(e.think<=0&&!(e.dashCD>0)){
+    const dashR=Math.max(95,d.range+p.hw+25);
+    if(dist>dashR&&rand()<(bz?.5:.38)&&enemyDash(e,Math.sign(dx)||e.dir)){e.think=rint(d.cd[0],d.cd[1])*cdm|0;return;}
+    if(dist<55&&rand()<.25&&enemyDash(e,-(Math.sign(dx)||e.dir))){e.think=rint(d.cd[0],d.cd[1])*cdm|0;return;}
+  }
   if(dist>d.range+p.hw+10){
     if(e.think<=0&&dist>150){const far=moves.find(m=>m.far);if(far&&rand()<(bz?bz.farChance:.5)){startAtk(e,far);e.think=rint(d.cd[0],d.cd[1])*cdm|0;return;}}
     e.state='walk';e.x+=Math.sign(dx)*d.spd*e.spdMul*(e.st8&&e.st8.freeze?.55:1);
@@ -788,9 +865,10 @@ function finishBattle(){
     // individual loot: one independent roll per player, spawned on the ground at the enemy's position, owned by that player
     const results=noRankDrop?[]:LootManager.rollForPlayers({tableId:d.loot,cls,level:b.e.lv,kind:foe.kind});
     if(d.boss&&!noRankDrop)for(const r of results)r.drops.push(...LootManager.pity(r.pid,foe.kind));
-    for(const r of results)for(const dr of r.drops)if(dr.kind==='gold')dr.q=Math.max(1,Math.round(dr.q*Diff.cur().gold));
+    for(const r of results)for(const dr of r.drops)if(dr.kind==='gold')dr.q=Math.max(1,Math.round(dr.q*Diff.cur().gold*(1+.03*((b.e.lv||1)-1))));   /* ทองโตตามเลเวลมอน +3%/เลเวล */
     let dropped=0;for(const r of results){const sp=LootManager.spawn(Z,foe.x,foe.y,r);if(r.pid==='P1')dropped+=sp.length;}
     const out={gold:0,mats:{},items:[],dropped};
+    if(foe.kind==='spire_b5'&&!G.vsNet){Inv.add('aether',1);out.mats.aether=1;G.flags.aetherSpire=(G.flags.aetherSpire||0)+1;setTimeout(()=>toast('💠 ได้รับ หินเอเธอร์! — หนึ่งในหิน 8 ก้อนที่ผนึกประตู',3600),900);}   /* หินเอเธอร์: เฉพาะบอสหอคอยชั้น 5 */
     const ups=Prog.gainXP(xp);
     const eqExpK=d.boss||d.miniboss?CONFIG.equipExp.kill.boss:foe.elite?CONFIG.equipExp.kill.elite:CONFIG.equipExp.kill.normal;
     const eqExp=Math.round(rint(eqExpK[0],eqExpK[1])*(1+.12*Math.max(0,b.e.lv-1))*Diff.cur().xp),eqList=equipped();let eqUps=0;
@@ -812,8 +890,10 @@ function finishBattle(){
   }else{
     const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;foe.cool=200;if(foe.home){foe.x=foe.home.x;foe.y=foe.home.y;}
     const souls=Diff.cur().death==='bloodstain',pen=Diff.onDeath(Z.id,P.x,P.y);
-    loadZone(TOWN);   // respawn in the safe town
-    BT=null;G.mode='explore';setTimeout(()=>toast(souls?'💀 YOU DIED — '+(pen||'ไม่มีอะไรให้เสีย'):'พ่ายแพ้... ฟื้นที่เมือง Collawarrie (HP เต็ม)'+(pen?' · '+pen:''),5000),100);
+    const rt=G.flags&&G.flags.respawnTower,atP=rt&&typeof makeTowerFront==='function'&&TOWER_FRONTS[rt];
+    if(atP){const z=makeTowerFront(rt);loadZone(z,z.pillarSpawn);}else{const fo=(TOWN.props||[]).find(p=>p.k==='fountain');loadZone(TOWN,fo?{x:fo.x,y:fo.y+26}:undefined);}   // เกิดใหม่ที่เสาแสงที่จุดไว้ล่าสุด หรือเมือง
+    const where=atP?'เสาแสง'+TOWER_FRONTS[rt].short:'น้ำพุเมือง Collawarrie';
+    BT=null;G.mode='explore';setTimeout(()=>toast(souls?'💀 YOU DIED — เกิดใหม่ที่'+where+' · '+(pen||'ไม่มีอะไรให้เสีย'):'พ่ายแพ้... ฟื้นที่'+where+' (HP เต็ม)'+(pen?' · '+pen:''),5000),100);
   }
   Save.save();UI.hud();
 }
@@ -864,7 +944,7 @@ function poseFor(f){
     case'air':if(f.vy<0){P.ff=[4,-6];P.bf=[-3,-2];P.fh=[5,-3];P.bh=[-3,1];}else{P.ff=[4,-3];P.bf=[-4,-1];P.fh=[6,0];P.bh=[-2,3];}break;
     case'dash':P.lean=.55;P.hip=-12;P.ff=[9,0];P.bf=[-8,-2];P.fh=[3,7];P.bh=[-7,4];P.wa=2.6;break;
     case'backdash':P.lean=-.3;P.ff=[3,-3];P.bf=[-6,0];P.fh=[3,4];break;
-    case'dodge':P.lean=1.1;P.hip=-7;P.ff=[5,-1];P.bf=[-2,-2];P.fh=[5,6];P.bh=[3,7];break;
+    case'dodge':{const rd=f.vx?Math.sign(f.vx)*f.dir:1;P.lean=rd>=0?1.1:-.45;P.hip=-8;P.ff=[5,-1];P.bf=[-2,-2];P.fh=[5,6];P.bh=[3,7];}break;
     case'hurt':case'parried':P.lean=-.4;P.fh=[-2,7];P.bh=[-5,5];P.head=-.3;P.ff=[4,0];P.bf=[-5,0];P.wa=2;break;
     case'stun':P.lean=-.25+Math.sin(G.t*.12)*.15;P.hip=-12;P.fh=[0,8];P.bh=[-3,8];P.head=.35;P.wa=2;break;
     case'airhurt':P.lean=-1.1;P.hip=-12;P.fh=[-6,2];P.bh=[-8,-1];P.ff=[7,-6];P.bf=[5,-2];P.head=-.3;P.wa=2.4;break;
@@ -937,10 +1017,19 @@ function drawSkillCircle(f,m,col){
 }
 const hasChaosBlade=f=>!!(f&&(f.wpn==='bbqysword'||(f.look&&f.look.wshape==='chaosblade')||f.kind==='duelist'));
 const hasLightless=f=>!!(f&&f.look&&f.look.wfxKind==='lightless');
+const hasAetherStar=f=>!!(f&&((f.look&&f.look.aetherStar)||f.wpn==='aethersword'));
 function drawFighterB(f){
   const hgt=Math.max(0,GY-f.y),shR=(f.kind==='golem'||f.kind==='lavaking'||f.kind==='seraph'?48:f.kind==='icegolem'?40:f.h<60?26:20)*Math.max(.38,1-hgt/150);
   g.save();g.fillStyle='rgba(4,2,10,.28)';g.beginPath();g.ellipse(f.x,GY+1,shR*1.25,shR*.28,0,0,7);g.fill();
   g.fillStyle='rgba(4,2,10,.52)';g.beginPath();g.ellipse(f.x,GY,shR*.85,shR*.19,0,0,7);g.fill();g.restore();
+  if(hasAetherStar(f)){
+    const ang=(G.t*.05)%6.283;g.save();
+    g.globalAlpha=.24;g.fillStyle='#ffe878';g.beginPath();g.ellipse(f.x,GY-1,30,9,0,0,7);g.fill();
+    g.globalAlpha=.78;g.strokeStyle='#ffe878';g.lineWidth=2;g.beginPath();g.ellipse(f.x,GY-1,28,8.5,0,ang,ang+3.6);g.stroke();
+    g.globalAlpha=.65;g.strokeStyle='#ffffff';g.lineWidth=1.2;g.beginPath();g.ellipse(f.x,GY-1,20,6,0,-ang,-ang+3.2);g.stroke();
+    g.restore();
+    if(G.t%5===0)BT.parts.push({x:f.x+rnd(-20,20),y:GY-rnd(2,14),vx:0,vy:-.8,l:18,c:G.t%10?'#ffe878':'#ffffff',s:2,cross:1});
+  }
   if(hasLightless(f)){
     // Lightless Aura: วงแหวนพื้นสีดำ-ขาว (เงาดำกลืนแสงตัดกับเส้นรัศมีสีขาว)
     const ang=(G.t*.065)%6.283;g.save();
@@ -996,12 +1085,12 @@ function drawFighterB(f){
       for(let i=0;i<12;i++){const a=i*Math.PI/6+G.t*.02;g.strokeStyle='#bfefff';g.lineWidth=1.2;g.beginPath();g.moveTo(f.x+Math.cos(a)*rx*.28,GY-1+Math.sin(a)*ry*.28);g.lineTo(f.x+Math.cos(a)*rx,GY-1+Math.sin(a)*ry);g.stroke();}
       g.restore();}
   }
-  let tint=null;
-  if(f.flash>0&&f.flash%2)tint='rgba(255,244,220,.85)';
+  let tint=null,ovl=null,ovA=0;   /* ovl = สีทับแบบโปร่ง (เห็นรายละเอียดตัวละคร ไม่เป็นเงาทึบ) */
+  if(f.flash>0){ovl='#fff1d6';ovA=.2+.4*Math.min(1,f.flash/8);}
   else if(f.st8&&f.st8.freeze)tint='rgba(128,224,255,.45)';
-  else if(!f.isP&&!f.isP2&&f.state==='attack'&&f.phase==='startup'&&G.t%8<2)tint='#ff6a5a';
-  else if(f.state==='stun'&&G.t%14<3)tint='#ffe27a';
-  else if((f.isP||f.isP2)&&inWindow(f)&&G.t%4<2)tint='#ffe27a';
+  else if(!f.isP&&!f.isP2&&f.state==='attack'&&f.phase==='startup'&&G.t%8<2){ovl='#ff6a5a';ovA=.72;}
+  else if(f.state==='stun'&&G.t%14<3){ovl='#ffe27a';ovA=.55;}
+  else if((f.isP||f.isP2)&&inWindow(f)&&G.t%4<2){ovl='#ffe27a';ovA=.5;}
   const ghost=f.invuln>0&&['dodge','backdash','getup','idle','walk'].includes(f.state);
   const drawFireAura=(layer)=>{if(!(f.fireShieldT>0))return;const fh=f.h||96,t=G.t;g.save();
     if(layer==='back'){
@@ -1019,7 +1108,8 @@ function drawFighterB(f){
   if(f.fireShieldT>0)drawFireAura('back');
   if(f.rig){const tc=WEAPONS[f.wpn]?ELC[WEAPONS[f.wpn].el]:'#fff',rsc=(f.def&&f.def.sc)||3;
     f.trail.forEach((tr,i)=>{if(!tr.P)return;g.globalAlpha=.14+i*.07;drawRig(g,tr.x,tr.y,rsc,tr.d||f.dir,tr.P,f.look,tr.c||tc);});g.globalAlpha=f.vanishT>0?.14:ghost?.5:1;
-    drawRig(g,f.x,f.y,rsc,f.dir,poseFor(f),f.look,tint);g.globalAlpha=1;
+    {const P0=poseFor(f);if(FX.on&&!tint&&!ghost&&!(f.vanishT>0)){g.globalAlpha=.42;drawRig(g,f.x-f.dir*1.6,f.y-1.4,rsc,f.dir,P0,f.look,'#ffe3b8');g.globalAlpha=1;}   /* ไฟขอบ (rim light) */
+    drawRig(g,f.x,f.y,rsc,f.dir,P0,f.look,tint);if(ovl){g.globalAlpha*=ovA;drawRig(g,f.x,f.y,rsc,f.dir,P0,f.look,ovl);}}g.globalAlpha=1;
     if(f.fireShieldT>0)drawFireAura('front');
     // เอฟเฟกต์คลื่นดาบและกระบวนท่าโจมตีแบบหลายเลเยอร์ (นุ่มนวล มีมิติ ไม่แสบตา)
     if(f.state==='attack'&&m&&f.phase==='active'&&!m.proj&&!m.beam){
@@ -1090,13 +1180,19 @@ function drawFighterB(f){
     }
     if(f.state==='attack'&&m&&m.beam&&m.dragon){const hx=f.x+f.dir*30,hy=f.y-70,
       u=f.phase==='startup'?f.pt/Math.max(1,m.s):f.phase==='active'?1:1-f.pt/Math.max(1,m.r);drawDragon(g,hx,hy-(f.phase==='startup'?(1-u)*30:0),f.dir,u,f.phase==='active'?1:u*.4,m.dragon);}
-    if(f.state==='attack'&&m&&m.beam&&f.phase!=='recovery'){const el=m.beamCol||ELC[m.el]||'#7ad8ff',ey=f.def&&f.def.eye,dg=!!m.dragon,sp=!!m.spiritBeam,hx=dg?f.x+f.dir*30:f.x+f.dir*(ey?ey[0]+14:32),hy=dg?f.y-70:f.y-(ey?ey[1]-(f.def.hover?14:0):58);
-      if(f.phase==='startup'){const u=f.pt/Math.max(1,m.s),r=4+u*(sp?16:11);g.save();g.fillStyle=el;g.globalAlpha=.48;g.beginPath();g.arc(hx,hy,r*1.45,0,7);g.fill();
-        g.strokeStyle=el;g.globalAlpha=.65;g.lineWidth=sp?2:1.2;g.beginPath();g.arc(hx,hy,(sp?26:18)-u*12,0,7);g.stroke();
+    if(f.state==='attack'&&m&&m.beam&&f.phase!=='recovery'){const el=m.beamCol||ELC[m.el]||'#7ad8ff',ey=f.def&&f.def.eye,dg=!!m.dragon,sp=!!m.spiritBeam,ae=m.vfx==='aether_light',hx=dg?f.x+f.dir*30:f.x+f.dir*(ey?ey[0]+14:32),hy=dg?f.y-70:f.y-(ey?ey[1]-(f.def.hover?14:0):58);
+      if(f.phase==='startup'){const u=f.pt/Math.max(1,m.s),r=4+u*(sp||ae?16:11);g.save();g.fillStyle=el;g.globalAlpha=.48;g.beginPath();g.arc(hx,hy,r*1.45,0,7);g.fill();
+        g.strokeStyle=el;g.globalAlpha=.65;g.lineWidth=sp||ae?2:1.2;g.beginPath();g.arc(hx,hy,(sp||ae?26:18)-u*12,0,7);g.stroke();
         g.fillStyle='#fff6e0';g.globalAlpha=.8;g.beginPath();g.arc(hx,hy,r*.48,0,7);g.fill();g.restore();}
-      else{const w=(sp?30:19)+Math.sin(G.t*.65)*(sp?4:2.5),ex=f.dir>0?BW+20:-20,x0=Math.min(hx,ex),bw=Math.abs(ex-hx);
+      else{const w=(sp||ae?30:19)+Math.sin(G.t*.65)*(sp||ae?4:2.5),ex=f.dir>0?BW+20:-20,x0=Math.min(hx,ex),bw=Math.abs(ex-hx);
         g.save();
-        if(sp){
+        if(ae){
+          g.globalAlpha=.26;g.fillStyle='#ffd84a';g.fillRect(x0,hy-w*1.5,bw,w*3.0);
+          g.globalAlpha=.56;g.fillStyle='#ffe878';g.fillRect(x0,hy-w*.85,bw,w*1.7);
+          g.globalAlpha=.94;g.fillStyle='#ffffff';g.fillRect(x0,hy-w*.34,bw,w*.68);
+          for(let sx=0;sx<7;sx++){const px=hx+f.dir*((G.t*9+sx*70)%Math.max(60,bw)),py=hy+Math.sin(G.t*.25+sx)*w*.8;
+            g.fillStyle='#ffffff';g.fillRect(px-5,py-1,10,2);g.fillRect(px-1,py-5,2,10);}
+        }else if(sp){
           g.globalAlpha=.22;g.fillStyle='#1b82c4';g.fillRect(x0,hy-w*1.5,bw,w*3.0);
           g.globalAlpha=.42;g.fillStyle=el;g.beginPath();g.moveTo(hx,hy-w*.5);g.lineTo(ex,hy-w*1.35);g.lineTo(ex,hy+w*1.35);g.lineTo(hx,hy+w*.5);g.closePath();g.fill();
           g.globalAlpha=.76;g.fillStyle='#bffaff';g.fillRect(x0,hy-w*.55,bw,w*1.1);
@@ -1129,7 +1225,7 @@ function drawFighterB(f){
         g.strokeStyle='#ffffff';g.lineWidth=1.8;g.stroke();
       }g.restore();
     }
-    g.globalAlpha=f.vanishT>0?.14:ghost?.5:1;drawMon(f,tint);g.globalAlpha=1;if(f.fireShieldT>0)drawFireAura('front');
+    g.globalAlpha=f.vanishT>0?.14:ghost?.5:1;drawMon(f,tint);if(ovl){g.globalAlpha*=ovA;drawMon(f,ovl);}g.globalAlpha=1;if(f.fireShieldT>0)drawFireAura('front');
   }
   if(['block','cblock','gstun'].includes(f.state)){const fresh=f.isP&&G.t-f.backPressT<=8,cy=f.y-(isCrouch(f)?36:56);
     g.save();g.strokeStyle=fresh?'rgba(248,220,128,.78)':'rgba(140,200,255,.48)';g.lineWidth=fresh?3.5:2;
@@ -1158,49 +1254,58 @@ function drawFighterB(f){
   }
   if(f.state==='stun'||f.state==='parried')for(let i=0;i<3;i++){const a=G.t*.12+i*2.1;g.fillStyle='#ffe27a';g.fillRect(f.x+Math.cos(a)*14,f.y-f.h-8+Math.sin(a)*3,3,3);}
 }
-function drawBurst(u){const k=u.t/14,r=(u.big?40:24)*(.35+k);g.save();
-  // 1) Dome Shockwave
+function drawBurst(u){const k=u.t/14,r=(u.big?22:13)*(.35+k);g.save();
+  // 1) Dome Shockwave (ลดขนาดและแสงจ้าให้เห็นตัวละครชัด)
   if(u.dome){
-    const dr=r*1.5,dy=Math.min(GY,u.y+22);
-    g.globalAlpha=(1-k)*.22;g.fillStyle=u.col;g.beginPath();g.arc(u.x,dy,dr,Math.PI,0);g.closePath();g.fill();
-    g.globalAlpha=(1-k)*.6;g.strokeStyle='#ffffff';g.lineWidth=2;g.beginPath();g.arc(u.x,dy,dr,Math.PI,0);g.stroke();
-    g.globalAlpha=(1-k)*.5;g.strokeStyle=u.col;g.lineWidth=2.5;g.beginPath();g.ellipse(u.x,dy,dr,dr*.22,0,0,7);g.stroke();
+    const dr=r*1.2,dy=Math.min(GY,u.y+22);
+    g.globalAlpha=(1-k)*.12;g.fillStyle=u.col;g.beginPath();g.arc(u.x,dy,dr,Math.PI,0);g.closePath();g.fill();
+    g.globalAlpha=(1-k)*.32;g.strokeStyle='#ffffff';g.lineWidth=1.4;g.beginPath();g.arc(u.x,dy,dr,Math.PI,0);g.stroke();
+    g.globalAlpha=(1-k)*.28;g.strokeStyle=u.col;g.lineWidth=1.5;g.beginPath();g.ellipse(u.x,dy,dr,dr*.2,0,0,7);g.stroke();
   }
   // 2) Explosion Puffs
   if(u.exp){
-    const puffs=[[-10,-8,11],[9,-5,10],[0,-13,12],[-4,4,8],[6,3,8]];
+    const puffs=[[-7,-5,6],[6,-4,5],[0,-8,6]];
     for(const[ox,oy,pr]of puffs){
-      const px=(u.x+ox*(.45+k*1.25))|0,py=(u.y+oy*(.45+k*1.25))|0,sz=Math.max(2,Math.round(pr*(1-k*.72)));
-      g.globalAlpha=(1-k)*.76;g.fillStyle=k<.22?'#ffffff':k<.5?'#ffe25a':k<.78?'#ff6a2a':'#4a2220';
+      const px=(u.x+ox*(.45+k*1.15))|0,py=(u.y+oy*(.45+k*1.15))|0,sz=Math.max(1,Math.round(pr*(1-k*.72)));
+      g.globalAlpha=(1-k)*.38;g.fillStyle=k<.18?'#fff4d8':k<.48?'#ffe25a':k<.78?'#ff6a2a':'#4a2220';
       g.fillRect(px-sz,py-sz,sz*2,sz*2);
-      if(k<.5){g.fillStyle='#ffffff';g.fillRect(px-(sz>>1),py-(sz>>1),sz,sz);}
+      if(k<.25){g.fillStyle='#ffffff';g.fillRect(px-(sz>>1),py-(sz>>1),sz,sz);}
     }
-    g.globalAlpha=(1-k)*.48;g.strokeStyle='#ffb05a';g.lineWidth=2.5;g.beginPath();g.ellipse(u.x,Math.min(GY,u.y+18),r*1.28,r*.32,0,0,7);g.stroke();
+    g.globalAlpha=(1-k)*.24;g.strokeStyle='#ffb05a';g.lineWidth=1.5;g.beginPath();g.ellipse(u.x,Math.min(GY,u.y+18),r*1.1,r*.26,0,0,7);g.stroke();
   }
-  // 3) Pixel Starburst (ช่วงต้น k<0.45) + Ring of 6 Elemental Sub-Bursts (k>=0.2 ตามแบบสไปรต์ชีต)
-  if(u.star||k<.45){
-    const sr=r*(u.star?1.45:1.05),sw=Math.max(2,(1-k)*(u.star?8:5));g.globalAlpha=(1-k)*.92;g.fillStyle='#ffffff';
+  // 3) Pixel Starburst + Ring of 6 Elemental Sub-Bursts
+  if(u.star||k<.32){
+    const sr=r*(u.star?1.1:.78),sw=Math.max(1,(1-k)*(u.star?4:2.5));g.globalAlpha=(1-k)*.46;g.fillStyle='#fffaf0';
     g.beginPath();g.moveTo(u.x-sr,u.y);g.lineTo(u.x,u.y-sw);g.lineTo(u.x+sr,u.y);g.lineTo(u.x,u.y+sw);g.closePath();g.fill();
     g.beginPath();g.moveTo(u.x,u.y-sr*.85);g.lineTo(u.x+sw,u.y);g.lineTo(u.x,u.y+sr*.85);g.lineTo(u.x-sw,u.y);g.closePath();g.fill();
   }
   if(k>=.2){
-    const rk=r*.88,n=6;
+    const rk=r*.82,n=6;
     for(let i=0;i<n;i++){
-      const a=i/n*6.283+u.t*.08,bx=(u.x+Math.cos(a)*rk)|0,by=(u.y+Math.sin(a)*rk)|0,bs=Math.max(2,Math.round((u.big?7:5)*(1-k)));
-      g.globalAlpha=(1-k)*.9;g.fillStyle=u.col;
-      g.fillRect(bx-bs,by-1,bs*2+1,3);g.fillRect(bx-1,by-bs,3,bs*2+1);
-      g.fillStyle='#ffffff';g.fillRect(bx-1,by-1,3,3);
+      const a=i/n*6.283+u.t*.08,bx=(u.x+Math.cos(a)*rk)|0,by=(u.y+Math.sin(a)*rk)|0,bs=Math.max(1,Math.round((u.big?4:3)*(1-k)));
+      g.globalAlpha=(1-k)*.45;g.fillStyle=u.col;
+      g.fillRect(bx-bs,by-1,bs*2+1,2);g.fillRect(bx-1,by-bs,2,bs*2+1);
     }
   }
-  g.globalAlpha=(1-k)*.6;g.strokeStyle=u.col;g.lineWidth=u.big?3:2;
-  g.beginPath();g.arc(u.x|0,u.y|0,r*.9,0,7);g.stroke();
-  g.globalAlpha=(1-k)*.82;g.lineWidth=u.big?2.4:1.6;g.beginPath();
+  if(u.crit&&k<.55){/* คริ: เส้นความเร็วพุ่งออกรอบจุดกระทบ */
+    g.save();g.globalAlpha=(1-k/.55)*.38;g.fillStyle='#fff6dc';
+    for(let i=0;i<8;i++){const a=i/8*6.283+((i*37)%11)*.04,r0=r*(.95+k*1.1),r1=r0+r*(.95+((i*13)%5)*.22),hw=.025;
+      g.beginPath();g.moveTo(u.x+Math.cos(a)*r0,u.y+Math.sin(a)*r0);g.lineTo(u.x+Math.cos(a-hw)*r1,u.y+Math.sin(a-hw)*r1);g.lineTo(u.x+Math.cos(a+hw)*r1,u.y+Math.sin(a+hw)*r1);g.closePath();g.fill();}
+    g.restore();}
+  if(k<.5){/* รอยฟันเฉียง: เส้นสว่างบาง ๆ ตัดผ่านจุดกระทบ */
+    const sa=(((u.x*7+u.y*3)|0)%2?-.62:.62),sl=r*(u.big?1.5:1.1)*(.6+k),sw2=(1-k/.5)*(u.big?2:1.4);
+    g.globalAlpha=(1-k/.5)*.52;g.fillStyle='#ffffff';g.beginPath();
+    g.moveTo(u.x-Math.cos(sa)*sl,u.y-Math.sin(sa)*sl);g.lineTo(u.x+Math.sin(sa)*sw2,u.y-Math.cos(sa)*sw2);g.lineTo(u.x+Math.cos(sa)*sl,u.y+Math.sin(sa)*sl);g.lineTo(u.x-Math.sin(sa)*sw2,u.y+Math.cos(sa)*sw2);g.closePath();g.fill();
+    g.globalAlpha=(1-k/.5)*.22;g.fillStyle=u.col;g.beginPath();g.arc(u.x,u.y,r*.28*(1-k),0,7);g.fill();}
+  g.globalAlpha=(1-k)*.32;g.strokeStyle=u.col;g.lineWidth=u.big?1.8:1.2;
+  g.beginPath();g.arc(u.x|0,u.y|0,r*.82,0,7);g.stroke();
+  g.globalAlpha=(1-k)*.38;g.lineWidth=u.big?1.5:1.1;g.beginPath();
   for(let i=0;i<8;i++){const a=i/8*6.283+u.t*.06;g.moveTo((u.x+Math.cos(a)*r*.28)|0,(u.y+Math.sin(a)*r*.28)|0);g.lineTo((u.x+Math.cos(a)*r)|0,(u.y+Math.sin(a)*r)|0);}g.stroke();
   g.restore();}
 function drawBattle(){
   const b=BT;g.save();if(b.shake)g.translate(rnd(-b.shake,b.shake)|0,rnd(-b.shake,b.shake)|0);
   g.drawImage(bbC,0,0,W,H);drawTorch(g,62,86,2);drawTorch(g,418,86,2);if(FX.on)HD.atmos(g,buildBattleBg.last||'cave',G.t*.5,0);
-  if(b.impFrame>0){g.save();g.globalCompositeOperation=b.impFrame%2?'difference':'screen';g.fillStyle=b.impFrame%2?'rgba(255,255,255,.35)':'rgba(255,245,210,.25)';g.fillRect(0,0,W,H);g.restore();}
+  if(b.impFrame>0){g.save();g.globalCompositeOperation='screen';g.fillStyle='rgba(255,245,210,.10)';g.fillRect(0,0,W,H);g.restore();}
   if(b.flash){g.fillStyle='rgba(6,5,16,.62)';g.fillRect(0,0,W,H);for(let i=0;i<10;i++){g.fillStyle='rgba(255,240,205,.08)';g.fillRect(0,(hash(i,G.t>>1)*H)|0,W,1);}}
   g.save();g.translate(0,GY*(1-BZ));g.scale(BZ,BZ);   // กล้องซูมออก: ตัวละคร/เอฟเฟกต์ทั้งหมดอยู่ในพิกัดโลก 0..BW
   if(b.moveFx)for(const fx of b.moveFx)fx.draw(g,'back');
@@ -1241,12 +1346,35 @@ function drawBattle(){
     g.strokeStyle='#8ae0ff';g.lineWidth=1.5;g.globalAlpha=al*.45;g.beginPath();g.ellipse(x,GY-1,18*(1.2-al*.5),5*(1.2-al*.5),0,0,7);g.stroke();
     g.restore();
   }
-  for(const q of b.parts){g.globalAlpha=Math.min(.85,q.l/14);g.fillStyle=q.c;const x=q.x|0,y=q.y|0,sz=q.s||2;
+  for(const q of b.parts){g.globalAlpha=Math.min(.68,q.l/16);g.fillStyle=q.c;const x=q.x|0,y=q.y|0,sz=q.s||2;
     if(q.cross){g.fillRect(x-sz,y,sz*3,sz);g.fillRect(x,y-sz,sz,sz*3);}
     else if(q.orb){g.fillRect(x-sz,y,sz*3,sz);g.fillRect(x,y-sz,sz,sz*3);g.fillStyle='#ffffff';g.fillRect(x,y,sz,sz);}
     else if(q.meteor){g.beginPath();g.moveTo(x,y);g.lineTo(x-q.vx*4,y-q.vy*4);g.strokeStyle=q.c;g.lineWidth=sz;g.stroke();g.fillStyle='#ffffff';g.fillRect(x-2,y-2,5,5);}
     else g.fillRect(x,y,sz,sz);}g.globalAlpha=1;
-  for(const pl of b.pillars||[]){if(pl.delay>0){pl.delay--;continue;}pl.t--;pl.h=Math.min(pl.maxH,pl.h+14);
+  if(FX.on&&b.parts.length){g.save();g.globalCompositeOperation='lighter';for(const q of b.parts){const sz=(q.s||2)*1.6;g.globalAlpha=Math.min(.09,q.l/90);g.fillStyle=q.c;g.fillRect(q.x-sz*.5,q.y-sz*.5,sz,sz);}g.restore();}   /* แสงเรืองรอบประกาย */
+  for(const pl of b.pillars||[]){if(pl.delay>0){pl.delay--;continue;}pl.t--;
+    if(pl.skyJudge){
+      g.save();
+      if(pl.telegraph>0){
+        pl.telegraph--;
+        const u=Math.min(1,1-pl.telegraph/18);
+        // วงเวทเล็งบนฟ้าเหนือหัวเป้าหมายก่อนเสาแสงลง
+        g.globalAlpha=.45+u*.35;g.strokeStyle='#ffe878';g.lineWidth=1.8;
+        g.beginPath();g.ellipse(pl.x,22,22,6,0,0,7);g.stroke();
+        g.strokeStyle='rgba(255,232,120,.32)';g.setLineDash([4,4]);g.beginPath();g.moveTo(pl.x,22);g.lineTo(pl.x,GY);g.stroke();g.setLineDash([]);
+      }else{
+        pl.h=Math.min(GY,pl.h+56);
+        const al=Math.min(1,pl.t/10),yBot=pl.h;
+        // วงเวทบนฟ้า + เสาแสง Light Judgement พุ่งจากบนฟ้าลงหัวศัตรู
+        g.globalAlpha=al*.85;g.strokeStyle='#ffe878';g.lineWidth=2.2;g.beginPath();g.ellipse(pl.x,16,28,7.5,0,0,7);g.stroke();
+        g.globalAlpha=al*.24;g.fillStyle='#ffd23a';g.fillRect(pl.x-21,0,42,yBot);
+        g.globalAlpha=al*.62;g.fillStyle='#ffe878';g.fillRect(pl.x-12,0,24,yBot);
+        g.globalAlpha=al*.88;g.fillStyle='#fffbe8';g.fillRect(pl.x-4.5,0,9,yBot);
+        if(yBot>=GY-6){g.globalAlpha=al*.55;g.strokeStyle='#ffe878';g.lineWidth=2;g.beginPath();g.ellipse(pl.x,GY,28,7,0,0,7);g.stroke();}
+      }
+      g.restore();continue;
+    }
+    pl.h=Math.min(pl.maxH,pl.h+14);
     const al=Math.min(1,pl.t/12),w=26,x=pl.x-w/2,y=GY-pl.h,pc=pl.col||'#5e564c',pel=pl.el;
     g.save();g.globalAlpha=al;
     if(pel==='fire'){
@@ -1286,11 +1414,12 @@ function drawBattle(){
   const ls=[{x:62,y:90,r:140+fl(),c:'rgba(255,145,65,.15)'},{x:418,y:90,r:140+fl(),c:'rgba(255,145,65,.15)'},wl(b.p.x,b.p.y-50,110),wl(b.e.x,b.e.y-50,110),{x:240,y:150,r:200}];
   for(const pr of b.proj)if(!pr.rock)ls.push(wl(pr.x,pr.y,68,pr.col+'55'));
   for(const u of b.bolts)ls.push(wl(u.x,150,120,'rgba(180,230,255,.32)'));
+  for(const pl of b.pillars||[])if(pl.skyJudge&&!(pl.telegraph>0))ls.push(wl(pl.x,GY*.5,110,'rgba(255,230,120,.26)'));
   for(const f of [b.p,b.e]){
     if(f.state==='attack'&&f.phase==='active'&&f.move){
       const ec=ELC[f.move.el]||'#ffe6b0';
-      if(f.move.beam)ls.push({x:240,y:bsy(f.y-62),r:240,c:ec+'40'});
-      else ls.push(wl(f.x+f.dir*36,f.y-56,95,ec+'36'));
+      if(f.move.beam)ls.push({x:240,y:bsy(f.y-62),r:180,c:ec+'24'});
+      else ls.push(wl(f.x+f.dir*36,f.y-56,64,ec+'1e'));
     }
   }
   lighting(ls,'rgba(6,4,14,.46)');

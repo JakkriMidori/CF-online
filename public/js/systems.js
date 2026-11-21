@@ -55,7 +55,7 @@ const Stats={
     S.dr=Math.min(CONFIG.drCap,(flat.dr||0)+(TP.dr||0));
     S.watk=flat.watk||10;S.ap=Math.round(S.watk+attr.str*2+(flat.atk||0));
     S.mpow=Math.round(((flat.wmatk||0)+attr.int*3+(flat.matk||0))*(1+(TP.mpowPct||0)+(flat.mpowPct||0)));S.dmgPct=flat.dmgPct||0;
-    S.res={fire:flat.resFire||0,lightning:flat.resLightning||0,poison:flat.resPoison||0,shadow:flat.resShadow||0};
+    S.res={};   /* ลบระบบต้านธาตุ/เงาออก */
     S.spd=1+(attr.agi-10)*.01;S.passives=passives;
     S.mpRegen=Math.min(CONFIG.mana.recoveryCap,flat.mpRegen||0);S.mpCost=Math.min(CONFIG.mana.costCap,flat.mpCost||0);S.statusRes=Math.min(.75,(flat.statusRes||0)+(TP.statusRes||0)+t10(attr.str)*DV.strPer10Res);
     S.statusChance=(TP.statusChance||0)+(flat.statusChance||0);S.dotPct=flat.dotPct||0;S.talent=talent||null;   // ชุดนักแปรธาตุ: +โอกาสติด / +DoT
@@ -126,7 +126,7 @@ function calcDamage(A,T,h){
   const base=Math.max(1,pow*h.coef-defUsed);let dmg=base*(1+(A.dmgPct||0));
   const crit=!!h.forceCrit||rand()<Math.max(0,Math.min(CONFIG.critCap,A.critRate)-((h.type==='magic'?T.mcritRes:T.pcritRes)||0));
   if(crit)dmg*=Math.min(CONFIG.critDmgCap,A.critDmg+(h.type==='magic'?(A.mcritDmg||0):0));
-  const res=h.trueDmg?0:clamp((T.res&&T.res[h.el])||0,-1,.95);dmg*=1-res;
+  const res=0;   /* ลบระบบต้าน/แพ้ธาตุออก */
   const mods={};
   if(h.stunned)mods.stun=1+CONFIG.stunBonus;
   if(h.fullCombo)mods.fullCombo=1+CONFIG.fullComboBonus;
@@ -238,7 +238,7 @@ const Equip={
   isEquipped(it){return SLOTS.some(s=>G.eq[s]===it.uid);},
   weaponType(){const w=G.eq.weapon&&itemByUid(G.eq.weapon);return w?BASES[w.base].wt:'fist';},
   enhanceCost(it){const r=RARS.indexOf(it.rar)+1;return{gold:40*(it.enh+1)*r,ore:3+it.enh,rate:CONFIG.enhanceRates[it.enh]??0};},
-  maxEnh(it){return CONFIG.enhanceMax;},   // ตีบวกได้สูงสุด +15 ทุกระดับ (ต้องวิวัฒน์ก่อน)
+  maxEnh(it){return CONFIG.enhanceMax;},   // ตีบวกได้สูงสุด +10 ทุกระดับ (ต้องวิวัฒน์ก่อน)
   enhance(it){if(it.enh>=this.maxEnh(it))return{ok:false,msg:'ตีบวกสูงสุดแล้ว (+'+this.maxEnh(it)+')'};const c=this.enhanceCost(it);
     if(G.gold<c.gold||(G.mats.ore||0)<c.ore)return{ok:false,msg:'ทองหรือแร่เหล็กไม่พอ'};
     G.gold-=c.gold;Inv.take('ore',c.ore);
@@ -260,7 +260,7 @@ const Equip={
   evolve(it){if(!it)return{ok:false,msg:'ไม่พบอุปกรณ์'};
     const ri=RARS.indexOf(it.rar);if(ri<0||ri>=RARS.length-1)return{ok:false,msg:'ระดับความหายากสูงสุดแล้ว (God)'};
     const reqLv=this.capLv(it);
-    if((it.lv||1)<reqLv||(it.enh||0)<CONFIG.enhanceMax)return{ok:false,msg:`ต้องเลเวลอุปกรณ์ Lv.${reqLv} และตีบวก +15 ก่อนวิวัฒน์`};
+    if((it.lv||1)<reqLv||(it.enh||0)<CONFIG.enhanceMax)return{ok:false,msg:`ต้องเลเวลอุปกรณ์ Lv.${reqLv} และตีบวก +${CONFIG.enhanceMax} ก่อนวิวัฒน์`};
     if(!Inv.has('evostone',1))return{ok:false,msg:'ต้องใช้หินแห่งการวิวัฒน์ 1 ก้อน'};
     Inv.take('evostone',1);const nextRar=RARS[ri+1];it.rar=nextRar;it.lv=Math.max(it.lv||1,reqLv);it.enh=CONFIG.enhanceMax;
     const targetS=RARITY[nextRar].sockets;it.sockets=Array.isArray(it.sockets)?it.sockets.slice(0,targetS):[];while(it.sockets.length<targetS)it.sockets.push(null);
@@ -290,8 +290,8 @@ const Equip={
     if(K.weapon==='gaunt'&&!K.gloves)K.gloves='#7fd8ff';return K;
   }
 };
-CONFIG.enhanceMax=15;        // ตีบวกสูงสุด +15 ทุกระดับ (ต้องวิวัฒน์เพื่อเพิ่มระดับความหายากต่อ)
-CONFIG.enhanceMaxCraft=15;   // สูงสุด +15 เช่นเดียวกัน
+CONFIG.enhanceMax=10;        // ตีบวกสูงสุด +10 ทุกระดับ (ต้องวิวัฒน์เพื่อเพิ่มระดับความหายากต่อ)
+CONFIG.enhanceMaxCraft=10;   // สูงสุด +10 เช่นเดียวกัน
 CONFIG.enhFlat=1.5;          // ต่อขั้น: ค่าแบบหน่วยทุกค่า +1.5
 CONFIG.enhPct=.015;          // ต่อขั้น: ค่าแบบ % ทุกค่า +1.5% ของค่าเดิม
 CONFIG.craftEnh=5;
@@ -409,6 +409,7 @@ const LootManager={
       if(g.chance!==undefined&&rand()>=g.chance)continue;
       if(g.gold){res.drops.push({kind:'gold',q:Math.round(rint(g.gold[0],g.gold[1])*(1+.1*(level-1))),rar:'normal',guaranteed:1});continue;}
       if(g.mat&&MATS[g.mat]){res.drops.push({kind:'mat',mat:g.mat,q:g.q||1,rar:g.rar||MATS[g.mat].rar||'normal',guaranteed:1});continue;}
+      if(g.base&&BASES[g.base]){const r=g.rar||BASES[g.base].fixRar||'epic';res.drops.push({kind:'item',item:newItem(g.base,r,level),rar:r,guaranteed:1});continue;}
       this.log({pid,tableId,warn:'รางวัลตายตัวอ้างอิงไอเท็มไม่ถูกต้อง: '+JSON.stringify(g)});
     }
     const C=LOOT_CONFIG.classes[cls]||LOOT_CONFIG.classes.normal,chance=this.dropChance(cls,luk),roll=rand(),entries=(T.entries||[]).filter(e=>{const ok=this.validEntry(e);if(!ok)this.log({pid,tableId,warn:'ข้ามรายการที่อ้างอิงไม่ถูกต้อง: '+JSON.stringify(e)});return ok;});
@@ -465,12 +466,16 @@ const Loot={
 };
 
 /* ---------------- Skills ---------------- */
+/* ประเภทสกิลที่ใส่ได้ในแต่ละช่อง: ช่อง 1–2 ใส่ได้ทั้งทั่วไปและหายาก · ช่อง 3 เฉพาะตัว · ช่อง 4 สุดยอด */
+const SLOT_TIERS=[['common','rare'],['common','rare'],['unique'],['ultimate']];
+const slotAccepts=(slot,id)=>!!(SKILLS[id]&&SLOT_TIERS[slot]&&SLOT_TIERS[slot].includes(SKILLS[id].tier));
+const slotTierName=i=>SLOT_TIERS[i].map(t=>TIERN[t]).join('/');
 const Skills={
   init(talent){G.skills={learned:new Set([TALENTS[talent].skill]),slots:[null,null,null,null],cd:{},bound:null,lv:{}};},  // Unique must be bound by the player (explicit confirm)
   learnable(id){const s=SKILLS[id];return!!s.talent&&s.talent===G.talent;},   // สกิลบอส (bossOnly) ได้จากการชนะบอสเท่านั้น   // only the talent Unique is innate; everything else comes from skill books
   check(){const got=[];for(const id in SKILLS){if(!G.skills.learned.has(id)&&this.learnable(id)){G.skills.learned.add(id);got.push(id);}}return got;},
   learn(id){if(!SKILLS[id])return{ok:false,err:'ไม่มีสกิลนี้'};if(!skillUsable(id,'player'))return{ok:false,err:'สกิลนี้ศัตรูใช้ได้เท่านั้น'};if(G.skills.learned.has(id))return{ok:false,err:'เรียนสกิลนี้แล้ว'};
-    G.skills.learned.add(id);const sl=TIERS.indexOf(SKILLS[id].tier);if(sl!==2&&!G.skills.slots[sl])G.skills.slots[sl]=id;return{ok:true};},   // auto-fill empty non-Unique socket
+    G.skills.learned.add(id);const sl=(SKILLS[id].tier==='rare'?[1,0,3]:[0,1,3]).find(i=>slotAccepts(i,id)&&!G.skills.slots[i]);if(sl!==undefined)G.skills.slots[sl]=id;return{ok:true};},   // ใส่ช่องว่างแรกที่รับประเภทนี้ (ไม่รวมช่องเฉพาะตัว)   // auto-fill empty non-Unique socket
   passiveOf(){const id=G.skills&&G.skills.bound,s=id&&SKILLS[id];if(!s||s.type!=='passive')return null;return{id:s.passive.id,v:s.passive.v*this.scale(id).coef,skill:id};},
   level(id){return G.skills.lv[id]||1;},
   /* equip / replace / remove for Common, Rare, Ultimate. Unique socket only changes via bind()/replaceUnique(). */
@@ -480,7 +485,7 @@ const Skills={
     if(!id){G.skills.slots[slot]=null;return{ok:true};}   // Common / Rare / Ultimate are removable (spec v3)
     if(!SKILLS[id]||!G.skills.learned.has(id))return{ok:false,err:'ยังไม่ได้เรียนสกิลนี้'};
     if(!skillUsable(id,'player'))return{ok:false,err:'สกิลนี้ศัตรูใช้ได้เท่านั้น'};
-    if(SKILLS[id].tier!==TIERS[slot])return{ok:false,err:'ประเภทสกิลไม่ตรงกับช่อง'};
+    if(!slotAccepts(slot,id))return{ok:false,err:'ประเภทสกิลไม่ตรงกับช่อง (ช่อง '+(slot+1)+' ใส่ได้: '+slotTierName(slot)+')'};
     if(G.skills.slots.some((x,i)=>x===id&&i!==slot))return{ok:false,err:'สกิลนี้อยู่ในช่องอื่นแล้ว'};
     G.skills.slots[slot]=id;return{ok:true};
   },
@@ -525,7 +530,7 @@ const Skills={
     const el=s.el==='weapon'?(WEAPONS[wt]||WEAPONS.fist).el:(s.el||'phys');
     const m=M(s.n,s.startup||fr[0],a,fr[2],(s.coef||0)*10*this.scale(id).coef,s.reach||0,3,22,{anim:s.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
       type:s.type,el,skillId:id,hy:s.hy||62,hh:s.hh||60});
-    for(const k of ['multi','proj','beam','beamCol','spiritBeam','launch','rise','inv','lunge','kicks','status','statusDur','armorBreak','unblockable','jackpotPen','jackpot','alwaysCrit','defPen','lifesteal','ignoreDef','lastCrit','strike','buff','hpCost','rain','kd','low','dragon','kingAura','holdParry','rootDur','pillars','frostnova','instantShatter','windblade','blink','slashFx'])if(s[k]!==undefined)m[k]=s[k];
+    for(const k of ['multi','proj','beam','beamCol','spiritBeam','launch','rise','inv','lunge','kicks','status','statusDur','armorBreak','unblockable','jackpotPen','jackpot','alwaysCrit','defPen','lifesteal','ignoreDef','lastCrit','strike','buff','hpCost','rain','kd','low','dragon','kingAura','holdParry','rootDur','pillars','frostnova','instantShatter','windblade','blink','slashFx','vfx','lightJudge'])if(s[k]!==undefined)m[k]=s[k];
     if(s.tier==='ultimate')m.super=2;
     return this.cache[key]=m;
   }
@@ -533,7 +538,7 @@ const Skills={
 
 /* ---------------- Progression ---------------- */
 const Prog={
-  xpScale(mlv){const diff=G.level-(mlv||1);return diff>5?Math.max(.1,1-.08*(diff-5)):1;},   /* เลเวลสูงกว่ามอน >5 ขั้น ได้ XP ลดลง (ต่ำสุด 10%) */
+  xpScale(mlv){const diff=G.level-(mlv||1);return diff>8?Math.max(.25,1-.06*(diff-8)):1;},   /* เลเวลสูงกว่ามอน >8 ขั้น ได้ XP ลดลง 6%/เลเวล (ต่ำสุด 25%) */
   gainXP(n){const cap=hasNoMaxLv()?Infinity:CONFIG.levelCap;if(G.level>=cap){G.xp=0;return 0;}const mul=1+((G.talent&&TALENT_PASSIVE[G.talent]&&TALENT_PASSIVE[G.talent].xpMul)||0);G.xp+=Math.round(n*mul);let ups=0;while(G.level<cap&&G.xp>=CONFIG.xpNext(G.level)){G.xp-=CONFIG.xpNext(G.level);G.level++;G.points+=CONFIG.levelPoints;ups++;}if(G.level>=cap)G.xp=0;
     if(ups){const S=Stats.player();G.hp=S.maxHP;G.mp=S.maxMP;}return ups;},
   allocate(k){if(G.points<=0||!(k in G.alloc)||BASE_ATTR[k]+G.alloc[k]>=CONFIG.attrMax)return false;G.points--;G.alloc[k]++;return true;},
