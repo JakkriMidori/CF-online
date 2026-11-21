@@ -511,21 +511,34 @@ function runTests(){
     const f5=[ultCnt('spire_b5'),ultCnt('aether_king')];
     const z3=makeSpireFloor(3,'mage');
     const kinds=z3.foes.map(f=>f.kind);
+    let renOk=true;
+    try{
+      loadZone(z3,z3.spawn);drawExplore();
+      for(const sk of['spire3_mob','spire3_leader','spire_b3']){
+        const fe=mkFoe(sk,{x:P.x+80,y:P.y});setupBattle(fe);BT.intro=0;
+        BT.e.state='attack';BT.e.move=WEAPONS[BT.e.wpn].light[0];BT.e.phase='active';
+        render();portrait(BT.e,10,10,60,60,true);
+      }
+    }catch(ex){renOk=false;}
+    BT=null;G.mode='explore';
     return{ok:f14.every(c=>c===1)&&f5.every(c=>c===2)&&kinds.includes('spire3_mob')&&kinds.includes('spire3_leader')&&kinds.includes('spire_b3')
-      &&FOES.spire_b3.look==='SPIRE_B3'&&SPIRE_B3.custom==='skel_overlord'&&SPIRE3_MOB.custom==='skel_warrior'&&SPIRE3_LEADER.custom==='skel_knight',
-      info:`f1-4=${f14.join('/')} f5=${f5.join('/')} b3=${FOES.spire_b3.n}`};});
+      &&FOES.spire_b3.look==='SPIRE_B3'&&SPIRE_B3.custom==='skel_overlord'&&SPIRE3_MOB.custom==='skel_warrior'&&SPIRE3_LEADER.custom==='skel_knight'&&renOk,
+      info:`f1-4=${f14.join('/')} f5=${f5.join('/')} b3=${FOES.spire_b3.n} ren=${renOk}`};});
   T('V30-2) ดาบราชาอัศวินแสงระดับตำนาน + สกิล Light Judgement เสาแสงลงหัว + ระบบธาตุและเงาถูกถอดออก',()=>{
     const w=newItem('w_aetherking','legendary',100),ws=itemStats(w);
     const swOk=BASES.w_aetherking.n==='ดาบราชาอัศวินแสง'&&BASES.w_aetherking.fixRar==='legendary'&&w.rar==='legendary'&&ws.watk<1500&&LOOT_TABLES.aspire_king.guaranteed.some(g=>g.base==='w_aetherking'&&g.rar==='legendary')&&LOOT_TABLES.aspire_king.guaranteed.some(g=>g.mat==='sk_lightjudge');
     const mv=Skills.move('lightjudge','aethersword',3);
     loadZone(makeDungeon(1,'stone'));const e=mkFoe('kage',{x:P.x+90,y:P.y});Z.foes.push(e);setupBattle(e);G.mode='battle';BT.intro=0;
-    BT.p.state='attack';BT.p.phase='startup';BT.p.pt=0;BT.p.move=mv;updAtk(BT.p,BT.e);
-    const hasSky=BT.pillars.some(p=>p.skyJudge===1);
+    const hp0=BT.e.hp;BT.e.invuln=0;BT.e.guardLeft=0;
+    BT.p.state='attack';BT.p.phase='startup';BT.p.pt=0;BT.p.move=mv;
+    for(let i=0;i<=atkStartup(BT.p,mv)+2;i++){updAtk(BT.p,BT.e);render();}
+    const hasSky=BT.pillars.some(p=>p.skyJudge===1&&p.telegraph<=0&&p.h>0);
+    const dealt=BT.e.hp<hp0;
     BT=null;G.mode='explore';
     const noElem=Object.keys(ELEM_PROC).length===0&&Object.keys(Stats.player().res).length===0&&!AFFIX.resShadow&&!AFFIX.resFire;
-    const tip=itemTip(w),ch=UI.scr_char(),skH=UI.skStats('lightjudge');
+    const tip=itemTip(w),ch=G.talent?UI.scr_char():'',skH=UI.skStats('lightjudge');
     const noUiElem=!tip.includes('ธาตุ')&&!ch.includes('เงา')&&!ch.includes('ต้านทาน:')&&!skH.includes('ธาตุ');
-    return{ok:swOk&&!!mv&&mv.lightJudge===1&&hasSky&&noElem&&noUiElem,info:`sw=${w.rar}/${ws.watk} sky=${hasSky} noElem=${noElem} noUi=${noUiElem}`};});
+    return{ok:swOk&&!!mv&&mv.lightJudge===1&&hasSky&&dealt&&noElem&&noUiElem,info:`sw=${w.rar}/${ws.watk} sky=${hasSky} dealt=${dealt} noElem=${noElem} noUi=${noUiElem}`};});
   }finally{RNG=rng0;Z=z0;P.x=px0;P.y=py0;G.hp=hp0;G.mode=mode0;G.flags.bossCD=cd0;G.pendingFoe=pf0;try{buildBg();}catch(e){}}}
   RNG=saveRNG;Object.assign(G,saveG);[Status.onStun,Status.onStunEnd,Status.onSynergy]=prevHooks;
   window.__testResults={pass,fail,out};return{pass,fail,out};

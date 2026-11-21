@@ -822,7 +822,7 @@ const LOOT_TABLES={
     {mat:'evostone',w:16},{mat:'philostone',w:6},{gear:'any',w:28,rar:'any'},{book:'rare',w:8,rar:['rare','epic']}]},
   aspire_thun2:{guaranteed:[{gold:[1350,1850]},{mat:'exprock',q:3}],entries:[
     {mat:'evostone',w:16},{mat:'philostone',w:10},{gear:'any',w:28,rar:'any'},{book:'ultimate',w:10,rar:['epic']}]},
-  aspire_king:{guaranteed:[{gold:[2000,3000]},{mat:'exprock',q:5},{mat:'evostone',q:1},{mat:'sk_aether_sovereign',q:1,rar:'epic',chance:.45},{base:'w_aetherking',q:1,rar:'god',chance:.35}],entries:[
+  aspire_king:{guaranteed:[{gold:[2000,3000]},{mat:'exprock',q:5},{mat:'evostone',q:1},{mat:'sk_aether_sovereign',q:1,rar:'epic',chance:.45},{mat:'sk_lightjudge',q:1,rar:'epic',chance:.45},{base:'w_aetherking',q:1,rar:'legendary',chance:.35}],entries:[
     {mat:'philostone',w:14},{mat:'mp_x',w:10},{gear:'any',w:26,rar:'any'},{book:'ultimate',w:10,rar:['epic']}]},
   dummy:{guaranteed:[],entries:[]}
 };
@@ -866,7 +866,7 @@ const GUILD_QUESTS=[
   {id:'gq_golem',n:'คำร้องปราบโกเลมศิลา',rankReq:'F',targets:['golem','rockling','stone','stonecave'],req:4,desc:'ปราบมอนสเตอร์หรือบอสในถ้ำหินโกเลม 4 ตัว',reward:{xp:450,gold:350,mats:{ore:4}}},
   {id:'gq_lava',n:'กวาดล้างเหมืองลาวา',rankReq:'F',targets:['lavarat','lizard','fireele','lavaking'],req:6,desc:'ปราบมอนสเตอร์ในเหมืองลาวา 6 ตัว',reward:{xp:750,gold:550,mats:{fire:3,mp_m:2}}},
   {id:'gq_ice',n:'สำรวจแดนเหมันต์',rankReq:'G',targets:['frostslime','frostwolf','iceknight','icegolem','seraph'],req:6,desc:'ปราบมอนสเตอร์ในถ้ำน้ำแข็ง 6 ตัว',reward:{xp:1400,gold:1000,mats:{iceore:4,mp_l:2}}},
-  {id:'gq_spire',n:'พิทักษ์ยอดหอคอยคริสตัล',rankReq:'G',targets:['spire1_mob','spire1_leader','spire2_mob','spire2_leader','spiremob','spireleader','spire_b1','spire_b2','spire_b3','spire_b4','spire_b5','arose_mob','arose_leader','athunder_mob','athunder_leader','aspire_b1','aspire_b2','aspire_b3','aspire_b4','aether_king'],req:8,desc:'ปราบศัตรูในหอคอยคริสตัลหรือหอคอยอัศวินแสง 8 ตัว',reward:{xp:3200,gold:2200,mats:{evostone:1}}}
+  {id:'gq_spire',n:'พิทักษ์ยอดหอคอยคริสตัล',rankReq:'G',targets:['spire1_mob','spire1_leader','spire2_mob','spire2_leader','spire3_mob','spire3_leader','spiremob','spireleader','spire_b1','spire_b2','spire_b3','spire_b4','spire_b5','arose_mob','arose_leader','athunder_mob','athunder_leader','aspire_b1','aspire_b2','aspire_b3','aspire_b4','aether_king'],req:8,desc:'ปราบศัตรูในหอคอยคริสตัลหรือหอคอยอัศวินแสง 8 ตัว',reward:{xp:3200,gold:2200,mats:{evostone:1}}}
 ];
 // แรงค์กิลด์นักผจญภัย 7 ขั้น (F -> G -> D -> C -> B -> A -> S) : เลื่อนขั้นเมื่อเลเวลถึงเกณฑ์ + ผ่านเควสต์เลื่อนขั้น
 const GUILD_RANKS=[
