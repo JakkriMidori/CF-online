@@ -9,7 +9,8 @@ const CONFIG={
   allowWeak:false,          // แพ้ธาตุ (ค่าต้านติดลบ ต่ำสุด −50%) · ปิดไว้
   dot2:{atkBase:30,atkPer:5.5,   // ATK มาตรฐานตามเลเวล = 30 + 5.5×Lv (ไม่ขึ้นกับ ATK ขณะนั้น)
     poison:{pct:.03,el:'poison',max:10},bleed:{pct:.035,max:10},burn:{pct:.20,el:'fire'},shock:{pct:.12,el:'lightning'},
-    radiance:{pct:.15,el:'holy',healCut:.5},curse:{pct:.04,el:'shadow',max:5,resDown:.03},frostbite:{pct:.03,el:'ice',max:5,slow:.06,freezeSec:1.5}},
+    radiance:{pct:.15,el:'holy',healCut:.5},curse:{pct:.04,el:'shadow',max:5,resDown:.03},frostbite:{pct:.03,el:'ice',max:5,slow:.06,freezeSec:1.5},
+    arcaneburn:{pct:.06,el:'arcane',max:3}},
   resCap:.75,               // เพดานค่าต้านธาตุ 75% (ไม่มีแพ้ธาตุ: ค่าติดลบนับเป็น 0)
   mdefFold:.5,              // M.DEF ถูกยกเลิก: ค่า mdef ของอุปกรณ์/ค่าติดตัวเดิมรวมเข้า DEF ×0.5
   dotTick:60,               // DOT ticks once per second
@@ -63,9 +64,9 @@ const ELNAME={phys:'กายภาพ',fire:'ไฟ',ice:'น้ำแข็ง
 /* สีตัวเลขดาเมจตามป้าย: [สีไส้, สีขอบ, ไอคอนนำหน้า] */
 const DMGCOL={phys:['#FFD23A','#3a2a00',''],fire:['#FF5A3A','#3a0a00','🔥'],ice:['#6FD4FF','#002a3a','❄'],lightning:['#4F7DFF','#ffffff','⚡'],poison:['#7CF0A8','#003a1a','☠'],shadow:['#2A1636','#B07CFF','🌑'],holy:['#FFF1A8','#5a4a00','✦'],arcane:['#C88AFF','#2a0a4a','✧'],magic:['#C88AFF','#2a0a4a','✧'],true:['#FFFFFF','#ff2a2a','']};
 const ELC={phys:'#dddddd',fire:'#ff7a2a',lightning:'#9fe6ff',poison:'#8aff5a',shadow:'#b08aff',holy:'#fff2a8',arcane:'#d88aff',magic:'#d88aff',ice:'#bff0ff'};
-const STN={poison:'พิษ',bleed:'เลือดออก',burn:'เผาไหม้',shock:'ช็อก',stun:'มึนงง',blind:'ตาบอด',chaos:'โกลาหล',freeze:'แช่แข็ง',radiance:'แสงเผาผลาญ',curse:'คำสาปมืด',frostbite:'น้ำแข็งกัด'};
-const STI={poison:'☠',bleed:'🩸',burn:'🔥',shock:'⚡',stun:'💫',blind:'🌑',chaos:'🌀',freeze:'❄️',radiance:'☀',curse:'🌑',frostbite:'🧊'};
-const STC={poison:'#8aff5a',bleed:'#ff4a5a',burn:'#ff8a3a',shock:'#9fe6ff',stun:'#ffe27a',blind:'#b08aff',chaos:'#ff5ad8',freeze:'#8ef2ff',radiance:'#fff1a8',curse:'#b07cff',frostbite:'#6fd4ff'};
+const STN={poison:'พิษ',bleed:'เลือดออก',burn:'เผาไหม้',shock:'ช็อก',stun:'มึนงง',blind:'ตาบอด',chaos:'โกลาหล',freeze:'แช่แข็ง',radiance:'แสงเผาผลาญ',curse:'คำสาปมืด',frostbite:'น้ำแข็งกัด',arcaneburn:'อาคมกัดกร่อน'};
+const STI={poison:'☠',bleed:'🩸',burn:'🔥',shock:'⚡',stun:'💫',blind:'🌑',chaos:'🌀',freeze:'❄️',radiance:'☀',curse:'🌑',frostbite:'🧊',arcaneburn:'✧'};
+const STC={poison:'#8aff5a',bleed:'#ff4a5a',burn:'#ff8a3a',shock:'#9fe6ff',stun:'#ffe27a',blind:'#b08aff',chaos:'#ff5ad8',freeze:'#8ef2ff',radiance:'#fff1a8',curse:'#b07cff',frostbite:'#6fd4ff',arcaneburn:'#d88aff'};
 
 /* ---------- moves (frame data). dmg = power coefficient ×10 ---------- */
 function M(n,s,a,r,dmg,reach,kb,hs,o={}){return Object.assign({n,s,a,r,dmg,reach,kb,hs,hy:62,hh:56},o);}
@@ -177,7 +178,7 @@ const SKILLS={
   poisondart:{ic:'💉',n:'เข็มพิษ',tier:'common',type:'phys',el:'poison',coef:.9,cd:6,mp:25,range:'ไกล (กระสุนเร็ว)',anim:'jab',proj:{spd:7,r:4,hits:1},status:{poison:2},combo:1,desc:'ปาเข็มพิษเร็ว 90% ATK ติดพิษ 2 สแตกทันที (CD 6 วิ · 25 MP)'},
   slashwave:{ic:'🌊',n:'คลื่นดาบ',tier:'common',type:'phys',el:'weapon',coef:1.2,cd:4,mp:35,range:'ไกล',anim:'heavyslash',proj:{spd:5.5,r:12,hits:1},combo:1,desc:'ฟันส่งคลื่นพุ่งตรง'},
   emberbolt:{ic:'🔥',n:'ลูกไฟถ่าน',tier:'common',type:'magic',el:'fire',coef:1.1,cd:4,mp:35,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:4.2,r:9,hits:1},status:{burn:1},combo:1,desc:'ลูกไฟเล็ก ทำให้เผาไหม้'},
-  sparkfist:{ic:'✨',n:'หมัดประกายไฟ',tier:'common',type:'phys',el:'lightning',coef:1.3,cd:4,mp:35,range:'ใกล้ (44)',anim:'straight',reach:44,combo:1,desc:'หมัดธาตุสายฟ้า มีโอกาสช็อกตามธาตุ'},
+  sparkfist:{ic:'✨',n:'หมัดประกายไฟ',tier:'common',type:'phys',el:'lightning',coef:1.3,cd:4,mp:35,range:'ใกล้ (44)',anim:'straight',reach:44,status:{shock:1},combo:1,desc:'หมัดธาตุสายฟ้า ทำให้ช็อก'},
   venomslash:{ic:'🐍',n:'ฟันอสรพิษ',tier:'common',type:'phys',el:'poison',coef:1.2,cd:5,mp:40,range:'ใกล้ (54)',anim:'heavyslash',reach:54,status:{poison:1},combo:1,desc:'ฟันหนัก ติดพิษ 1 สแตก'},
   cuttingwind:{ic:'🍃',n:'สายลมคมกริบ',tier:'common',type:'phys',el:'phys',coef:1.5,multi:3,cd:6,mp:35,range:'กลาง (96) 3 ฮิต',anim:'thrust',reach:96,status:{bleed:1},combo:1,desc:'ปล่อยใบมีดลม 3 ใบพุ่งไปตัดกันเป็นกากบาท รวม 150% ATK + เลือดออก 1 สแตก (CD 6 วิ · 35 MP)'},
   slashcut:{ic:'⚔️',n:'Slash',tier:'common',type:'phys',el:'phys',coef:1.6,multi:4,cd:7,mp:30,range:'ใกล้ (72) 4 ฮิต',anim:'rush',reach:72,lunge:1.1,slashFx:1,combo:1,desc:'ฟันเสี้ยวแสงต่อเนื่อง 4 ครั้ง รวม 160% ATK (CD 7 วิ · 30 MP)'},
@@ -216,7 +217,7 @@ const SKILLS={
   ironwall:{ic:'🧱',n:'กำแพงเหล็ก (Iron Wall)',tier:'unique',talent:'endurer',type:'buff',cd:16,mp:45,range:'ตัวเอง',anim:'block',buff:{dr:.3,armor:1,t:240,statusImm:480,def:150,defT:600},desc:'เพิ่ม DEF +150 นาน 10 วิ, ลดดาเมจเพิ่ม 30% (รวมไม่เกิน 75%) 4 วิ และกันสถานะผิดปกติทุกชนิด 8 วิ (CD 16 วิ)'},
   bloodpact:{ic:'🩸',n:'สัญญาโลหิต (Blood Pact)',tier:'unique',talent:'undying',type:'phys',el:'shadow',coef:2.2,cd:9,mp:40,range:'ใกล้ (54)',anim:'heavyslash',reach:54,lifesteal:.15,multi:1,status:{bleed:10},combo:1,desc:'ฟันโลหิต 220% ATK ฟื้น HP 15% ของดาเมจที่ทำ และติดเลือดออก 10 สแตก (CD 9 วิ · 40 MP)'},
   toxiccurse:{ic:'🕸️',n:'คำสาปพิษ (Toxic Curse)',tier:'unique',talent:'hexweaver',type:'magic',el:'poison',coef:1.4,cd:10,mp:50,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:5,r:10,hits:1},multi:1,status:{poison:10,curse:1},desc:'ยิงคำสาปใส่เป้าหมาย 140% ATK ติดพิษ 10 สแตก + คำสาปมืด (CD 10 วิ · 50 MP)'},
-  arcaneburst:{ic:'🔮',n:'ระเบิดอาคม (Arcane Burst)',tier:'unique',talent:'archmage',type:'magic',el:'arcane',coef:2.8,cd:16,mpPct:.2,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:6,r:12,hits:1},status:{shock:3,burn:3,stun:1},desc:'ระเบิดพลังอาคม 280% ATK (หัก DEF ปกติ) ติดช็อก + เผาไหม้ + มึนงง · ใช้ MP 20% ของ MP สูงสุด · คูลดาวน์ 16 วิ'},
+  arcaneburst:{ic:'🔮',n:'ระเบิดอาคม (Arcane Burst)',tier:'unique',talent:'archmage',type:'magic',el:'arcane',coef:2.8,cd:16,mpPct:.2,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:6,r:12,hits:1},status:{shock:3,burn:3,stun:1,arcaneburn:2},desc:'ระเบิดพลังอาคม 280% ATK (หัก DEF ปกติ) ติดช็อก + เผาไหม้ + อาคมกัดกร่อน + มึนงง · ใช้ MP 20% ของ MP สูงสุด · คูลดาวน์ 16 วิ'},
   kingaura:{ic:'👑',n:'ออร่าราชา (Monarch\'s Aura)',tier:'unique',talent:'sololeveling',type:'buff',cd:16,mp:45,range:'ทั้งฉาก',anim:'cast',kingAura:480,desc:'ปลดปล่อยออร่าราชา 8 วิ: ฝ่ายตรงข้ามได้รับดาเมจจากเราแรงขึ้น 25% (คูลดาวน์ 16 วิ · 45 MP)'},
   royalparry:{ic:'🛡️',n:'ยืนหยัดปัดป้อง (Royal Parry)',tier:'unique',talent:'parryman',type:'passive',passive:{id:'royalparry',v:1},range:'พาสซีฟ',anim:'-',desc:'พาสซีฟ (กดใช้ไม่ได้): เมื่อกดกัน [E] แล้วติดป้องกันสมบูรณ์ (Perfect Block) แทนที่การสตันศัตรู จะเกิดแสงขาว-ฟ้าและได้รับบัฟปัดป้อง 3 วิ (โจมตีเป็น True Damage)'},
   blooddrain:{ic:'🩸',n:'คำสาปสูบโลหิต (Crimson Curse)',tier:'unique',talent:'vampire',type:'passive',passive:{id:'blooddrain',v:.15,defRed:.15},range:'พาสซีฟ',anim:'-',desc:'พาสซีฟ: ลด Max HP และ DEF ฝ่ายตรงข้ามลง 15% ตลอดการต่อสู้'},
@@ -366,7 +367,7 @@ for(const e in GEL)GAFX['dmg_'+e]={n:'โบนัสดาเมจ'+GEL[e],sta
 for(const e of ['fire','ice','lightning','holy','shadow','arcane'])GAFX['res_'+e]={n:'ต้าน'+(e==='arcane'?'เวท':GEL[e]),stat:'res_'+e,pct:1,t:[4,6,9,12,16],g:'def'};
 const GPOOL={
   weapon:['atkPct','atkFlat','critRate','critDmg','penPct','allDmg','statusChance',...Object.keys(GEL).map(e=>'dmg_'+e)],
-  armor:['defPct','defFlat','hpPct','hpFlat','dr','statusRes','evasion','stamina','res_fire','res_ice','res_lightning','res_holy','res_shadow','res_arcane'],
+  armor:['defPct','defFlat','hpPct','hpFlat','dr','statusRes','evasion','stamina','critRate','res_fire','res_ice','res_lightning','res_holy','res_shadow','res_arcane'],
   acc:Object.keys(GAFX)};
 const gearCat=t=>t==='weapon'?'weapon':['helmet','armor','pants','boots'].includes(t)?'armor':'acc';   // ถุงมือ · แหวน · สร้อย · เข็มขัด = เครื่องประดับ
 const CAT_N={sword:'ดาบ',gsword:'ดาบหนัก',hammer:'ค้อน',ghammer:'ค้อนหนัก',spear:'หอก',fist:'หมัด',staff:'ไม้เท้า',helmet:'หมวก',armor:'เกราะ',gloves:'ถุงมือ',pants:'กางเกง',boots:'รองเท้า',belt:'เข็มขัด',accessory:'เครื่องประดับ'};
@@ -1084,12 +1085,26 @@ const COLOSSEUM_TRIALS={
 };
 
 /* ---------- ระบบต่อสู้ใหม่: สถานะประจำธาตุ ----------
-   ท่าธาตุแสง → แสงเผาผลาญ · ธาตุมืด → คำสาปมืด · ธาตุน้ำแข็ง (ที่ไม่ได้แช่แข็ง) → น้ำแข็งกัด (ท่าน้ำแข็งเดิมที่ติดไฟเผา เปลี่ยนเป็นน้ำแข็งกัด) */
+   กายภาพ → เลือดออก · ไฟ → เผาไหม้ · พิษ → พิษ · สายฟ้า → ช็อก · แสง → แสงเผาผลาญ · มืด → คำสาปมืด · อาคม → อาคมกัดกร่อน · น้ำแข็ง (ที่ไม่ได้แช่แข็ง) → น้ำแข็งกัด (ครบ 5 สแตก → แช่แข็ง!) */
+const EL_STATUS={phys:'bleed',fire:'burn',ice:'frostbite',poison:'poison',lightning:'shock',holy:'radiance',shadow:'curse',arcane:'arcaneburn'};
 (function v2ElemStatus(){const seen=new Set();
+  const applyEl=(o,el,stacks=1,dur)=>{
+    if(!o||typeof o!=='object')return;
+    if(el==='ice'){o.status=o.status||{};if(o.status.burn){o.status.frostbite=(o.status.frostbite||0)+o.status.burn;delete o.status.burn;}else if(!o.status.freeze)o.status.frostbite=o.status.frostbite||stacks;}
+    else if(el==='holy'){o.status=o.status||{};o.status.radiance=o.status.radiance||stacks;}
+    else if(el==='shadow'){o.status=o.status||{};o.status.curse=o.status.curse||stacks;}
+    else if(EL_STATUS[el]){o.status=o.status||{};o.status[EL_STATUS[el]]=o.status[EL_STATUS[el]]||stacks;}
+    if(dur&&!o.statusDur)o.statusDur=dur;
+  };
   const walk=o=>{if(!o||typeof o!=='object'||seen.has(o))return;seen.add(o);
     if(typeof o.el==='string'&&(o.dmg!==undefined||o.coef!==undefined)){
-      if(o.el==='ice'){o.status=o.status||{};if(o.status.burn){o.status.frostbite=(o.status.frostbite||0)+o.status.burn;delete o.status.burn;}else if(!o.status.freeze)o.status.frostbite=o.status.frostbite||1;}
-      else if(o.el==='holy'){o.status=o.status||{};o.status.radiance=o.status.radiance||1;}
-      else if(o.el==='shadow'){o.status=o.status||{};o.status.curse=o.status.curse||1;}}
+      if(o.el==='ice'||o.el==='holy'||o.el==='shadow')applyEl(o,o.el,1);}
     for(const k in o)if(o[k]&&typeof o[k]==='object')walk(o[k]);};
-  walk(SKILLS);walk(FOES);walk(WEAPONS);})();
+  walk(SKILLS);walk(FOES);
+  for(const [wk,w] of Object.entries(WEAPONS)){
+    const el=w.el;if(!el||!EL_STATUS[el])continue;
+    const stL=wk==='runeblade'?2:1,stH=wk==='runeblade'?3:(['ice','poison','shadow','phys','arcane'].includes(el)?2:1);
+    for(const m of w.light){m.el=m.el||el;applyEl(m,el,stL,el==='lightning'?1.5:0);}
+    if(w.heavy){w.heavy.el=w.heavy.el||el;applyEl(w.heavy,el,stH);}
+  }
+})();

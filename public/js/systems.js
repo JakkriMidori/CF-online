@@ -181,7 +181,7 @@ const Ult={
 };
 /* ---------------- StatusEffect ---------------- */
 const Status={
-  init(f){f.st8={poison:null,bleed:null,burn:null,shock:null,stun:null,blind:null,chaos:null,freeze:null,radiance:null,curse:null,frostbite:null};f.stunImm=0;},
+  init(f){f.st8={poison:null,bleed:null,burn:null,shock:null,stun:null,blind:null,chaos:null,freeze:null,radiance:null,curse:null,frostbite:null,arcaneburn:null};f.stunImm=0;},
   /* ATK มาตรฐานตามเลเวล — ฐานของ DoT (ไม่ขึ้นกับ ATK/อุปกรณ์ขณะนั้น) */
   stdATK(lv){const c=CONFIG.dot2;return c.atkBase+c.atkPer*Math.max(1,lv||1);},
   srcLv(src,f){return(src&&src.S&&src.S.level)||(src&&src.lv)||(f&&f.S&&f.S.level)||(f&&f.lv)||1;},
@@ -196,7 +196,7 @@ const Status={
     if(chance<1&&rand()>=chance)return'resist';
     const mul=1,hex=SS&&SS.talent==='hexweaver',T=o=>hex&&o?o.t+Dur:Dur;   // Hexweaver: ติดซ้ำ = เวลาต่อท้าย ไม่มีเพดาน · คนอื่นรีเฟรชเป็นค่าเดิม
     const lv=Status.srcLv(src,f);
-    if(type==='poison'||type==='bleed'||type==='curse'||type==='frostbite'){
+    if(type==='poison'||type==='bleed'||type==='curse'||type==='frostbite'||type==='arcaneburn'){
       if(type==='frostbite'&&s.burn&&src){s.burn=null;s.frostbite=null;Status.onSynergy&&Status.onSynergy(f,'melt',src);return'ok';}   /* ละลาย */
       if(type==='curse'&&s.radiance&&src){s.radiance=null;s.curse=null;Status.onSynergy&&Status.onSynergy(f,'eclipse',src);return'ok';}   /* สุริยคราส */
       const mx=(CONFIG.dot2[type]&&CONFIG.dot2[type].max)||CONFIG.maxStacks;let any=false;
@@ -342,9 +342,9 @@ const Inv={
   remove(it){for(const s of SLOTS)if(G.eq[s]===it.uid)G.eq[s]=null;G.bag=G.bag.filter(x=>x!==it);},
   // ราคาขาย: ครึ่งหนึ่งของค่าแยกชิ้นส่วนทอง (ขายเฉพาะไอเทมที่ไม่ได้สวมอยู่)
   sellPrice(it){const r=RARS.indexOf(it.rar);return Math.max(1,Math.round(25*(r+1)*(r+1)*(1+.2*(it.enh||0))));},
-  matPrice(k){const m=MATS[k];if(!m)return 0;if(k.startsWith('sk_'))return 80;if(m.rareMat)return 60;if(k==='divine')return 150;if(k.startsWith('pot_'))return 120;if(k.startsWith('mp_')||k==='potion')return 10;return 5;},
-  isJunkMat(k){const m=MATS[k];return !!m&&!m.rareMat&&!m.scroll&&!m.use&&!m.manaPotion&&!k.startsWith('sk_')&&!k.startsWith('mp_')&&k!=='potion'&&k!=='divine'&&k!=='ore';},   // แร่เหล็กเก็บไว้ใช้ตีบวก
-  sellMat(k,q){q=Math.min(q,G.mats[k]||0);if(q<=0)return 0;const g=this.matPrice(k)*q;this.take(k,q);G.gold+=g;return g;},
+  matPrice(k){const m=MATS[k];if(!m||m.key)return 0;if(k.startsWith('sk_'))return 80;if(m.rareMat)return 60;if(k==='divine')return 150;if(k.startsWith('pot_'))return 120;if(k.startsWith('mp_')||k==='potion')return 10;return 5;},
+  isJunkMat(k){const m=MATS[k];return !!m&&!m.key&&!m.rareMat&&!m.scroll&&!m.use&&!m.manaPotion&&!k.startsWith('sk_')&&!k.startsWith('mp_')&&k!=='potion'&&k!=='divine'&&k!=='ore';},   // แร่เหล็กเก็บไว้ใช้ตีบวก · ของสำคัญขายไม่ได้
+  sellMat(k,q){const m=MATS[k];if(!m||m.key)return 0;q=Math.min(q,G.mats[k]||0);if(q<=0)return 0;const g=this.matPrice(k)*q;this.take(k,q);G.gold+=g;return g;},
   sellAllGear(rar){let g=0,n=0;for(const it of G.bag.slice()){if(Equip.isEquipped(it)||(rar&&it.rar!==rar))continue;g+=this.sellPrice(it);this.sell(it);n++;}return{g,n};},
   sellAllJunk(){let g=0,n=0;for(const k of Object.keys(G.mats))if(this.isJunkMat(k)){n+=G.mats[k];g+=this.sellMat(k,G.mats[k]);}return{g,n};},
   sell(it){if(Equip.isEquipped(it))return false;G.gold+=this.sellPrice(it);this.remove(it);return true;},
@@ -582,6 +582,7 @@ const Skills={
     const m=M(s.n,s.startup||fr[0],a,fr[2],(s.coef||0)*10*this.scale(id,f).coef,s.reach||0,3,22,{anim:s.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
       type:s.type,el,skillId:id,hy:s.hy||62,hh:s.hh||60});
     for(const k of ['multi','proj','beam','beamCol','spiritBeam','blueFlame','greenFlame','swap','launch','rise','inv','lunge','kicks','status','statusDur','armorBreak','unblockable','jackpotPen','jackpot','alwaysCrit','defPen','lifesteal','ignoreDef','lastCrit','strike','buff','hpCost','rain','kd','low','dragon','kingAura','holdParry','rootDur','pillars','frostnova','instantShatter','windblade','blink','blinkBuff','slashFx','vfx','lightJudge'])if(s[k]!==undefined)m[k]=s[k];
+    if(s.el==='weapon'&&typeof EL_STATUS!=='undefined'&&EL_STATUS[el]){const sk=EL_STATUS[el];m.status=Object.assign({},m.status||{});if(!m.status[sk]&&!(el==='ice'&&m.status.freeze))m.status[sk]=1;}
     if(s.tier==='ultimate')m.super=2;
     return this.cache[key]=m;
   }

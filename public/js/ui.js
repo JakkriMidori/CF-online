@@ -4,7 +4,7 @@
    ============================================================ */
 const pn=$('#pn'),ov=$('#ov');
 // รวมราคาของที่เลือกไว้ในหน้าขาย (อุปกรณ์ = ทีละชิ้น, วัตถุดิบ = ทั้งกอง)
-function sellSelValue(){let g=0,n=0;for(const k of UI.sellSel){const v=k.slice(2);if(k[0]==='i'){const it=itemByUid(+v);if(it&&!Equip.isEquipped(it)){g+=Inv.sellPrice(it);n++;}}else if(G.mats[v]>0){g+=Inv.matPrice(v)*G.mats[v];n++;}}return{g,n};}
+function sellSelValue(){let g=0,n=0;for(const k of UI.sellSel){const v=k.slice(2);if(k[0]==='i'){const it=itemByUid(+v);if(it&&!Equip.isEquipped(it)){g+=Inv.sellPrice(it);n++;}}else if(G.mats[v]>0&&Inv.matPrice(v)>0){g+=Inv.matPrice(v)*G.mats[v];n++;}}return{g,n};}
 const ATTR_HINT={str:'ATK +2/หน่วย · ทุก 10 = ต้านสถานะ +1%',agi:'ทุก 10 = หลบ +1%, DEF +3',int:'MP +10, ATK +2/หน่วย',vit:'HP +20/หน่วย',luk:'คริ +0.2%, ดาเมจคริ +1%/หน่วย'};
 const MENU_SUB=['char','bag','equip','skills','quests','map','ency','settings','controls','debug'];   // หน้าที่เปิดจากเมนู Tab จะมีปุ่มกลับเมนูด้านบน
 const pct=v=>(Math.round(v*1000)/10)+'%';
@@ -262,7 +262,7 @@ const UI={
     return`<div class="tip"><div class="tn" ${rc(mr)}>${mIco(k,16)} ${m.n}</div>
       <div class="ts">${RARN[mr]} · ${cat} · มีอยู่ <b>×${G.mats[k]}</b></div>
       <div style="margin:8px 0;line-height:1.55">${lines.map(t=>`<div>${t}</div>`).join('')}</div>
-      <div class="acts">${usable?`<button class="btn sm" data-use="${k}">ใช้</button>`:''}${price>0?`<span class="dim" style="align-self:center">${ico('coin',14)} ราคาขาย ${price} ทอง/ชิ้น (ร้านค้ามาร์คัส)</span>`:''}</div></div>`;
+      <div class="acts">${usable?`<button class="btn sm" data-use="${k}">ใช้</button>`:''}${price>0?`<span class="dim" style="align-self:center">${ico('coin',14)} ราคาขาย ${price} ทอง/ชิ้น (ร้านค้ามาร์คัส)</span>`:m.key?`<span class="dim" style="align-self:center">🔑 ของสำคัญ — ขายไม่ได้</span>`:''}</div></div>`;
   },
   scr_bag(){
     const tab=this.bagTab,list=this.bagItems(tab),sel=this.sel&&itemByUid(this.sel),isGear=['weapon','armor','acc'].includes(tab);
@@ -431,7 +431,7 @@ const UI={
     const junk=mk.filter(k=>Inv.isJunkMat(k)),jsum=junk.reduce((s,k)=>s+Inv.matPrice(k)*G.mats[k],0);
     const mrows=mk.map(k=>`<div class="srow sel${SS.has('m:'+k)?' on':''}">${cb('m:'+k)}<span class="ic">${mIco(k,16)}</span><span>${MATS[k].n} <b>×${G.mats[k]}</b></span><small class="dim">${Inv.matPrice(k)} ทอง/ชิ้น</small><span><button class="btn ghost sm" data-sellmat="${k}" data-q="1">ขาย 1</button> <button class="btn ghost sm" data-sellmat="${k}" data-q="all">${arm('m:'+k,'ขายหมด')} ${Inv.matPrice(k)*G.mats[k]}</button></span></div>`).join('')||'<div class="dim">ไม่มีวัตถุดิบ</div>';
     return head+selBar+`<h3>อุปกรณ์ <small class="dim">ราคาขาย = ครึ่งหนึ่งของค่าแยกชิ้นส่วน · ต้องกดสองครั้งเพื่อยืนยัน</small></h3>${bulk}<div class="slist">${rows}</div>
-      <h3>วัตถุดิบ / ของใช้</h3>${junk.length?`<div class="acts"><button class="btn sm" data-selljunk="1">${arm('junk','ขายวัตถุดิบทั่วไปทั้งหมด')} (${jsum} ทอง)</button> <small class="dim">ไม่รวมตำราสกิล ยา และวัตถุดิบหายาก</small></div>`:''}<div class="slist">${mrows}</div>`;},
+      <h3>วัตถุดิบ / ของใช้</h3>${junk.length?`<div class="acts"><button class="btn sm" data-selljunk="1">${arm('junk','ขายวัตถุดิบทั่วไปทั้งหมด')} (${jsum} ทอง)</button> <small class="dim">ไม่รวมตำราสกิล ยา วัตถุดิบหายาก และของสำคัญ</small></div>`:''}<div class="slist">${mrows}</div>`;},
   /* ---- ร้านตีเหล็ก ---- */
   smTab:'buy',
   SMITH_STOCK:[['be_rope',80],['w_club',60],['w_sword',150],['w_spear',150],['h_leather',60],['h_iron',140],['a_leather',120],['g_leather',60],['g_iron',140],['p_leather',80],['b_iron',140],['r_copper',100],['n_fang',100]],
@@ -484,10 +484,12 @@ const UI={
         <div class="frow-main" style="width:100%"><button class="btn sm ghost" data-aflock="${i}" title="${a.lock?'ปลดล็อก':'ล็อก: ไม่เปลี่ยนตอนรีค่าทั้งหมด'}">${a.lock?'🔒':'🔓'}</button><button class="eqcand${on?' on':''}" data-afsel="${i}" style="flex:1;margin:0" title="${on?'คลิกอีกครั้งเพื่อยกเลิกเลือก':'คลิกเพื่อเลือก'}"><span><b>${Gear.label(a,it)}</b> ${tierTag(a.t)}</span><b>${grpN[GAFX[a.k].g]}${on?' · ✓ เลือกอยู่':''}</b></button></div></div>`;}).join('')||'<div class="dim">ไม่มีค่าความสามารถ</div>';
     const used=new Set(af.filter((x,i)=>i!==this.afSel).map(x=>x.k));
     const rng=k=>{const A=GAFX[k],v=t=>A.pct?A.t[t]+'%':(A.lv?Math.round(A.t[t]*RARITY[it.rar].mult*(1+GEAR.enhStep*(it.enh||0))):A.t[t]);return`${v(0)}–${v(4)}`;};
-    const opts=Gear.pool(it).filter(k=>!used.has(k)).map(k=>`<option value="${k}" ${sel&&sel.k===k?'selected':''}>${GAFX[k].n}${GAFX[k].pct?' %':''} (T1–T5: ${rng(k)})</option>`).join('');
+    /* เลือกค่าที่อยากได้: การ์ดตัวเลือกแทน dropdown (อ่านง่าย เห็นช่วง T1–T5 ครบ) */
+    const cand=Gear.pool(it).filter(k=>!used.has(k));if(this.afTarget&&!cand.includes(this.afTarget))this.afTarget=null;
+    const opts=cand.map(k=>`<button class="afchip${this.afTarget===k?' on':''}" data-aftgt="${k}" ${sel&&!sel.lock?'':'disabled'}><b>${GAFX[k].n}${GAFX[k].pct?' %':''}</b><small>T1–T5 · ${rng(k)}</small></button>`).join('');
     const why=[];const lacks=(k,n)=>have(k)<n;
     const rollWhy=rc2.locks>=af.length?'ล็อกครบทุกค่าแล้ว':lacks('rerollstone',1)?'หินรีค่าไม่พอ':rc2.locks&&lacks('philostone',rc2.locks)?'ตราล็อกไม่พอ':G.gold<C.reroll.gold?'ทองไม่พอ':'';
-    const pickWhy=!sel?'เลือกค่าก่อน':sel.lock?'ค่านี้ถูกล็อก':lacks('pickstone',1)?'ศิลาเลือกค่าไม่พอ':G.gold<C.pick.gold?'ทองไม่พอ':'';
+    const pickWhy=!sel?'เลือกค่าก่อน':sel.lock?'ค่านี้ถูกล็อก':!this.afTarget?'เลือกค่าที่อยากได้ก่อน':lacks('pickstone',1)?'ศิลาเลือกค่าไม่พอ':G.gold<C.pick.gold?'ทองไม่พอ':'';
     const tierWhy=!sel?'เลือกค่าก่อน':sel.t>=5?'T5 สูงสุดแล้ว':lacks('tierstone',1)?'หินอัปเทียร์ไม่พอ':G.gold<C.tier.gold?'ทองไม่พอ':'';
     const cost=(k,n,g)=>`<span class="${have(k)>=n?'':'bad'}">${MATS[k].n} ${have(k)}/${n}</span> · <span class="${G.gold>=g?'':'bad'}">${g} ทอง</span>`;
     const btn=(attr,label,w)=>`<button class="btn sm" ${attr} ${w?`disabled title="${w}"`:''}>${label}</button>${w?` <span class="bad" style="font-size:12px">${w}</span>`:''}`;
@@ -497,7 +499,8 @@ const UI={
         <div class="tset" style="margin-top:10px;padding:8px 10px">
           <div class="acts" style="margin:0 0 6px">${btn('data-afroll="1"','🎲 รีค่าทั้งหมด'+(rc2.locks?` (ล็อก ${rc2.locks})`:''),rollWhy)}</div>
           <div class="dim" style="margin-bottom:8px">ใช้ ${cost('rerollstone',1,C.reroll.gold)}${rc2.locks?` · <span class="${have('philostone')>=rc2.locks?'':'bad'}">ตราล็อก (${MATS.philostone.n}) ${have('philostone')}/${rc2.locks}</span>`:''}</div>
-          <div class="acts" style="margin:0 0 6px"><select id="afPick" ${sel&&!sel.lock?'':'disabled'} style="max-width:320px">${opts}</select>${btn('data-afpick="1"','🎯 เปลี่ยนค่าที่เลือก',pickWhy)}</div>
+          <div class="afgrid">${opts||'<span class="dim">ไม่มีค่าอื่นให้เลือก</span>'}</div>
+          <div class="acts" style="margin:0 0 6px">${btn('data-afpick="1"','🎯 เปลี่ยนเป็น '+(this.afTarget?GAFX[this.afTarget].n+(GAFX[this.afTarget].pct?' %':''):'ค่าที่เลือก'),pickWhy)}</div>
           <div class="dim" style="margin-bottom:8px">เทียร์สุ่มใหม่ · ใช้ ${cost('pickstone',1,C.pick.gold)}</div>
           <div class="acts" style="margin:0 0 6px">${btn('data-aftier="1"','✦ อัปเทียร์'+(sel&&sel.t<5?` T${sel.t}→T${sel.t+1} (${Math.round(GEAR.tierUp[sel.t-1]*100)}%)`:''),tierWhy)}</div>
           <div class="dim">พลาดไม่ลด · ใช้ ${cost('tierstone',1,C.tier.gold)}</div>
@@ -923,7 +926,8 @@ pn.addEventListener('click',e=>{
   if(d.afsel!==undefined){const i=+d.afsel;UI.afSel=UI.afSel===i?-1:i;UI.afFlash=-1;SFX.ui&&SFX.ui('cursor');UI.rerender();return;}
   if(d.afclear){UI.afSel=-1;UI.rerender();return;}
   if(d.afroll){const r=Gear.reroll(itemByUid(UI.afIt));toast(r.msg);r.ok?SFX.craft():SFX.fail();if(r.ok){UI.afFlash=-1;Save.save();}UI.rerender();return;}
-  if(d.afpick){const el=document.getElementById('afPick'),r=Gear.pick(itemByUid(UI.afIt),UI.afSel,el&&el.value);toast(r.msg);r.ok?SFX.craft():SFX.fail();if(r.ok){UI.afFlash=UI.afSel;Save.save();}UI.rerender();return;}
+  if(d.aftgt){UI.afTarget=UI.afTarget===d.aftgt?null:d.aftgt;SFX.ui&&SFX.ui('cursor');UI.rerender();return;}
+  if(d.afpick){const r=Gear.pick(itemByUid(UI.afIt),UI.afSel,UI.afTarget);if(r.ok)UI.afTarget=null;toast(r.msg);r.ok?SFX.craft():SFX.fail();if(r.ok){UI.afFlash=UI.afSel;Save.save();}UI.rerender();return;}
   if(d.aftier){const r=Gear.tierUp(itemByUid(UI.afIt),UI.afSel);toast(r.msg);r.ok?SFX.level():SFX.fail();UI.afFlash=r.ok?UI.afSel:-1;Save.save();UI.rerender();return;}
   if(d.drill){const r=Gear.drill(itemByUid(+d.drill));toast(r.msg);r.ok?SFX.craft():SFX.fail();if(r.ok)Save.save();UI.rerender();return;}
   if(d.evolve){const r=Equip.evolve(itemByUid(+d.evolve));toast(r.msg);r.ok?SFX.level():SFX.fail();UI.rerender();return;}
@@ -961,7 +965,7 @@ pn.addEventListener('click',e=>{
   if(d.ssel){const S=UI.sellSel;S.has(d.ssel)?S.delete(d.ssel):S.add(d.ssel);UI.bulkArm=null;UI.rerender();return;}
   if(d.sselall){const S=UI.sellSel;if(d.sselall==='none')S.clear();else if(d.sselall==='gear')G.bag.filter(it=>!Equip.isEquipped(it)).forEach(it=>S.add('i:'+it.uid));else Object.keys(G.mats).filter(k=>Inv.matPrice(k)>0).forEach(k=>S.add('m:'+k));UI.bulkArm=null;UI.rerender();return;}
   if(d.sellsel&&UI.cur==='shop'){if(UI.bulkArm!=='sel'){UI.bulkArm='sel';UI.rerender();return;}UI.bulkArm=null;let g=0,n=0;
-    for(const k of [...UI.sellSel]){const v=k.slice(2);if(k[0]==='i'){const it=itemByUid(+v);if(it&&!Equip.isEquipped(it)){g+=Inv.sellPrice(it);Inv.sell(it);n++;}}else if(G.mats[v]>0){n+=G.mats[v];g+=Inv.sellMat(v,G.mats[v]);}}
+    for(const k of [...UI.sellSel]){const v=k.slice(2);if(k[0]==='i'){const it=itemByUid(+v);if(it&&!Equip.isEquipped(it)){g+=Inv.sellPrice(it);Inv.sell(it);n++;}}else if(G.mats[v]>0&&Inv.matPrice(v)>0){n+=G.mats[v];g+=Inv.sellMat(v,G.mats[v]);}}
     UI.sellSel.clear();if(n){SFX.loot('rare');toast(`ขาย ${n} ชิ้น ได้ ${g} ทอง`);}UI.rerender();UI.hud();return;}
   if(d.ctab){UI.craftTab=d.ctab;if(UI.cur!=='craft')UI.open('craft');else UI.rerender();return;}
   if(d.smtab){UI.smTab=d.smtab;UI.rerender();return;}

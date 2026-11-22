@@ -244,7 +244,8 @@ const Story={
   cine(on){const w=document.getElementById('wrap');if(w)w.classList.toggle('cine',!!on);},
   /* คิวฉากที่ต้องเล่นเมื่อกลับสู่โหมดสำรวจ (เช่นหลังหน้าสรุปของรางวัล) */
   enqueue(fn){this.queue.push(fn);},
-  flush(){if(this.active||!this.queue.length)return;if(G.mode!=='explore'||(typeof UI!=='undefined'&&UI.cur))return;const fn=this.queue.shift();fn&&fn();},
+  flush(){if(!this.active){if(this.card&&!this.card.classList.contains('hidden')){this.card.classList.add('hidden');this.cine(false);}if(G.mode==='story')G.mode='explore';}   // กันการ์ดค้างถ้าฉากถูกยกเลิกจากที่อื่น
+    if(this.active||!this.queue.length)return;if(G.mode!=='explore'||(typeof UI!=='undefined'&&UI.cur))return;const fn=this.queue.shift();fn&&fn();},
   /* ---------- บทพูดบอส ---------- */
   bossIntro(e,go){if(!e||G.vsNet||(typeof BT!=='undefined'&&BT))return false;const L=BOSS_LINES[e.kind];if(!L||L.skipIntro||!L.intro)return false;
     if(e._storyIntro){return false;}e._storyIntro=1;setTimeout(()=>{e._storyIntro=0;},4000);

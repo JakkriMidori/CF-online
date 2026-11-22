@@ -287,6 +287,9 @@ function runTests(){
       T0+=RESPAWN_MS-1000;Respawn.refreshItems(Z);const still3=it.taken;T0+=2000;Respawn.refreshItems(Z);const back=!it.taken;
       return{ok:still&&still2&&still3&&back,info:`reenter=${still} fountain=${still2} 4:59=${still3} 5:01=${back}`};
     }finally{Respawn.now=dn;G.flags=JSON.parse(sf);G.mats=JSON.parse(gm);loadZone(makeTown());}});
+  T('UPD1) ตัวอัปเดตเว็บ: ไม่มี CF_BUILD (เปิดไฟล์ในเครื่อง/claude.ai) → ปิดไว้ · ไม่รีโหลดระหว่างต่อสู้/คัตซีน',()=>{const sm=G.mode;
+    const off=typeof Updater!=='undefined'&&(!window.CF_BUILD?!Updater.enabled():true);const sa=Story.active,ca=Cutscene.active;Story.active=null;Cutscene.active=null;G.mode='battle';const notSafe=!Updater.safe();G.mode='explore';const ok2=Updater.safe();Story.active=sa;Cutscene.active=ca;G.mode=sm;
+    return{ok:off&&notSafe&&ok2};});
   T('STY1) เนื้อเรื่อง: บอสทุกตัวตั้งแต่คาเงะถึงราชาอัศวินแสงมีบทพูดก่อนสู้+หลังแพ้ · บทพูดชี้กลับเนื้อเรื่อง (หินเอเธอร์/นิกซ์/โอเรเลียน)',()=>{
     const path=['kage','golem','lavaking','homunculus','seraph','spire_b1','spire_b2','spire_b3','spire_b4','spire_b5','aspire_b1','aspire_b2','aspire_b3','aspire_b4','aether_king'];
     const miss=path.filter(k=>!FOES[k]||!BOSS_LINES[k]||!BOSS_LINES[k].intro||!BOSS_LINES[k].win||!BOSS_LINES[k].re);
@@ -854,6 +857,86 @@ function runTests(){
     G.guildRank=rk0;G.bag=b0;Z=z0s;
     const lo=vsLoadout(),arenaOk=lo&&lo.skills.length===5&&!!lo.guildRank&&lo.S&&!lo.S.base&&!lo.S.flat&&Skills.move('piercestrike','sword',3,{skLv:{piercestrike:3}}).dmg>Skills.move('piercestrike','sword',3,{skLv:{piercestrike:1}}).dmg;
     return{ok:noPan&&allShopCraft&&noCollide&&earlyNoEpic&&spireHasEpic&&arenaOk,info:`noPan=${noPan} shopCraft=${allShopCraft} noCollide=${noCollide} earlyNoEpic=${earlyNoEpic} spireEpic=${spireHasEpic} arena=${arenaOk}`};});
+  T('V35-2) อาวุธทุกธาตุ (รวมกายภาพ→เลือดไหล, อาคม→อาคมกัดกร่อน) และสกิลอิงอาวุธติดสถานะถูกต้อง',()=>{
+    const rngSave=RNG;RNG=()=>0;
+    try{
+      loadZone(makeDungeon(1,'stone'));
+      setupBattle(mkFoe('rat',{x:300,y:150}));
+      const b=BT;b.intro=0;b.e.hp=b.e.maxHp=1e6;b.e.statusRes={};b.e.S.evasion=0;
+      const resetE=()=>{b.e.hp=b.e.maxHp;b.e.state='idle';b.e.invuln=0;b.e.guardLeft=0;b.e.stunImm=0;b.e.onGround=true;b.e.jug=0;b.e.y=GY;Status.cleanse(b.e);};
+      const groups=[
+        ['bleed',['fist','club','sword','woodsword','stonesword','hammer','gsword','ghammer']],
+        ['arcaneburn',['mswd','mstaff','adagger']],
+        ['frostbite',['frostsword','frostaxe','wand_ice','runeblade']],
+        ['burn',['flame','lavablade','wand_fire']],
+        ['poison',['spear','wand_poison']],
+        ['shock',['gaunt','wand_lightning','bbqysword']],
+        ['curse',['kageblade','scythe']],
+        ['radiance',['aethersword']]
+      ];
+      const bad=[];
+      for(const[st,ws] of groups){
+        for(const w of ws){
+          resetE();
+          applyHit(b.p,b.e,WEAPONS[w].light[0],1);
+          if(!b.e.st8[st])bad.push(w+':'+st);
+          if(st==='shock'&&!b.e.st8.stun)bad.push(w+':stun');
+        }
+      }
+      resetE();
+      applyHit(b.p,b.e,WEAPONS.sword.heavy,1);
+      if(!b.e.st8.bleed||b.e.st8.bleed.stacks!==2)bad.push('swordHeavy:bleed2');
+      resetE();
+      for(let i=0;i<5;i++){b.e.state='idle';b.e.invuln=0;b.e.onGround=true;b.e.jug=0;applyHit(b.p,b.e,WEAPONS.mswd.light[0],1);}
+      const arcDps=Status.tickOf('arcaneburn',b.e.st8.arcaneburn,b.e);
+      if(!b.e.st8.arcaneburn||b.e.st8.arcaneburn.stacks!==CONFIG.dot2.arcaneburn.max||arcDps<=0)bad.push('arcaneburnCap');
+      resetE();
+      for(let i=0;i<5;i++){b.e.state='idle';b.e.invuln=0;b.e.onGround=true;b.e.jug=0;applyHit(b.p,b.e,WEAPONS.frostsword.light[0],1);}
+      const froze=!!b.e.st8.freeze&&!b.e.st8.frostbite;
+      if(!froze)bad.push('frostsword:freeze5');
+      resetE();
+      const orbIce=Skills.move('orb','frostsword',0),orbFire=Skills.move('orb','flame',0),orbPhys=Skills.move('orb','sword',0),orbArc=Skills.move('orb','mswd',0);
+      applyHit(b.p,b.e,orbIce,1);const orbIceOk=orbIce.el==='ice'&&!!b.e.st8.frostbite;
+      resetE();
+      applyHit(b.p,b.e,orbFire,1);const orbFireOk=orbFire.el==='fire'&&!!b.e.st8.burn;
+      resetE();
+      applyHit(b.p,b.e,orbPhys,1);const orbPhysOk=orbPhys.el==='phys'&&!!b.e.st8.bleed;
+      resetE();
+      applyHit(b.p,b.e,orbArc,1);const orbArcOk=orbArc.el==='arcane'&&!!b.e.st8.arcaneburn;
+      if(!orbIceOk)bad.push('orbIce');
+      if(!orbFireOk)bad.push('orbFire');
+      if(!orbPhysOk)bad.push('orbPhys');
+      if(!orbArcOk)bad.push('orbArc');
+      return{ok:!bad.length,info:bad.length?bad.join(','):'all phys/arcane/elem weapons + DoTs + orb OK'};
+    }finally{RNG=rngSave;BT=null;G.mode=mode0;}
+  });
+  T('V35-3) ของสำคัญ (m.key เช่น กุญแจเหมืองลาวา) ขายไม่ได้ทุกช่องทาง',()=>{
+    const gm=JSON.stringify(G.mats),gg=G.gold,tab0=UI.shopTab;
+    try{
+      G.mats=Object.assign({},G.mats,{key_lava:1,fang:2});G.gold=100;
+      const p0=Inv.matPrice('key_lava'),j0=Inv.isJunkMat('key_lava');
+      const s1=Inv.sellMat('key_lava',1),still1=G.mats.key_lava;
+      const jres=Inv.sellAllJunk(),still2=G.mats.key_lava;
+      UI.shopTab='sell';UI.sellSel=new Set(['m:key_lava']);
+      const sv=sellSelValue();
+      const shopHtml=UI.scr_shop();
+      const inShop=shopHtml.includes('กุญแจเหมืองลาวา');
+      return{ok:p0===0&&!j0&&s1===0&&still1===1&&still2===1&&sv.n===0&&sv.g===0&&!inShop&&G.mats.fang===undefined,
+        info:`p=${p0} junk=${j0} sell=${s1} k1=${still1} k2=${still2} sel=${sv.n} inShop=${inShop}`};
+    }finally{G.mats=JSON.parse(gm);G.gold=gg;UI.shopTab=tab0;UI.sellSel.clear();}
+  });
+  T('V35-4) โอกาสคริ (critRate) อยู่ในตัวเลือกปรับค่าความสามารถของทุกหมวด (อาวุธ / เกราะ / เครื่องประดับ)',()=>{
+    const gm=JSON.stringify(G.mats),gg=G.gold;
+    try{
+      G.gold=1e6;G.mats.pickstone=5;
+      const inAll=['weapon','armor','acc'].every(c=>GPOOL[c].includes('critRate'));
+      const itH=newItem('h_iron','rare',5);itH.affixes[0]={k:'defFlat',t:1,lock:false};
+      const itR=newItem('r_ruby','rare',5);itR.affixes[0]={k:'defFlat',t:1,lock:false};
+      const pH=Gear.pick(itH,0,'critRate').ok&&itH.affixes[0].k==='critRate';
+      const pR=Gear.pick(itR,0,'critRate').ok&&itR.affixes[0].k==='critRate';
+      return{ok:inAll&&pH&&pR,info:`pools=${inAll} helmPick=${pH} ringPick=${pR}`};
+    }finally{G.mats=JSON.parse(gm);G.gold=gg;}
+  });
   }finally{RNG=rng0;Z=z0;P.x=px0;P.y=py0;G.hp=hp0;G.mode=mode0;G.flags.bossCD=cd0;G.pendingFoe=pf0;try{buildBg();}catch(e){}}}
   RNG=saveRNG;Object.assign(G,saveG);[Status.onStun,Status.onStunEnd,Status.onSynergy]=prevHooks;
   window.__testResults={pass,fail,out};return{pass,fail,out};

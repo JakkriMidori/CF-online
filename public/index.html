@@ -805,6 +805,28 @@ kbd{background:var(--ui-surface-3);border:1px solid var(--ui-border-2);border-ra
 #storyCard.on .sc-sub{animation:scIn .8s 1.1s ease forwards}
 #storyCard.on .sc-hint{animation:scHint 1s 2s ease forwards}
 @keyframes scIn{to{opacity:1;transform:none}}@keyframes scHint{to{opacity:1}}
+
+/* dropdown: รายการตัวเลือกพื้นเข้ม ตัวหนังสืออ่านออก (เดิมตัวขาวบนพื้นขาว) */
+select{color-scheme:dark;cursor:pointer}
+select option,select optgroup{background:#111723!important;color:#e9eef6!important}
+select option:checked{background:#1d3a55!important;color:#fff!important}
+select option:disabled{color:#5d6676!important}
+select:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}
+
+.afgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin:6px 0 8px;max-height:190px;overflow:auto;padding-right:3px}
+.afchip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:7px 10px;border-radius:8px;cursor:pointer;
+  background:var(--ui-surface-2);border:1px solid var(--ui-border);color:var(--ui-text);font:inherit;font-size:.92em;transition:background .12s,border-color .12s}
+.afchip small{color:var(--ui-muted);font-size:.84em}
+.afchip:hover:not(:disabled){background:var(--ui-surface-3);border-color:var(--ui-border-2)}
+.afchip.on,.afchip.on:hover:not(:disabled){background:rgba(108,196,255,.2)!important;border-color:var(--ui-accent)!important;box-shadow:inset 3px 0 0 var(--ui-accent)}
+.afchip.on b::after{content:' ✓';color:var(--ui-accent)}
+.afchip:disabled{opacity:.4;cursor:default}
+
+/* แถบแจ้งเวอร์ชันใหม่ (updater.js) */
+#updBar{position:absolute;left:50%;top:3%;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:12px;padding:8px 10px 8px 16px;
+  background:rgba(12,17,26,.95);border:1px solid rgba(108,196,255,.55);border-radius:999px;color:#e9eef6;font:500 clamp(11px,1.3vw,14px) Kanit,Sarabun,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#updBar b{font-weight:500;color:#9fd8ff}
+#updBar button{border:0;border-radius:999px;padding:5px 14px;background:#6cc4ff;color:#08131f;font:600 1em Kanit,sans-serif;cursor:pointer}
 </style>
 </head>
 <body>
@@ -837,27 +859,28 @@ kbd{background:var(--ui-surface-3);border:1px solid var(--ui-border-2);border-ra
   <p class="credits">ไอคอน: game-icons.net (Lorc, Delapouite · CC BY 3.0) · เสียง UI: Kenney (CC0) · ฟอนต์: Kanit, Sarabun, Cinzel (OFL)</p>
   </div>
 </div>
-<script src="js/core.js?v=20261122q"></script>
-<script src="js/gameicons.js?v=20261122q"></script>
-<script src="js/icons.js?v=20261122q"></script>
-<script src="js/data.js?v=20261122q"></script>
-<script src="js/systems.js?v=20261122q"></script>
-<script src="js/statsync.js?v=20261122q"></script>
-<script src="js/balance-live.js?v=20261122q"></script>
-<script src="js/assets.js?v=20261122q"></script>
-<script src="js/hd2d.js?v=20261122q"></script>
-<script src="js/sfx.js?v=20261122q"></script>
-<script src="js/world.js?v=20261122q"></script>
-<script src="js/overworld.js?v=20261122q"></script>
-<script src="js/battle.js?v=20261122q"></script>
-<script src="js/ui.js?v=20261122q"></script>
-<script src="js/charspec.js?v=20261122q"></script>
-<script src="js/net.js?v=20261122q"></script>
-<script src="js/tests.js?v=20261122q"></script>
-<script src="js/sfvfx.js?v=20261122q"></script>
-<script src="js/pxfx.js?v=20261122q"></script>
-<script src="js/vfx.js?v=20261122q"></script>
-<script src="js/story.js?v=20261122q"></script>
-<script src="js/main.js?v=20261122q"></script>
+<script src="js/core.js?v=20261122w"></script>
+<script src="js/gameicons.js?v=20261122w"></script>
+<script src="js/icons.js?v=20261122w"></script>
+<script src="js/data.js?v=20261122w"></script>
+<script src="js/systems.js?v=20261122w"></script>
+<script src="js/statsync.js?v=20261122w"></script>
+<script src="js/balance-live.js?v=20261122w"></script>
+<script src="js/assets.js?v=20261122w"></script>
+<script src="js/hd2d.js?v=20261122w"></script>
+<script src="js/sfx.js?v=20261122w"></script>
+<script src="js/world.js?v=20261122w"></script>
+<script src="js/overworld.js?v=20261122w"></script>
+<script src="js/battle.js?v=20261122w"></script>
+<script src="js/ui.js?v=20261122w"></script>
+<script src="js/charspec.js?v=20261122w"></script>
+<script src="js/net.js?v=20261122w"></script>
+<script src="js/tests.js?v=20261122w"></script>
+<script src="js/sfvfx.js?v=20261122w"></script>
+<script src="js/pxfx.js?v=20261122w"></script>
+<script src="js/vfx.js?v=20261122w"></script>
+<script src="js/story.js?v=20261122w"></script>
+<script src="js/updater.js?v=20261122w"></script>
+<script src="js/main.js?v=20261122w"></script>
 </body>
 </html>

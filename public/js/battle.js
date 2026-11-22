@@ -646,7 +646,7 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   SFX.hit(m.dmg>=12);
 }
 function spawnProj(f,m){
-  const el=m.el||(f.rig?WEAPONS[f.wpn].el:'phys'),spMul=f.st8&&f.st8.freeze?.6:1,bf=!!m.proj.blueflame,gf=!!m.proj.greenflame;
+  const el=(m.el&&m.el!=='weapon')?m.el:(f.rig?WEAPONS[f.wpn].el:'phys'),spMul=f.st8&&f.st8.freeze?.6:1,bf=!!m.proj.blueflame,gf=!!m.proj.greenflame;
   BT.proj.push({seq:f.isP?f.moveSeq:'e'+f.moveSeq,x:f.x+f.dir*24,y:f.y-Math.min(72,f.h*.52),vx:f.dir*m.proj.spd*spMul,o:f,m,r:m.proj.r,hits:m.proj.hits||1,cd:0,rock:m.proj.rock,wind:!!(m.proj.wind||m.windblade),blueflame:bf,greenflame:gf,col:bf?'#3ce0ff':gf?'#4aff7a':(m.proj.wind||m.windblade)?'#9effcc':m.proj.rock?(el==='fire'?'#c4380e':'#8a7a6a'):ELC[el]||'#fff',life:150});
   if(el==='fire'||bf||gf)SFX.fire();
 }
@@ -729,6 +729,7 @@ function stepF(f,o){
   if(f.st8.burn&&G.t%3===0)BT.parts.push({x:f.x+rnd(-10,10),y:f.y-rnd(6,f.h*.8),vx:0,vy:-.8,l:18,c:'#ff8a3a',s:2});
   if(f.st8.poison&&G.t%6===0)BT.parts.push({x:f.x+rnd(-10,10),y:f.y-rnd(6,f.h*.8),vx:0,vy:-.5,l:22,c:'#8aff5a',s:2});
   if(f.st8.bleed&&G.t%5===0)BT.parts.push({x:f.x+rnd(-8,8),y:f.y-rnd(20,f.h*.7),vx:rnd(-.5,.5),vy:.8,l:20,c:'#ff2a3a',s:2});
+  if(f.st8.arcaneburn&&G.t%5===0)BT.parts.push({x:f.x+rnd(-10,10),y:f.y-rnd(6,f.h*.85),vx:rnd(-.3,.3),vy:-.6,l:18,c:'#d88aff',s:2});
   if(f.st8.shock&&G.t%4===0)BT.parts.push({x:f.x+rnd(-12,12),y:f.y-rnd(6,f.h),vx:rnd(-2,2),vy:rnd(-2,2),l:6,c:'#cff4ff',s:2});
   if(f.st8.freeze&&G.t%4===0)BT.parts.push({x:f.x+rnd(-14,14),y:f.y-rnd(6,f.h*.9),vx:rnd(-.3,.3),vy:-.4,l:18,c:G.t%8?'#e8fbff':'#68d8ff',s:2});
   if(f.st8.chaos&&G.t%4===0)BT.parts.push({x:f.x+rnd(-14,14),y:f.y-rnd(6,f.h*.9),vx:rnd(-.6,.6),vy:-.9,l:18,c:G.t%8?'#ff5ad8':'#c88aff',s:2});
