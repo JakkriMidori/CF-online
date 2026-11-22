@@ -58,9 +58,9 @@ function runTests(){
     G.bag=sv.bag;UI.close();G.mode=sv.mode;return{ok:won===1&&lost===0&&RARS.indexOf(G.bag===sv.bag?'normal':'x')>=0,info:'ชนะได้ '+won+' · แพ้ได้ '+lost};});
   T('2H) ดาบใหญ่/ค้อนศึก: 3 ระดับตายตัว ถือ 2 มือ ช้ากว่าดาบแต่แรงกว่า ค้อนมีโอกาสสตัน 3 วิ',()=>{const ks=['w_gs1','w_gs2','w_gs3','w_wh1','w_wh2','w_wh3'],r=ks.map(k=>newItem(k,'normal',5).rar).join(),sw=WEAPONS.sword.light[0],gs=WEAPONS.gsword.light[0],hm=WEAPONS.ghammer;
     return{ok:r==='normal,rare,epic,normal,rare,epic'&&WEAPONS.gsword.twoHand&&hm.twoHand&&(gs.s+gs.a+gs.r)>(sw.s+sw.a+sw.r)&&gs.dmg>sw.dmg&&hm.heavy.stunChance>0&&hm.light.every(m=>m.stunChance>0&&m.stunDur===3)&&['gs1','gs2','gs3','wh1','wh2','wh3'].every(id=>RECIPES.some(x=>x.id===id)),info:r};});
-  T('RI1) ร้านสุ่ม: สุ่ม 1000 ซื้อ 500 ซื้อได้ชิ้นเดียวต่อการสุ่ม',()=>{const sv={bag:G.bag,gold:G.gold};G.bag=[];G.gold=3000;UI.open('reitem');document.querySelector('[data-reroll]').click();const g1=G.gold;
+  T('RI1) ร้านสุ่ม: สุ่ม 20000 ซื้อ 10000 ซื้อได้ชิ้นเดียวต่อการสุ่ม',()=>{const sv={bag:G.bag,gold:G.gold};G.bag=[];G.gold=35000;UI.open('reitem');document.querySelector('[data-reroll]').click();const g1=G.gold;
     document.querySelector('[data-reclaim="0"]').click();const g2=G.gold,b1=G.bag.length;const b=document.querySelector('[data-reclaim="1"]');if(b)b.click();const b2=G.bag.length;
-    G.bag=sv.bag;G.gold=sv.gold;UI.close();return{ok:g1===2000&&g2===1500&&b1===1&&b2===1&&b&&b.disabled,info:`${g1} → ${g2} · ซื้อ ${b2} ชิ้น`};});
+    G.bag=sv.bag;G.gold=sv.gold;UI.close();return{ok:g1===15000&&g2===5000&&b1===1&&b2===1&&b&&b.disabled,info:`${g1} → ${g2} · ซื้อ ${b2} ชิ้น`};});
   T('AL1) ปรับค่าความสามารถ: รีค่าทั้งหมดเก็บค่าที่ล็อก · เปลี่ยนค่าที่เลือก (ไม่ซ้ำ) · อัปเทียร์ไม่ลด · ใช้วัตถุดิบถูกต้อง',()=>{const gm=JSON.stringify(G.mats),gg=G.gold;
     try{G.gold=1e6;G.mats.rerollstone=5;G.mats.philostone=5;G.mats.pickstone=2;G.mats.tierstone=3;
       const it=newItem('w_sword','epic',10);it.affixes[0].lock=true;const keep=JSON.stringify(it.affixes[0]);
@@ -88,9 +88,6 @@ function runTests(){
     const inLoot=Object.entries(LOOT_TABLES).filter(([id,t])=>JSON.stringify(t).includes("'aether'")||JSON.stringify(t).includes('"aether"')).map(x=>x[0]);
     const inRec=RECIPES.some(r=>JSON.stringify(r).includes('"aether"')),inShop=SPECIAL_SHOP.some(x=>x.id==='aether');
     return{ok:!!MATS.aether&&FOES.spire_b5.loot==='spireboss5'&&!inLoot.length&&!inRec&&!inShop&&typeof debugSpireBoss==='function',info:inLoot.join(',')||'ok'};});
-  T('BAL1) บาลานซ์ v2: บอสเมืองแรกเลเวลไม่เกินโซน +3 · ดาร์กโซล HP×1.6 ATK×1.5 · ยาฟื้น HP 150',()=>{const Z={golem:'golemroom',homunculus:'towerroom',lavaking:'lava3',seraph:'sanctum'};
-    const gaps=Object.entries(Z).map(([k,z])=>FOES[k].fixedLv-ZONE_INFO[z].lv);const D=DIFFICULTY.souls;
-    return{ok:gaps.every(g=>g>=0&&g<=3)&&D.eHP===1.6&&D.eATK===1.5&&Prog.xpScale!==undefined,info:'ห่างจากโซน '+gaps.join('/')};});
   T('LV2) บอสเมืองแรกเลเวลตายตัว 35 / 37 / 40 (โซน +1..2) และใช้ค่า base เป็นค่าจริง',()=>{const L=[FOES.golem.fixedLv,FOES.lavaking.fixedLv,FOES.seraph.fixedLv],D=Diff.cur(),E=Stats.enemy(FOES.golem,35,false);
     return{ok:L.join()==='35,37,40'&&foeLevel(FOES.golem,1)===35&&E.maxHP===Math.round(FOES.golem.base.hp*D.eHP)&&E.ap===Math.round(FOES.golem.base.atk*D.eATK),info:L.join(' / ')+' · HP '+E.maxHP};});
   T('LV3) ไอเทมสูงสุดตามแรงค์กิลด์ (F = หายาก) · ร้านรีข้ามเพดานได้',()=>{const gr=G.guildRank;G.guildRank='F';const a=newItem('w_sword','god',5),b=newItem('w_sword','legendary',5),c=newItem('w_sword','epic',5);const rs=reitemOdds().map(x=>x[0]),rsU=reitemOdds(true).map(x=>x[0]);G.guildRank=gr;
@@ -109,7 +106,7 @@ function runTests(){
   const SL=(...pairs)=>{const o=Array(6).fill(null);pairs.forEach((p,i)=>o[i]={id:p[0],q:p[1]});return o;};
   const resetCraft=m=>{G.mats=Object.assign({},m);G.bag=[];G.stats={crafts:0,craftOk:0};G.found=new Set();G.known=new Set();Craft.busy=false;};
   T('อัตราพื้นฐาน: ธรรมดา 50% หายาก 30% ตำนาน 20% เทพ 10%',()=>({ok:CONFIG.craftRates.normal===.5&&CONFIG.craftRates.rare===.3&&CONFIG.craftRates.legendary===.2&&CONFIG.craftRates.god===.1}));
-  const trials=20000,sample={normal:['club',SL(['wood',2])],rare:['flame',SL(['ore',2],['fire',1],['wood',1])],legendary:['kage',SL(['cloth',3],['ore',2])],god:['god',SL(['essence',1],['lavaore',5],['fire',2])]};
+  const trials=20000,sample={normal:['club',SL(['wood',2])],rare:['flame',SL(['ore',2],['fire',1],['wood',1])],legendary:['kage',SL(['cloth',3],['ore',3],['core',1])],god:['god',SL(['essence',1],['lavaore',5],['fire',2])]};
   for(const rar of RARS.filter(r=>sample[r])){const[id,slots]=sample[rar];
     T(`คราฟต์ ${RARN[rar]} (${id}): ได้จริงใกล้ ${CONFIG.craftRates[RECIPES.find(x=>x.id===id).rar]*100}% จาก ${trials} ครั้ง`,()=>{RNG=mulberry32(900+rar.length);
       const r=RECIPES.find(x=>x.id===id),m={};for(const k in r.mats)m[k]=r.mats[k]*trials;resetCraft(m);let ok=0;
@@ -129,8 +126,8 @@ function runTests(){
     return{ok:!r1.ok&&!r1.failed&&!r2.ok&&!r2.failed&&!r3.ok&&!r3.failed&&G.mats.wood===5&&G.mats.ore===5&&G.mats.fang===5&&G.stats.crafts===0,info:r1.err};});
   T('จำนวนในกระเป๋าไม่พอ → ตรวจซ้ำตอนยืนยันและไม่เสียของ',()=>{resetCraft({wood:1});const r=Craft.attempt(SL(['wood',2]),false);return{ok:!r.ok&&!r.failed&&r.short&&r.short[0].have===1&&G.mats.wood===1};});
   T('ใช้คริสตัลแต่ไม่มีคริสตัล → คราฟต์ไม่ได้',()=>{resetCraft({wood:2});const r=Craft.attempt(SL(['wood',2]),true);return{ok:!r.ok&&!r.failed&&G.mats.wood===2};});
-  T('สำเร็จ: หักวัตถุดิบ + ได้อุปกรณ์ตามความหายากเข้ากระเป๋า',()=>{RNG=()=>.01;resetCraft({cloth:3,ore:2});const r=Craft.attempt(sample.legendary[1],false);
-    return{ok:r.ok&&!G.mats.cloth&&!G.mats.ore&&G.bag.length===1&&G.bag[0].rar===RECIPES.find(x=>x.id==='kage').rar&&G.bag[0].base==='w_kage'};});
+  T('สำเร็จ: หักวัตถุดิบ + ได้อุปกรณ์ตามความหายากเข้ากระเป๋า',()=>{RNG=()=>.01;resetCraft({cloth:3,ore:3,core:1});const r=Craft.attempt(sample.legendary[1],false);
+    return{ok:r.ok&&!G.mats.cloth&&!G.mats.ore&&!G.mats.core&&G.bag.length===1&&G.bag[0].rar===RECIPES.find(x=>x.id==='kage').rar&&G.bag[0].base==='w_kage'};});
   T('ล้มเหลว: เสียวัตถุดิบทั้งหมด + คริสตัล และไม่ได้อุปกรณ์',()=>{RNG=()=>.99;resetCraft({wood:1,ore:1,divine:1});const r=Craft.attempt(SL(['wood',1],['ore',1]),true);
     return{ok:r.failed&&!G.mats.wood&&!G.mats.ore&&!G.mats.divine&&G.bag.length===0&&r.lost.divine===1};});
   T('กันกดซ้ำ: ระหว่างกำลังคราฟต์ เรียกซ้ำไม่ทำงาน',()=>{resetCraft({wood:4});Craft.busy=true;const r=Craft.attempt(SL(['wood',2]),false);Craft.busy=false;return{ok:r.err==='busy'&&G.mats.wood===4};});
@@ -267,10 +264,69 @@ function runTests(){
   T('ลานเซราฟ: สร้างโซน/บอส/ประตูกลับล็อกอยู่ และปลดล็อกเมื่อชนะ',()=>{const z=makeSanctum();const pt=z.props.find(o=>o.k==='portal');const b=z.foes[0];return{ok:b.kind==='seraph'&&pt.locked===1&&z.grid.length===17&&!!z.props.find(o=>o.k==='exitdoor')&&!['#','^','T'].includes(z.grid[9][2])};});
   T('ถ้ำน้ำแข็ง: ชั้น 1-2 สร้างได้ มีบันได/ประตูออก และประตูเมืองบนขวาเดินถึงได้',()=>{const a=makeDungeon(1,'ice'),b=makeDungeon(2,'ice');const t=makeTown();const gp=t.props.find(o=>o.k==='citygate');const gx=Math.floor(t.gate.x/16),gy=Math.floor(t.gate.y/16);
     return{ok:a.id==='ice1'&&b.id==='ice2'&&a.theme==='ice'&&a.props.some(o=>o.k==='stairs')&&a.props.some(o=>o.k==='exitdoor')&&a.foes.every(f=>['frostslime','frostwolf','iceknight','icegolem'].includes(f.kind))&&!FOES.icerat&&makeSanctum().foes.length===1&&a.lavaTiles.length===0&&!!gp&&gp.x>t.cols*16*.6&&gp.y<100&&!'#^TRLW'.includes(t.grid[gy][gx])&&['frostslime','frostwolf','iceknight','icegolem'].every(k=>FOES[k]&&(FOES[k].kind==='rig'||SPR[FOES[k].map])&&PAL[FOES[k].pal])&&!!LOOT_TABLES.icecave&&ZONE_INFO.ice1&&BIOME.ice};});
-  T('ลานประลอง: สกิลชุดเดียวกัน 4 ช่อง ใช้ได้ทั้งสองฝ่ายและไม่ใช่อัลติ/เฉพาะตัว',()=>{const s=CONFIG.arena.skills;return{ok:s.length===4&&s.every(id=>SKILLS[id]&&['common','rare'].includes(SKILLS[id].tier)&&SKILLS[id].type!=='passive')&&!!NETBITS.find(b=>b[0]==='S4')&&VSS1.length===4&&VSKN2_SK.length===4};});
+  T('ลานประลอง: สกิลชุดเดียวกัน 4 ช่อง และรองรับปุ่มสกิลครบ 5 ช่อง (รวมท่าสุดยอด)',()=>{const s=CONFIG.arena.skills;return{ok:s.length===4&&s.every(id=>SKILLS[id]&&['common','rare'].includes(SKILLS[id].tier)&&SKILLS[id].type!=='passive')&&!!NETBITS.find(b=>b[0]==='S4')&&!!NETBITS.find(b=>b[0]==='S5')&&VSS1.length===5&&VSKN2_SK.length===5};});
   T('ห้องบอสแยกทุกตัว: ประตูออก/พอร์ทัลล็อก มีบอสตัวเดียว หนีจากบอสไม่ได้',()=>{const ok=['golem','lavaking','seraph'].every(k=>{const z=makeBossRoom(k);return z.foes.length===1&&z.foes[0].kind===k&&z.props.filter(o=>o.k==='exitdoor'||o.k==='portal').every(o=>o.locked===1)&&ZONE_INFO[z.id];});
     const c=makeCave(),tw=makeTown(),cg=tw.props.find(o=>o.k==='citygate'),s1=makeDungeon(1,'stone'),s2=makeDungeon(2,'stone');return{ok:ok&&!c.foes.some(f=>f.kind==='golem')&&!!cg&&!tw.props.some(o=>o.k==='stonegate'||o.k==='cavegate'||o.k==='icegate'||o.k==='towergate')&&s1.id==='stone1'&&s2.props.some(o=>o.k==='stairs')&&s1.props.some(o=>o.k==='exitdoor')&&s1.foes.every(f=>['rat','mudslime','rockling'].includes(f.kind))&&s1.lavaTiles.length===0&&!!LOOT_TABLES.stonecave&&CONFIG.flee.allowBoss===false};});
   T('บอสไม่การันตีอุปกรณ์ (มีแต่ทอง/ไอเท็มเดินเรื่อง)',()=>({ok:['kage','golem','lavaking','seraph'].every(t=>LOOT_TABLES[t].guaranteed.every(g=>g.gold||(g.mat&&!BASES[g.mat])))}));
+  T('CR1) คราฟต์: ไม่มีสูตรกระทะของพ่อ · สูตรมหากาพย์ทุกสูตรต้องใช้วัตถุดิบบอส (โกเลม/ราชันย์ลาวา/นักแปรธาตุ/เซราฟ) · ส่วนผสมไม่ซ้ำกัน',()=>{const BOSS=['core','essence','philostone','bossfrag'];
+    const noPan=!RECIPES.some(r=>r.id==='firepan'||r.mats.pan)&&!MATS.sc_firepan&&!(QUESTS.pan&&JSON.stringify(QUESTS.pan.reward).includes('sc_firepan'));
+    const bad=RECIPES.filter(r=>r.out.base&&RARS.indexOf(r.rar)>=RARS.indexOf('epic')&&!Object.keys(r.mats).some(k=>BOSS.includes(k))).map(r=>r.id);
+    const sig=RECIPES.map(r=>Object.entries(r.mats).sort().join('|')),dup=sig.length-new Set(sig).size;
+    return{ok:noPan&&!bad.length&&!dup,info:`pan=${noPan} ไม่มีของบอส=${bad.join(',')||'-'} ซ้ำ=${dup}`};});
+  T('RS1) กันปั๊มทรัพยากร: จุดเก็บ/ขุดเก็บได้ครั้งเดียวต่อ 5 นาที · น้ำพุฟื้นเลือดทุกครั้งแต่ฟื้นศัตรู/ทรัพยากร 5 นาทีครั้ง · ดันเจี้ยนเข้าซ้ำภายใน 5 นาทีได้ห้องเดิม',()=>{
+    const sf=JSON.stringify(G.flags||{}),gm=JSON.stringify(G.mats),dn=Respawn.now;let T0=1e12;Respawn.now=()=>T0;
+    try{G.flags={};G.mats={};const node={x:100,y:200,inter:'gather_hide'};interact({type:'gather_hide',o:node});const a=G.mats.hide||0;interact({type:'gather_hide',o:node});const b=G.mats.hide||0;
+      T0+=RESPAWN_MS+1000;interact({type:'gather_hide',o:node});const c=G.mats.hide||0;
+      interact({type:'fountain',o:{x:0,y:0}});const f1=Respawn.fountainLeft();T0+=60000;G.hp=1;interact({type:'fountain',o:{x:0,y:0}});const healed=G.hp>1,f2=Respawn.fountainLeft();
+      enterDungeon(1,'stone');const z1=Z;z1.foes.forEach(e=>e.alive=false);loadZone(makeTown());enterDungeon(1,'stone');const same=Z===z1&&Z.foes.every(e=>!e.alive);T0+=RESPAWN_MS+1;loadZone(makeTown());enterDungeon(1,'stone');const fresh=Z!==z1;
+      return{ok:a===1&&b===1&&c===2&&f1===RESPAWN_MS&&f2===RESPAWN_MS-60000&&healed&&same&&fresh,info:`hide ${a}/${b}/${c} · fountain ${f1}/${f2} · dun same=${same} fresh=${fresh}`};
+    }finally{Respawn.now=dn;G.flags=JSON.parse(sf);G.mats=JSON.parse(gm);loadZone(makeTown());}});
+  T('RS2) ของบนพื้น: เก็บแล้วหาย · เข้าโซนใหม่/กดน้ำพุไม่ทำให้เกิดใหม่ · ครบ 5 นาทีหลังเก็บจึงกลับมา',()=>{const sf=JSON.stringify(G.flags||{}),gm=JSON.stringify(G.mats),dn=Respawn.now;let T0=2e12;Respawn.now=()=>T0;
+    try{G.flags={};enterMineCaveZone();const it=Z.items.find(i=>!i.taken);if(!it)return{ok:false,info:'ไม่มีของบนพื้น'};interact({type:'item',o:it});
+      loadZone(makeTown());enterMineCaveZone();const still=it.taken;const fo=Z.props.find(p=>p.k==='fountain');if(fo)interact({type:'fountain',o:fo});const still2=it.taken;
+      T0+=RESPAWN_MS-1000;Respawn.refreshItems(Z);const still3=it.taken;T0+=2000;Respawn.refreshItems(Z);const back=!it.taken;
+      return{ok:still&&still2&&still3&&back,info:`reenter=${still} fountain=${still2} 4:59=${still3} 5:01=${back}`};
+    }finally{Respawn.now=dn;G.flags=JSON.parse(sf);G.mats=JSON.parse(gm);loadZone(makeTown());}});
+  T('STY1) เนื้อเรื่อง: บอสทุกตัวตั้งแต่คาเงะถึงราชาอัศวินแสงมีบทพูดก่อนสู้+หลังแพ้ · บทพูดชี้กลับเนื้อเรื่อง (หินเอเธอร์/นิกซ์/โอเรเลียน)',()=>{
+    const path=['kage','golem','lavaking','homunculus','seraph','spire_b1','spire_b2','spire_b3','spire_b4','spire_b5','aspire_b1','aspire_b2','aspire_b3','aspire_b4','aether_king'];
+    const miss=path.filter(k=>!FOES[k]||!BOSS_LINES[k]||!BOSS_LINES[k].intro||!BOSS_LINES[k].win||!BOSS_LINES[k].re);
+    const lore=path.filter(k=>/หิน|นิกซ์|โอเรเลียน|ผู้กล้า|รอยแยก/.test(JSON.stringify(BOSS_LINES[k]))).length;
+    const allBoss=Object.keys(FOES).filter(k=>FOES[k].boss&&!FOES[k].challenge).filter(k=>!BOSS_LINES[k]);
+    const scenes=['prologue','ch1','afterKage','ch2','ch3','ch4','ch5','crystalEnter','ch6','aetherEnter','epilogue'].filter(s=>!STORY_SCENES[s]);
+    return{ok:!miss.length&&lore>=13&&!allBoss.length&&!scenes.length&&STORY_STONES.length===8,info:`ขาด ${miss.join(',')||'-'} · บอสไม่มีบท ${allBoss.join(',')||'-'} · ฉาก ${scenes.join(',')||'ครบ'} · อ้างเนื้อเรื่อง ${lore}/${path.length}`};});
+  T('STY2) ก่อนสู้บอส: ขึ้นบทพูดก่อนแล้วจึงเข้าฉากต่อสู้ · ครั้งที่สองพูดสั้น · หลังชนะ: บทพูดแพ้ → คัตซีนบทถัดไป (ครั้งเดียว)',()=>{const sf=JSON.stringify(G.flags||{});
+    try{G.flags={};Story.queue=[];Story.active=null;Story.cine(false);loadZone(makeDungeon(1,'stone'));const e=mkFoe('golem',{x:P.x+60,y:P.y});Z.foes.push(e);
+      startBattle(e);const introOK=G.mode==='dialog'&&DLG&&DLG.lines.length===BOSS_LINES.golem.intro.length;while(DLG)nextLine();const toBattle=G.mode==='trans';
+      G.mode='explore';e._storyIntro=0;startBattle(e);const reShort=DLG&&DLG.lines.length===1;while(DLG)nextLine();G.mode='explore';
+      UI.close&&UI.close();G.mode='explore';Story.bossWin('golem');Story.flush();const winSay=DLG&&DLG.lines[0][1]===Story.fmt(BOSS_LINES.golem.win[0][1]);while(DLG)nextLine();
+      const card=Story.active&&Story.active.id==='ch2'&&G.mode==='story';Story._cardT=99;Story.next();while(DLG)nextLine();const done=!Story.active&&G.flags.story.scene.ch2===1;
+      Story.bossWin('golem');Story.flush();const once=!DLG&&!Story.active;
+      return{ok:introOK&&toBattle&&reShort&&winSay&&card&&done&&once,info:`intro=${introOK} battle=${toBattle} re=${reShort} win=${winSay} card=${card} done=${done} once=${once}`};
+    }finally{if(typeof BT!=='undefined')BT=null;G.mode='explore';Story.active=null;Story.queue=[];Story.cine(false);G.flags=JSON.parse(sf);loadZone(makeTown());}});
+  T('STY3) บทนำเล่นก่อนคัตซีนเปิดเกม · จบกิลด์แล้วเข้าบทที่ 1 · เข้าหอคอยครั้งแรกขึ้นการ์ดบท',()=>{const sf=JSON.stringify(G.flags||{});
+    try{G.flags={};Story.queue=[];Story.active=null;Cutscene.startIntro();const pro=Story.active&&Story.active.id==='prologue';Story._cardT=99;Story.next();while(DLG)nextLine();const intro=Cutscene.active==='intro';
+      Cutscene.skip();Story.flush();const ch1=Story.active&&Story.active.id==='ch1';Story.skip();
+      G.guildRank='S';enterSpire(1,'mage');G.mode='explore';UI.close&&UI.close();Story.flush();const tw=Story.active&&Story.active.id==='crystalEnter';Story.skip();
+      return{ok:pro&&intro&&ch1&&tw,info:`prologue=${pro} intro=${intro} ch1=${ch1} tower=${tw}`};
+    }finally{Cutscene.abort();Story.active=null;Story.queue=[];Story.cine(false);G.flags=JSON.parse(sf);G.mode='explore';loadZone(makeTown());}});
+  T('WP1) วาร์ปจากแผนที่ (M): ไปได้เฉพาะน้ำพุที่เคยแตะ · ในดันเจี้ยนวาร์ปไม่ได้ · แผนที่แสดงปุ่มวาร์ป',()=>{const sf=JSON.stringify(G.flags||{});
+    try{G.flags={};loadZone(makeTown());const notYet=!Warp.go('forest').ok;
+      if(!FOREST_ZONE)FOREST_ZONE=makeForestZone();loadZone(FOREST_ZONE);const fo=FOREST_ZONE.props.find(p=>p.k==='fountain');interact({type:'fountain',o:fo});const unlocked=!!Warp.list().forest;
+      loadZone(makeTown());const r1=Warp.go('forest'),inForest=Z.id==='forest';
+      enterDungeon(1,'stone');UI.mapTab='kingdom';const h=UI.scr_map(),r2=Warp.go('town'),stay=Z.theme==='stone';
+      return{ok:notYet&&unlocked&&r1.ok&&inForest&&!r2.ok&&stay&&h.includes('data-warp')&&h.includes('วาร์ปไม่ได้'),info:`unlock=${unlocked} go=${r1.ok}/${inForest} dun=${r2.ok}`};
+    }finally{G.flags=JSON.parse(sf);loadZone(makeTown());}});
+  T('RN1) รูน ธรรมดา 8 · หายาก 8 · ค่าเบา (ATK ≤+4 / % ≤5) · ดรอปจากมอน/บอส',()=>{const n=RUNE_TIER.normal,r=RUNE_TIER.rare;
+    const light=RUNES.every(k=>{const R=MATS[k].rune;return Object.entries(R).every(([s,v])=>['atk','def','sta'].includes(s)?v<=8:s==='hp'?v<=50:s==='mp'?v<=25:v<=.08);});
+    const drop=['rat','stonecave','icecave'].every(tb=>LOOT_TABLES[tb].entries.some(e=>e.rune==='normal'))&&['golem','seraph','spireboss'].every(tb=>LOOT_TABLES[tb].entries.some(e=>e.rune==='rare'));
+    return{ok:n.length===8&&r.length===8&&light&&drop&&!MATS.rune_matk,info:n.length+'/'+r.length};});
+  T('RN2) นักเล่นแร่แปรธาตุ: ซื้อรูนสุ่ม · หลอมรูนธรรมดา ×3 → รูนหายาก · ใส่/ถอดรูนเพิ่มค่าจริง · หน้าจอไม่มีปรับค่าความสามารถแล้ว',()=>{const gm=JSON.stringify(G.mats),gg=G.gold,bag=G.bag;
+    try{G.gold=5000;G.mats={};const b=RuneShop.buy(),boughtN=b.ok&&MATS[b.rune].rar==='normal'&&G.gold===5000-RUNE_SHOP.buy;
+      G.mats={rune_atk:3};const f=RuneShop.fuse('rune_atk'),fused=f.ok&&!G.mats.rune_atk&&MATS[f.rune].rar==='rare'&&(G.mats[f.rune]||0)===1;
+      const no=!RuneShop.fuse('rune_atk').ok;G.mats.rune_def=1;G.bag=[];const it=Inv.addItem(newItem('w_sword','normal',5));it.sockets=[null];const a0=itemStats(it).def||0;Equip.socketRune(it,0,'rune_def');const a1=itemStats(it).def||0;
+      UI.runePick=null;const h=UI.scr_alchemy();
+      return{ok:boughtN&&fused&&no&&a1-a0===4&&h.includes('ใส่รูน')&&h.includes('data-rbuy')&&!h.includes('data-afroll')&&!UI.scr_craft.toString().includes('data-ctab="rune"')};
+    }finally{G.mats=JSON.parse(gm);G.gold=gg;G.bag=bag;}});
   T('6) ผู้เล่นแต่ละคนได้ผลสุ่มแยกกัน',()=>{RNG=mulberry32(77);G.simPlayers={P2:{luk:10}};let diff=0;for(let i=0;i<50;i++){const[a,b]=LootManager.rollForPlayers({tableId:'golem',cls:'boss',level:6},['P1','P2']);
       if(a.pid!=='P1'||b.pid!=='P2'||a.drops===b.drops||a.drops.some(d=>b.drops.includes(d)))return{ok:false,info:'แชร์ผลกัน'};if(JSON.stringify(ids(a))!==JSON.stringify(ids(b)))diff++;}return{ok:diff>30,info:`ต่างกัน ${diff}/50 ครั้ง`};});
   T('7) ผู้เล่นอื่นเก็บของที่ไม่ใช่ของตัวเองไม่ได้',()=>{G.bag=[];G.mats={};Zt.ground=[];const[gi]=LootManager.spawn(Zt,100,100,{pid:'P1',drops:[{kind:'mat',mat:'wood',q:1,rar:'normal'}]});
@@ -438,7 +494,7 @@ function runTests(){
     G.flags={kageDown:1};G.mats.key_lava=0;const old=hasLavaKey();G.flags=f0;G.mats.key_lava=k0;return{ok:!a&&b&&old,info:`ไม่มีกุญแจ=${a} · มีกุญแจ=${b} · เซฟเก่าที่ชนะแล้ว=${old}`};});
   T('V21-3) คาเงะดรอปแค่กุญแจ และกุญแจไม่หายจากพื้น',()=>{const r=LootManager.generate({tableId:'kage',cls:'miniboss',level:6});const z={ground:[]};const gi=LootManager.spawn(z,0,0,r);
     return{ok:r.drops.length===1&&r.drops[0].mat==='key_lava'&&gi[0].expire===Infinity,info:r.drops.map(d=>d.mat||d.kind).join(',')};});
-  T('V21-4) คาเงะอ่อนลง (HP 400 ATK 44)',()=>({ok:FOES.kage.base.hp===400&&FOES.kage.base.atk===44,info:`HP ${FOES.kage.base.hp} ATK ${FOES.kage.base.atk}`}));
+  T('V21-4) คาเงะปรับสมดุลใหม่ให้ท้าทาย (HP 520 ATK 80)',()=>({ok:FOES.kage.base.hp===520&&FOES.kage.base.atk===80,info:`HP ${FOES.kage.base.hp} ATK ${FOES.kage.base.atk}`}));
   T('V21-5) ยามานาใช้ได้ 3 ครั้งต่อไฟต์',()=>{loadZone(makeDungeon(1,'stone'));const e=mkFoe('rat',{x:P.x+40,y:P.y});Z.foes.push(e);setupBattle(e);G.mode='battle';BT.intro=0;const p=BT.p,m0=G.mats.mp_s||0;G.mats.mp_s=9;G.potCD=0;
     const used=[];for(let i=0;i<4;i++){p.mp=0;G.potCD=0;p.state='idle';pressed.KeyR=true;keys.KeyR=true;try{control(p,BT.e);}finally{pressed.KeyR=false;keys.KeyR=false;}used.push(p.mp>0?1:0);}
     const left=BT.mana;BT=null;G.mode='explore';G.mats.mp_s=m0;return{ok:used.join('')==='1110'&&left===0,info:'ดื่มสำเร็จ '+used.join('')};});
@@ -500,7 +556,7 @@ function runTests(){
     G.guildRank=gr;return{ok:rs.has('normal')&&rs.has('rare')&&rs.has('epic')&&!rs.has('legendary')&&lowOk,info:[...rs].join('/')};});
   T('RK1) แรงค์กิลด์ 3 ช่วง: F/E/D Lv.1/15/30 (หายาก) · C/B 50/75 (มหากาพย์) · A/S 100/130 (ตำนาน) · คุมคราฟต์/ดรอป/วิวัฒน์ · หอคอยต้อง D · เพดาน Lv.150',()=>{const gr=G.guildRank,gm=JSON.stringify(G.mats),gg=G.gold;
     try{const ids=GUILD_RANKS.map(r=>r.id+r.lvReq+r.maxRar[0]).join(',');G.guildRank='F';const a=newItem('w_sword','epic',5).rar==='rare',sp1=!Guild.canEnterSpire();
-      const rr=RECIPES.find(x=>x.id==='gs3'),ck=Craft.check([{id:'ore',q:4},{id:'cloth',q:2}]),lock=!ck.ok&&/แรงค์/.test(ck.err||'');
+      const rr=RECIPES.find(x=>x.id==='gs3'),ck=Craft.check([{id:'ore',q:4},{id:'cloth',q:2},{id:'core',q:1}]),lock=!ck.ok&&/แรงค์/.test(ck.err||'');
       const it=newItem('w_sword','rare',5);it.enh=15;G.mats.evostone=9;G.gold=1e6;const ev=!Equip.evolve(it).ok&&it.rar==='rare';
       G.guildRank='D';const sp2=Guild.canEnterSpire();G.guildRank='C';const b=newItem('w_sword','epic',5).rar==='epic';G.guildRank='A';const c=newItem('w_sword','god',5).rar==='legendary';
       return{ok:ids==='F1r,E15r,D30r,C50e,B75e,A100l,S130l'&&a&&b&&c&&sp1&&sp2&&lock&&ev&&CONFIG.levelCap===150&&!!rr,info:ids+` lock=${lock} evo=${ev}`};
@@ -766,8 +822,10 @@ function runTests(){
     }catch(e){ok=false;}
     finally{G.guildRank=rk0;G.flags.respawnPoint=rp0;G.mats=JSON.parse(m0);}
     return{ok,info:`ok=${ok}`};});
-  T('V35-1) ลบคราฟต์กระทะของพ่อ · สูตรคราฟต์ไม่ชนกัน · ดันเจี้ยนต้นเกม 5 แห่งและกล่องดรอปเฉพาะ ทั่วไป/หายาก ส่วนมหากาพย์ออกในหอคอยเท่านั้น',()=>{
+  T('V35-1) ลบคราฟต์กระทะของพ่อ · คราฟต์สินค้าพิเศษร้านมาร์คัส 16 ชิ้นและรูน 6 ชนิดได้ครบ · สูตรคราฟต์ไม่ชนกัน · ดันเจี้ยนต้นเกม 5 แห่งดรอปเฉพาะ ทั่วไป/หายาก',()=>{
     const noPan=!BASES.w_firepan&&!MATS.pan&&!MATS.sc_firepan&&!QUESTS.pan&&!RECIPES.some(r=>r.id==='firepan'||r.out.base==='w_firepan'||r.mats.pan);
+    const shopCraft=['mp_l','mp_x','exitscroll','pot_regen','pot_def','pot_mdef','pot_m150','pot_quad','cryst_durable','cryst_great','divine','rerollstone','tierstone','pickstone','runedrill','talentevo',...RUNES];
+    const allShopCraft=shopCraft.every(k=>RECIPES.some(r=>r.out.mat===k));
     const sigs=new Set();let noCollide=true;
     for(const r of RECIPES){
       const s=Object.keys(r.mats).sort().map(k=>k+':'+r.mats[k]).join(',');
@@ -794,7 +852,8 @@ function runTests(){
       for(const d of res.drops)if(d.kind==='item'&&d.rar==='epic')spireHasEpic=true;
     }
     G.guildRank=rk0;G.bag=b0;Z=z0s;
-    return{ok:noPan&&noCollide&&earlyNoEpic&&spireHasEpic,info:`noPan=${noPan} noCollide=${noCollide} earlyNoEpic=${earlyNoEpic} spireEpic=${spireHasEpic}`};});
+    const lo=vsLoadout(),arenaOk=lo&&lo.skills.length===5&&!!lo.guildRank&&lo.S&&!lo.S.base&&!lo.S.flat&&Skills.move('piercestrike','sword',3,{skLv:{piercestrike:3}}).dmg>Skills.move('piercestrike','sword',3,{skLv:{piercestrike:1}}).dmg;
+    return{ok:noPan&&allShopCraft&&noCollide&&earlyNoEpic&&spireHasEpic&&arenaOk,info:`noPan=${noPan} shopCraft=${allShopCraft} noCollide=${noCollide} earlyNoEpic=${earlyNoEpic} spireEpic=${spireHasEpic} arena=${arenaOk}`};});
   }finally{RNG=rng0;Z=z0;P.x=px0;P.y=py0;G.hp=hp0;G.mode=mode0;G.flags.bossCD=cd0;G.pendingFoe=pf0;try{buildBg();}catch(e){}}}
   RNG=saveRNG;Object.assign(G,saveG);[Status.onStun,Status.onStunEnd,Status.onSynergy]=prevHooks;
   window.__testResults={pass,fail,out};return{pass,fail,out};

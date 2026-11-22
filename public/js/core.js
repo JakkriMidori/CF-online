@@ -1495,10 +1495,10 @@ function outlineText(t,x,y,size,col,align='center',ctx=D,ol,maxW){
 }
 function pill(x,y,txt,col='#7ad8ff'){
   D.font='700 14px Kanit,Sarabun,sans-serif';const w=D.measureText(txt).width+22;x=Math.max(w/2+4,Math.min(D.canvas.width-w/2-4,x));
-  const pg=D.createLinearGradient(0,y-13,0,y+13);pg.addColorStop(0,'rgba(18,44,104,.94)');pg.addColorStop(1,'rgba(6,15,44,.96)');
-  D.fillStyle=pg;rrect(x-w/2,y-12,w,24,4);D.fill();
-  D.strokeStyle=col;D.lineWidth=1.4;rrect(x-w/2,y-12,w,24,4);D.stroke();
-  D.strokeStyle='rgba(255,217,138,.35)';D.lineWidth=1;rrect(x-w/2+2,y-10,w-4,20,3);D.stroke();
+  /* UI v3: ป้าย [E] แบบแคปซูลเรียบ */
+  D.fillStyle='rgba(12,17,26,.9)';rrect(x-w/2,y-12,w,24,12);D.fill();
+  D.strokeStyle='rgba(255,255,255,.18)';D.lineWidth=1;rrect(x-w/2,y-12,w,24,12);D.stroke();
+  D.strokeStyle=col;D.globalAlpha*=.35;rrect(x-w/2,y-12,w,24,12);D.stroke();D.globalAlpha/=.35;
   D.fillStyle='#f4f9ff';D.textAlign='center';D.textBaseline='middle';D.fillText(txt,x,y+1);
 }
 function lighting(ls,dark){

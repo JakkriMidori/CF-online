@@ -31,11 +31,11 @@ function setCounts(list){const c={};for(const it of list){const st=BASES[it.base
 function activeSetBonuses(list){const out=[];const c=setCounts(list);for(const id in c)for(const n in SETS[id].b)if(c[id]>=+n)out.push({set:id,n:+n,b:SETS[id].b[n]});return out;}
 /* ลานประลอง PvP: ชุดของแต่ละคน (เลเวล ค่าพลัง อุปกรณ์ สกิล) ส่งเป็น JSON ได้ */
 function vsLoadout(){
-  const S=(typeof StatSync!=='undefined'&&StatSync.get())||Stats.player();
-  return{name:((G.look&&G.look.name)||'').trim(),S:Object.assign({},S,{passives:[...(S.passives||[])],flat:undefined}),level:G.level,talent:G.talent||null,
-    look:Equip.look(),wpn:Equip.weaponType(),
+  const S=Stats.player();
+  return{name:((G.look&&G.look.name)||'').trim(),S:Object.assign({},S,{passives:[...(S.passives||[])],flat:undefined,base:undefined}),level:G.level,guildRank:Guild.rank(),talent:G.talent||null,
+    look:Equip.look(),wpn:Equip.weaponType(),bound:G.skills.bound||null,skLv:Object.assign({},G.skills.lv||{}),
     skills:G.skills.slots.slice(0,5).map(id=>(id&&SKILLS[id]&&!SKILLS[id].bossOnly)?id:null)};}
-function vsLoadoutToS(lo){return Object.assign({},lo.S,{passives:new Set(lo.S.passives||[]),res:Object.assign({},lo.S.res||{})});}
+function vsLoadoutToS(lo){return Object.assign({},lo.S,{passives:new Set(lo.S.passives||[]),res:Object.assign({},lo.S.res||{}),mods:[]});}
 const Stats={
   derive(attr,flat,lv,talent,passives){
     const S={level:lv,...attr};
@@ -88,14 +88,15 @@ const Stats={
     const bc=def.boss?CONFIG.bossCritRes:0;   // บอสทุกตัวต้านคริเพิ่ม 20%
     if(def.fixedLv){   // บอสเลเวลตายตัว: ค่าใน base คือค่าจริง (บอสท้าประลองไม่คูณความยาก)
       const c=def.challenge;out.maxHP=Math.round(b.hp*(c?1:D.eHP));out.ap=out.mpow=Math.round(b.atk*(c?1:D.eATK));
-      if(!c){out.def=b.def+t10(attr.agi)*DV.agiPer10Def;out.mdef=b.mdef;}}
+      out.def=b.def+t10(attr.agi)*DV.agiPer10Def;out.mdef=b.mdef;}
+    out.apenPct=def.immortal?0:(def.challenge?Math.min(.32,.04+lv*.002):Math.min(.28,lv*.002+(def.boss?.08:0)));
     out.pcritRes=0;out.mcritRes=0;
     out.chaosChance=def.chaosChance||0;
     return out;
   },
   enemyCore(def,lv,elite,b,k,em,D){
-    return{level:lv,maxHP:Math.round(b.hp*(1+.12*k)*(em?em.hp:1)*D.eHP),ap:Math.round(b.atk*(1+.10*k)*(em?em.atk:1)*D.eATK),mpow:Math.round(b.atk*(1+.10*k)*(em?em.atk:1)*D.eATK),
-      def:Math.round(b.def+1*k),mdef:Math.round(b.mdef+.8*k),pcritRes:0,mcritRes:Math.min(.75,Math.floor((b.mdef+.8*k)/10)*CONFIG.derived.defPer10Crit),evasion:0,critRate:b.critRate||.05,critDmg:1.5,apen:0,mdefShred:0,dr:0,res:Object.assign({},def.res||{}),passives:new Set(),spd:1};
+    return{level:lv,maxHP:Math.round(b.hp*(1+.16*k)*(em?em.hp:1)*D.eHP),ap:Math.round(b.atk*(1+.115*k)*(em?em.atk:1)*D.eATK),mpow:Math.round(b.atk*(1+.115*k)*(em?em.atk:1)*D.eATK),
+      def:Math.round((b.def*(1+.035*k)+2.0*k)*(em?1.18:1)*(def.boss?1.12:1)),mdef:Math.round(b.mdef*(1+.035*k)+1.8*k),pcritRes:0,mcritRes:Math.min(.75,Math.floor((b.mdef+.8*k)/10)*CONFIG.derived.defPer10Crit),evasion:0,critRate:b.critRate||.05,critDmg:1.5,apen:0,mdefShred:0,dr:0,res:Object.assign({},def.res||{}),passives:new Set(),spd:1};
   }
 };
 /* ---- Difficulty + death penalty (Dark Souls-style bloodstain) ---- */
@@ -426,14 +427,15 @@ const LootManager={
   /* Luck applied exactly once here, relative, then clamped to [0,1]. Guaranteed rewards never call this. */
   dropChance(cls,luk){return clamp(LOOT_CONFIG.classes[cls].chance*(1+this.luckBonus(luk)),0,1);},
   validEntry(e){if(!e)return false;if(e.base)return!!BASES[e.base];if(e.mat)return!!MATS[e.mat];if(e.gear)return e.gear==='any'||ALLTYPES.includes(e.gear);
-    if(e.set)return!!SETS[e.set];if(e.book)return['common','rare','ultimate'].includes(e.book);return false;},
+    if(e.set)return!!SETS[e.set];if(e.book)return['common','rare','ultimate'].includes(e.book);if(e.rune)return!!(RUNE_TIER[e.rune]&&RUNE_TIER[e.rune].length);return false;},
   allows(e,rar){const a=e.rar||['normal'];return a==='any'||a.includes(rar);},
-  label(e){return e.base||e.mat||(e.gear?'gear:'+e.gear:e.set?'set:'+e.set:'book:'+e.book);},
+  label(e){return e.base||e.mat||(e.rune?'rune:'+e.rune:'')||(e.gear?'gear:'+e.gear:e.set?'set:'+e.set:'book:'+e.book);},
   pickEntry(entries,rar,used,kind){const el=entries.filter(e=>this.allows(e,rar)&&!(e.unique&&used.has(e))&&(!e.onlyKinds||e.onlyKinds.includes(kind)));
     if(!el.length)return null;let tot=el.reduce((a,e)=>a+e.w,0),r=rand()*tot;for(const e of el){r-=e.w;if(r<0)return e;}return el[el.length-1];},
   resolve(e,rar,lv,earlyCap){
     const q=rint(e.min||1,e.max||e.min||1);
     if(e.mat)return{kind:'mat',mat:e.mat,q,rar};
+    if(e.rune)return{kind:'mat',mat:pick(RUNE_TIER[e.rune]),q:1,rar};   // รูนสุ่มตามระดับ
     if(e.book){const pool=Object.keys(SKILLS).filter(k=>SKILLS[k].tier===e.book&&!SKILLS[k].bossOnly&&skillUsable(k,'player'));const k='sk_'+pick(pool);return MATS[k]?{kind:'mat',mat:k,q:1,rar}:null;}
     const eqRar=earlyCap&&RARS.indexOf(rar)>RARS.indexOf('rare')?'rare':rar;
     let base=e.base;
@@ -520,7 +522,7 @@ const Skills={
   learn(id){if(!SKILLS[id])return{ok:false,err:'ไม่มีสกิลนี้'};if(!skillUsable(id,'player'))return{ok:false,err:'สกิลนี้ศัตรูใช้ได้เท่านั้น'};if(G.skills.learned.has(id))return{ok:false,err:'เรียนสกิลนี้แล้ว'};
     G.skills.learned.add(id);const sl=(SKILLS[id].tier==='rare'?[1,0,2]:[0,1,2]).find(i=>slotAccepts(i,id)&&!G.skills.slots[i]);if(sl!==undefined)G.skills.slots[sl]=id;return{ok:true};},   // ใส่ช่องว่างแรกที่รับประเภทนี้ (ไม่รวมช่องเฉพาะตัว)   // auto-fill empty non-Unique socket
   passiveOf(){const id=G.skills&&G.skills.bound,s=id&&SKILLS[id];if(!s||s.type!=='passive')return null;return{id:s.passive.id,v:s.passive.v*this.scale(id).coef,skill:id};},
-  level(id){return G.skills.lv[id]||1;},
+  level(id,f){return(f&&f.skLv&&f.skLv[id])||G.skills.lv[id]||1;},
   /* equip / replace / remove for Common, Rare, Ultimate. Unique socket only changes via bind()/replaceUnique(). */
   equip(slot,id){
     if(slot<0||slot>4)return{ok:false,err:'ช่องไม่ถูกต้อง'};
@@ -554,8 +556,8 @@ const Skills={
     return{can:!miss.length&&G.gold>=req.gold,req,next:lv+1,miss,goldShort:G.gold<req.gold};},
   upgrade(id){const u=this.upgradeInfo(id);if(!u.can)return{ok:false,err:u.reason||'วัตถุดิบหรือทองไม่พอ'};
     for(const k in u.req.mats)Inv.take(k,u.req.mats[k]);G.gold-=u.req.gold;G.skills.lv[id]=u.next;return{ok:true,lv:u.next};},
-  scale(id){const lv=this.level(id),L=SKILL_UPGRADE.levels[lv];return L?{coef:L.coef,cd:L.cd}:{coef:1,cd:1};},
-  cdFrames(id,S){return Math.round(SKILLS[id].cd*this.scale(id).cd*60*this.cdMul(S));},
+  scale(id,f){const lv=this.level(id,f),L=SKILL_UPGRADE.levels[lv];return L?{coef:L.coef,cd:L.cd}:{coef:1,cd:1};},
+  cdFrames(id,S,f){return Math.round(SKILLS[id].cd*this.scale(id,f).cd*60*this.cdMul(S));},
   toSave(){const k=G.skills;return{learned:[...k.learned],slots:k.slots.slice(),bound:k.bound,lv:Object.assign({},k.lv)};},
   fromSave(d){let slots=(d.slots||[]).slice(0,5);while(slots.length<5)slots.push(null);
     // เซฟเลย์เอาต์เก่า (เฉพาะตัวช่อง 3, สุดยอดช่อง 4, ช่อง 5 ทั่วไป/หายาก): ย้ายมาเป็นเลย์เอาต์ใหม่
@@ -572,12 +574,12 @@ const Skills={
   cdLeft(id){return G.skills.cd[id]||0;},
   tick(){for(const k in G.skills.cd)if(G.skills.cd[k]>0)G.skills.cd[k]--;},
   cache:{},
-  move(id,wt,slot){
+  move(id,wt,slot,f){
     if(SKILLS[id].type==='passive')return null;
-    const lvl=this.level(id),key=id+'|'+wt+'|'+slot+'|'+lvl;if(this.cache[key])return this.cache[key];
+    const lvl=this.level(id,f),key=id+'|'+wt+'|'+slot+'|'+lvl;if(this.cache[key])return this.cache[key];
     const s=SKILLS[id],fr=SKILL_FRAMES[s.anim]||[10,4,18],a=s.active||(s.anim==='rush'?(s.multi||3)*4+4:s.rain?(s.multi||3)*7:fr[1]);
     const el=s.el==='weapon'?(WEAPONS[wt]||WEAPONS.fist).el:(s.el||'phys');
-    const m=M(s.n,s.startup||fr[0],a,fr[2],(s.coef||0)*10*this.scale(id).coef,s.reach||0,3,22,{anim:s.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
+    const m=M(s.n,s.startup||fr[0],a,fr[2],(s.coef||0)*10*this.scale(id,f).coef,s.reach||0,3,22,{anim:s.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
       type:s.type,el,skillId:id,hy:s.hy||62,hh:s.hh||60});
     for(const k of ['multi','proj','beam','beamCol','spiritBeam','blueFlame','greenFlame','swap','launch','rise','inv','lunge','kicks','status','statusDur','armorBreak','unblockable','jackpotPen','jackpot','alwaysCrit','defPen','lifesteal','ignoreDef','lastCrit','strike','buff','hpCost','rain','kd','low','dragon','kingAura','holdParry','rootDur','pillars','frostnova','instantShatter','windblade','blink','blinkBuff','slashFx','vfx','lightJudge'])if(s[k]!==undefined)m[k]=s[k];
     if(s.tier==='ultimate')m.super=2;
@@ -676,7 +678,8 @@ const Save={
     Skills.fromSave(d.skills||{});
     if(d.v<3)this.gearWipe();
     if(G.guildRank==='G')G.guildRank='D';   // แรงค์ G เดิม (Lv.30 + โคลอสเซียม) = แรงค์ D ใหม่   // เซฟก่อนระบบไอเทมใหม่: ล้างอุปกรณ์ทั้งหมด · เลเวลเหลือ 5 · ชดเชยทอง
-    for(const it of G.bag||[]){const ts=(RARITY[it.rar]||RARITY.normal).sockets;it.sockets=Array.isArray(it.sockets)?it.sockets.slice(0,ts):[];it.affixes=(it.affixes||[]).filter(a=>a&&GAFX[a.k]);}
+    for(const it of G.bag||[]){const ts=(RARITY[it.rar]||RARITY.normal).sockets;it.sockets=Array.isArray(it.sockets)?it.sockets.slice(0,ts).map(rk=>rk==='rune_matk'?'rune_atk':rk&&MATS[rk]&&MATS[rk].rune?rk:null):[];it.affixes=(it.affixes||[]).filter(a=>a&&GAFX[a.k]);}
+    if(G.mats&&G.mats.rune_matk){G.mats.rune_atk=(G.mats.rune_atk||0)+G.mats.rune_matk;delete G.mats.rune_matk;}   // รูนพลังเวท (ระบบเก่า) → รูนพลัง
     for(const s of SLOTS)if(!(s in G.eq))G.eq[s]=null;  // forward-compat for new slots
     for(const s of Object.keys(G.eq))if(!SLOTS.includes(s))delete G.eq[s];
     World.restore(d.world);return true;
@@ -689,8 +692,8 @@ const Save={
   load(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return false;return this.apply(JSON.parse(raw));}catch(e){return false;}}
 };
 
-/* ---- Re-Item (NPC รีไอเทม): รีครั้งละ 500 เหรียญ สุ่มไอเทม 4 ช่อง ---- */
-const REITEM={cost:1000,buy:500,odds:[['normal',69.9989],['rare',20],['epic',10],['legendary',.001],['god',.0001]]}   /* หน่วยเป็น % — ตำนาน/เทพ ได้จากร้านรีเท่านั้น (ดรอปไม่มีแล้ว) */;
+/* ---- Re-Item (NPC รีไอเทม): สุ่มครั้งละ 20,000 เหรียญ ซื้อชิ้นละ 10,000 เหรียญ ---- */
+const REITEM={cost:20000,buy:10000,odds:[['normal',69.9989],['rare',20],['epic',10],['legendary',.001],['god',.0001]]}   /* หน่วยเป็น % — ตำนาน/เทพ ได้จากร้านรีเท่านั้น (ดรอปไม่มีแล้ว) */;
 function reitemRarity(uncap){let x=rand()*100;for(const [r,p] of REITEM.odds){if(x<p)return uncap?r:capRar(r);x-=p;}return 'normal';}
 function reitemOdds(uncap){const o={};for(const [r,p] of REITEM.odds){const c=uncap?r:capRar(r);o[c]=Math.round(((o[c]||0)+p)*1e6)/1e6;}return Object.entries(o);}
 function reitemRoll(uncap){const pool=Object.keys(BASES).filter(k=>BASES[k].type&&!BASES[k].setTag&&!/_god$|^h_crown$/.test(k)),r=reitemRarity(uncap);
@@ -720,3 +723,11 @@ const SpecialShop={
   fmtCD(ms){if(ms<=0)return'';const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
     return h>0?`${h} ชม. ${m} น.`:`${m}:${String(sc).padStart(2,'0')}`;}
 };
+/* ---- ร้านรูนของนักเล่นแร่แปรธาตุ: ซื้อรูนธรรมดาสุ่ม · หลอมรูนธรรมดาชนิดเดียวกัน 3 ก้อน → รูนหายากสุ่ม 1 ก้อน ---- */
+const RuneShop={
+  buy(){if(G.gold<RUNE_SHOP.buy)return{ok:false,msg:'ทองไม่พอ'};G.gold-=RUNE_SHOP.buy;const k=pick(RUNE_TIER.normal);Inv.add(k,1);return{ok:true,rune:k,msg:`ได้ ${MATS[k].n} (${runeDesc(k)})`};},
+  canFuse(k){return!!(k&&MATS[k]&&MATS[k].rar==='normal'&&(G.mats[k]||0)>=RUNE_SHOP.fuseN&&G.gold>=RUNE_SHOP.fuseGold);},
+  fuse(k){if(!k||!MATS[k]||MATS[k].rar!=='normal')return{ok:false,msg:'เลือกรูนธรรมดาก่อน'};if((G.mats[k]||0)<RUNE_SHOP.fuseN)return{ok:false,msg:`ต้องมี ${MATS[k].n} ${RUNE_SHOP.fuseN} ก้อน`};
+    if(G.gold<RUNE_SHOP.fuseGold)return{ok:false,msg:'ทองไม่พอ'};Inv.take(k,RUNE_SHOP.fuseN);G.gold-=RUNE_SHOP.fuseGold;const r=pick(RUNE_TIER.rare);Inv.add(r,1);return{ok:true,rune:r,msg:`หลอมสำเร็จ! ได้ ${MATS[r].n} (${runeDesc(r)})`};}
+};
+function runeDesc(k){const m=MATS[k];return m?(m.desc||'').replace('ใส่ช่องรูน: ',''):'';}

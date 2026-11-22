@@ -55,7 +55,8 @@ function update(){
     case'title':if(tap('Enter'))startFromTitle(Save.exists());break;
     case'explore':if(tap('PageUp')){UI.open('debug');break;}if(tap('Tab')){UI.open('menu');break;}Skills.tick();updExplore();if(P.moving&&G.t%15===0)SFX.step(Z.biomeAt(Math.floor(P.x/16)));break;
     case'cutscene':if(typeof Cutscene!=='undefined')Cutscene.tick();break;
-    case'dialog':if(tap('Escape')&&typeof Cutscene!=='undefined'&&Cutscene.active){Cutscene.skip();break;}if(tap(KB.interact,'Enter','Space','PadA'))nextLine();break;
+    case'story':if(typeof Story!=='undefined')Story.tick();break;   // การ์ดชื่อบทของเนื้อเรื่อง
+    case'dialog':if(tap('Escape')&&typeof Cutscene!=='undefined'&&Cutscene.active){Cutscene.skip();break;}if(tap('Escape')&&typeof Story!=='undefined'&&Story.active){Story.skip();break;}if(tap(KB.interact,'Enter','Space','PadA'))nextLine();break;
     case'menu':{
       if(tap('ArrowUp'))Nav.move(0,-1);if(tap('ArrowDown'))Nav.move(0,1);if(tap('ArrowLeft'))Nav.move(-1,0);if(tap('ArrowRight'))Nav.move(1,0);
       if(tap('PadA'))Nav.activate();
@@ -70,6 +71,7 @@ function update(){
     case'battle':updBattle();break;
   }
   sndTick();
+  if(typeof Story!=='undefined'&&G.t%10===0)Story.flush();   // เล่นฉากเนื้อเรื่องที่รอคิว (หลังปิดหน้าสรุปรางวัล ฯลฯ)
   if(G.shake>0){G.shake*=.85;if(G.shake<.3)G.shake=0;}
   for(const p of EP){p.x+=p.vx;p.y+=p.vy;if(p.grav)p.vy+=.12;p.l--;}for(let i=EP.length-1;i>=0;i--)if(EP[i].l<=0)EP.splice(i,1);
   for(const m of MOTES){m.x+=m.vx;m.y+=m.vy;if(m.y<36){m.y=H;m.x=rnd(0,W);}}

@@ -11,9 +11,9 @@ const VSKN2_SK=[['NetS1'],['NetS2'],['NetS3'],['NetS4'],['NetS5']];   // สก�
 const NETIN={R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote'],S1:['Digit1','Numpad1'],S2:['Digit2','Numpad2'],S3:['Digit3','Numpad3'],S4:['Digit4','Numpad4'],S5:['Digit5','Numpad5','KeyL'],get F(){return[KB.flask]},get M(){return[KB.mana]}};
 const MOVEMAPS={};
 // หาท่าจากชื่อ ตามอาวุธและสกิลของนักสู้คนนั้น (ใช้ฝั่งเพื่อนตอนวาดภาพจาก snapshot)
-function moveByName(n,f){if(!n)return null;const wt=(f&&f.wpn)||CONFIG.arena.weapon,sk=(f&&f.skillSet)||CONFIG.arena.skills,key=wt+'|'+sk.join(',');
+function moveByName(n,f){if(!n)return null;const wt=(f&&f.wpn)||CONFIG.arena.weapon,sk=(f&&f.skillSet)||CONFIG.arena.skills,lvKey=f&&f.skLv?JSON.stringify(f.skLv):'',key=wt+'|'+sk.join(',')+'|'+lvKey;
   let M=MOVEMAPS[key];if(!M){M=MOVEMAPS[key]={};const W=WEAPONS[wt]||WEAPONS.sword;for(const m of[...W.light,W.heavy,...Object.values(UNI)])if(m&&m.n)M[m.n]=m;
-    sk.forEach((id,i)=>{if(!id||!SKILLS[id])return;const m=Skills.move(id,wt,i);if(m&&m.n)M[m.n]=m;});for(const C of CMD_COMBOS)M[C.move.n]=C.move;}
+    sk.forEach((id,i)=>{if(!id||!SKILLS[id])return;const m=Skills.move(id,wt,i,f);if(m&&m.n)M[m.n]=m;});for(const C of CMD_COMBOS)M[C.move.n]=C.move;}
   return M[n]||null;}
 // เริ่มขอความสามารถ room ตั้งแต่โหลดหน้า (อาจใช้เวลาถึง ~10 วิ)
 // ขอความสามารถ room แบบหน่วง: window.claude อาจถูกใส่เข้ามาหลังสคริปต์โหลดแล้ว จึงไม่ล็อกผลไว้ตอนโหลดหน้า
@@ -109,18 +109,20 @@ class NetCore{
   /* ---- โฮสต์: เก็บเสียง/เอฟเฟกต์ส่งให้เพื่อน ---- */
   hookSfx(){if(this.sfxOrig)return;this.sfxOrig={};for(const n of SFX_HOOKS){const o=SFX[n];if(typeof o!=='function')continue;this.sfxOrig[n]=o;SFX[n]=(...a)=>{o(...a);this.evq.push({e:'s',n,a});};}}
   unhookSfx(){if(!this.sfxOrig)return;for(const n in this.sfxOrig)SFX[n]=this.sfxOrig[n];this.sfxOrig=null;}
-  snap(){const b=BT,F=f=>{const o={x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),mp:Math.round(f.mp||0),fk:f.flask|0,mn:f.mana|0,iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq,ul:Math.round(f.ult||0),gl:f.guardLeft|0,gb:f.guardBroken|0,pcd:f.potCD|0,lm:f.lastMove?f.lastMove.n:null,lt:f.lastT|0,cs:f.comboShow|0,ct:f.comboT|0};
+  snap(){const b=BT,F=f=>{const o={x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),mp:Math.round(f.mp||0),fk:f.flask|0,mn:f.mana|0,iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq,ul:Math.round(f.ult||0),gl:f.guardLeft|0,gb:f.guardBroken|0,pcd:f.potCD|0,dc:f.dashCharges??(CONFIG.dashMax||2),dcd:f.dashCD|0,lm:f.lastMove?f.lastMove.n:null,lt:f.lastT|0,cs:f.comboShow|0,ct:f.comboT|0};
     if(f.fireShieldT>0)o.fst=f.fireShieldT;if(f.vanishT>0)o.vt=f.vanishT;if(f.parryBuffT>0)o.pbt=f.parryBuffT;if(f.kingAuraT>0)o.kat=f.kingAuraT;if(f.rootT>0)o.rt=f.rootT;
     if(f.st8){const st={};for(const k in f.st8)if(f.st8[k])st[k]=f.st8[k].stacks?{t:f.st8[k].t,stacks:f.st8[k].stacks}:{t:f.st8[k].t};if(Object.keys(st).length)o.st=st;}
+    if(f.S&&f.S.mods&&f.S.mods.length)o.md=f.S.mods.map(m=>({id:m.id,n:m.n,kind:m.kind,left:m.left,max:m.max}));
     if(f.cd){const cd={};let any=0;for(const k in f.cd)if(f.cd[k]>0){cd[k]=f.cd[k];any=1;}if(any)o.cd=cd;}return o;};
     for(const n of b.nums)if(!n._s){n._s=1;this.evq.push({e:'n',x:Math.round(n.x),y:Math.round(n.y),t:n.txt,c:n.col,z:n.size,o:n.ol,b:n.bn});}
     for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0,el:u.el||null,ex:u.exp?1:0,st:u.star?1:0,dm:u.dome?1:0,cr:u.crit?1:0});}
     for(const u of b.bolts)if(!u._s){u._s=1;this.evq.push({e:'z',x:Math.round(u.x),t:u.t});}
-    for(const pl of b.pillars||[])if(!pl._s){pl._s=1;this.evq.push({e:'pl',x:Math.round(pl.x),mh:pl.maxH,t:pl.t,dl:pl.delay|0,el:pl.el||null,c:pl.col||null,fn:pl.frostnova?1:0});}
+    for(const pl of b.pillars||[])if(!pl._s){pl._s=1;this.evq.push({e:'pl',x:Math.round(pl.x),mh:pl.maxH,t:pl.t,dl:pl.delay|0,el:pl.el||null,c:pl.col||null,fn:pl.frostnova?1:0,bf:pl.blueFlame?1:0,gf:pl.greenFlame?1:0,sj:pl.skyJudge?1:0,tg:pl.telegraph|0});}
     for(const fx of b.moveFx||[])if(!fx._s&&fx.kind!=='fog'){fx._s=1;const w=fx.actor===b.e?1:0;
       if(fx.kind==='slash')this.evq.push({e:'fx',kd:'slash',w,x:Math.round(fx.x),y:Math.round(fx.y),d:fx.dir,v:fx.v|0});
       else if(fx.kind==='heal')this.evq.push({e:'fx',kd:'heal',w,sub:fx.sub||'heal'});
       else if(fx.kind==='shield')this.evq.push({e:'fx',kd:'shield',w,c:fx.col});
+      else if(fx.kind==='aether')this.evq.push({e:'fx',kd:'aether',w});
       else if(fx.kind==='dash'||fx.kind==='blink')this.evq.push({e:'fx',kd:fx.kind,w,x0:Math.round(fx.x0),x1:Math.round(fx.x1),y:Math.round(fx.y),d:fx.dir});}
     for(const f of[b.p,b.e]){const w=f===b.e?1:0;
       if(f.fullCombo&&!f.fullCombo._s){f.fullCombo._s=1;this.evq.push({e:'fc',n:f.fullCombo.n,w});}
@@ -130,7 +132,7 @@ class NetCore{
     for(const ev of this.evq.splice(0)){ev.k=++this.evK;this.evRing.push(ev);}if(this.evRing.length>24)this.evRing.splice(0,this.evRing.length-24);
     return{t:'snap',rid:this.rid,p:F(b.p),e:F(b.e),tm:b.time,it:b.intro,en:b.end,sh:+b.shake.toFixed(1),hs:b.hitstop,wh:b.white,im:b.impFrame|0,ms:b.msg,rs:b.result,
       cb:{n:b.comboShow,w:b.comboWho===b.e?1:0,t:b.comboT},k:++this.snapK,ev:this.evRing.slice(),
-      pj:b.proj.map(q=>[Math.round(q.x),Math.round(q.y),q.r,q.col,q.vx>0?1:-1,q.rock?1:0,q.wind?1:0,(q.m&&q.m.el)||null])};}
+      pj:b.proj.map(q=>[Math.round(q.x),Math.round(q.y),q.r,q.col,q.vx>0?1:-1,q.rock?1:0,q.wind?1:0,(q.m&&q.m.el)||null,q.blueflame?1:0,q.greenflame?1:0])};}
   hostTick(){if(!BT||!BT.vs||this.role!=='host')return;
     if(this.now()-this.lastRx>6000&&this.lastRx){this.dropped('เพื่อนหลุดการเชื่อมต่อ');return;}
     if(G.t%2===0)this.tx(this.snap());}
@@ -144,27 +146,35 @@ class NetCore{
     if(this.now()-this.lastRx>6000&&this.lastRx){this.dropped('เจ้าของห้องหลุดการเชื่อมต่อ');return;}
     this.guestInput();
     if(s){this.pend=null;
-      for(const[f,d]of[[b.p,s.p],[b.e,s.e]]){const far=Math.abs(d.x-f.x)>60;f.tx=d.x;if(far)f.x=d.x;f.y=d.y;f.vy=d.vy;f.dir=d.d;f.state=d.s;f.phase=d.ph;f.pt=d.pt;f.hp=d.h;f.sta=d.sta;if(d.mp!==undefined){f.mp=d.mp;f.flask=d.fk;f.mana=d.mn;}f.invuln=d.iv;f.flash=d.fl;f.onGround=!!d.og;f.walkT=d.w;f.gc=!!d.gc;f.didHit=!!d.dh;f.move=moveByName(d.mv,f);f.moveSeq=d.ms;
+      for(const[f,d]of[[b.p,s.p],[b.e,s.e]]){const far=Math.abs(d.x-f.x)>60,prevSeq=f.moveSeq;f.tx=d.x;if(far)f.x=d.x;f.y=d.y;f.vy=d.vy;f.dir=d.d;f.state=d.s;f.phase=d.ph;f.pt=d.pt;f.hp=d.h;f.sta=d.sta;if(d.mp!==undefined){f.mp=d.mp;f.flask=d.fk;f.mana=d.mn;}f.invuln=d.iv;f.flash=d.fl;f.onGround=!!d.og;f.walkT=d.w;f.gc=!!d.gc;f.didHit=!!d.dh;f.move=moveByName(d.mv,f);f.moveSeq=d.ms;
         if(d.ul!==undefined)f.ult=d.ul;if(d.gl!==undefined){f.guardLeft=d.gl;f.guardBroken=d.gb||0;f.potCD=d.pcd||0;}
+        if(d.dc!==undefined){f.dashCharges=d.dc;f.dashCD=d.dcd||0;}
+        if(f.S)f.S.mods=d.md||[];
         f.cd=Object.assign({},d.cd||{});f.lastMove=d.lm?moveByName(d.lm,f):null;f.lastT=d.lt||0;if(d.cs!==undefined){f.comboShow=d.cs;f.comboT=d.ct||0;}
         f.fireShieldT=d.fst||0;f.vanishT=d.vt||0;f.parryBuffT=d.pbt||0;f.kingAuraT=d.kat||0;f.rootT=d.rt||0;
-        if(f.st8){for(const k in f.st8)f.st8[k]=(d.st&&d.st[k])||null;}}
+        if(f.st8){for(const k in f.st8)f.st8[k]=(d.st&&d.st[k])||null;}
+        if(f.move&&d.ms!==prevSeq&&typeof VFX!=='undefined'){
+          const o=f===b.p?b.e:b.p;
+          if(f.move.lightJudge)VFX.add('b','sword-rain',{x:bsx(o?clamp(o.x,38,BW-38):clamp(f.x+f.dir*90,38,BW-38))*2,y:bsy(GY)*2,count:f.move.multi||5,spread:Math.round(60*BZ),_max:2.4});
+          else if(f.move.skillId==='cuttingwind')VFX.add('b','wind-blades',{x:bsx(f.x+f.dir*12)*2,y:bsy(f.y-58)*2,facing:f.dir,reach:Math.round((f.move.reach||64)*BZ+14),_max:1});
+        }}
       b.time=s.tm;b.intro=s.it;b.end=s.en;b.msg=s.ms;b.result=s.rs;b.comboT=s.cb.t;b.comboShow=s.cb.n;b.comboWho=s.cb.w?b.e:b.p;if(s.sh>b.shake)b.shake=s.sh;b.hitstop=s.hs;if(s.wh>b.white)b.white=s.wh;if((s.im||0)>0)b.impFrame=s.im;
-      b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],wind:!!a[6],m:a[7]?{el:a[7]}:null,life:2,o:null}));
+      b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],wind:!!a[6],m:a[7]?{el:a[7]}:null,blueflame:!!a[8],greenflame:!!a[9],life:2,o:null}));
       for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55,ol:ev.o,bn:ev.b});
         else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,el:ev.el||null,big:ev.g,exp:!!ev.ex,star:!!ev.st,dome:!!ev.dm,crit:!!ev.cr});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
-        else if(ev.e==='pl'){(b.pillars=b.pillars||[]).push({x:ev.x,h:0,maxH:ev.mh,t:ev.t,delay:ev.dl||0,el:ev.el,col:ev.c,frostnova:!!ev.fn});}
+        else if(ev.e==='pl'){(b.pillars=b.pillars||[]).push({x:ev.x,h:0,maxH:ev.mh,t:ev.t,delay:ev.dl||0,el:ev.el,col:ev.c,frostnova:!!ev.fn,blueFlame:!!ev.bf,greenFlame:!!ev.gf,skyJudge:!!ev.sj,telegraph:ev.tg||0});}
         else if(ev.e==='fx'){const tf=ev.w?b.e:b.p;b.moveFx=b.moveFx||[];
           if(ev.kd==='slash')b.moveFx.push(slashFx({actor:tf,x:ev.x,y:ev.y,dir:ev.d,variant:ev.v||0}));
           else if(ev.kd==='heal')b.moveFx.push(healFx({kind:ev.sub||'heal',actor:tf,x:tf.x,y:tf.y}));
           else if(ev.kd==='shield')b.moveFx.push(shieldFx({actor:tf,x:tf.x,y:tf.y,col:ev.c}));
+          else if(ev.kd==='aether'&&typeof aetherVfx==='function')b.moveFx.push(aetherVfx({actor:tf}));
           else if(ev.kd==='dash'||ev.kd==='blink')b.moveFx.push(movementFx({kind:ev.kd,actor:tf,x0:ev.x0,x1:ev.x1,y:ev.y,dir:ev.d}));}
         else if(ev.e==='fc'){const tf=ev.w?b.e:b.p;tf.fullCombo={n:ev.n,t:90};b.fullCombo={n:ev.n,t:90,who:tf};}
         else if(ev.e==='sm'){const tf=ev.w?b.e:b.p;tf.small={t:ev.t,l:ev.l||60};}
         else if(ev.e==='fl'){const tf=ev.w?b.e:b.p,fm=moveByName(ev.mn,tf);if(fm)b.flash={t:ev.t||46,f:tf,m:fm};}
         else if(ev.e==='s'&&SFX[ev.n])SFX[ev.n](...ev.a);}}
     for(const f of[b.p,b.e]){const o=f===b.p?b.e:b.p;if(f.tx!==undefined)f.x+=(f.tx-f.x)*.55;f.dhp+=(f.hp-f.dhp)*.05;
-      if(f.cd)for(const k in f.cd)if(f.cd[k]>0)f.cd[k]--;if(f.guardBroken>0)f.guardBroken--;if(f.potCD>0)f.potCD--;if(f.lastT>0&&f.state!=='attack')f.lastT--;if(f.comboT>0)f.comboT--;if(f.fullCombo&&--f.fullCombo.t<=0)f.fullCombo=null;if(f.small&&--f.small.l<=0)f.small=null;
+      if(f.cd)for(const k in f.cd)if(f.cd[k]>0)f.cd[k]--;if(f.guardBroken>0)f.guardBroken--;if(f.potCD>0)f.potCD--;if(f.dashCD>0)f.dashCD--;if(f.lastT>0&&f.state!=='attack')f.lastT--;if(f.comboT>0)f.comboT--;if(f.fullCombo&&--f.fullCombo.t<=0)f.fullCombo=null;if(f.small&&--f.small.l<=0)f.small=null;
       if(f.fireShieldT>0)f.fireShieldT--;if(f.vanishT>0)f.vanishT--;if(f.parryBuffT>0)f.parryBuffT--;if(f.kingAuraT>0)f.kingAuraT--;if(f.rootT>0)f.rootT--;
       if(f.look&&f.look.trail&&['walk','dash','air'].includes(f.state)&&G.t%3===0)b.parts.push({x:f.x-f.dir*6,y:f.y-rnd(0,8),vx:-f.dir*.6,vy:-.2,l:16,c:f.look.trail,s:2});
       if(f.state==='attack'&&f.phase==='active'&&f.move&&f.move.rain&&G.t%3===0){const rel=f.move.el||'fire',rc=ELC[rel]||'#ff8a3a';b.parts.push({x:o.x+rnd(-56,56),y:rnd(10,50),vx:f.dir*1.4,vy:6.8,l:32,c:rc,s:5,meteor:1});}

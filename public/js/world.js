@@ -157,7 +157,7 @@ let CAVE=null;
 const CHEST_SKILLS=['sk_poisondart','sk_slashcut','sk_cuttingwind','sk_frostshard','sk_embersweep','sk_voltstep','sk_shadowfang','sk_holyspark','sk_earthspike','sk_fireshield','sk_blink'];
 const RARE_COLO_SKILLS=['sk_fireshield','sk_blink','sk_frostnova','sk_meteorstrike','sk_chainlightning','sk_glacialprison','sk_shadowreap','sk_holyrain','sk_venomfang'];  // dungeon random chests roll from this list
 const CAM={x:0,y:0,rx:0,ry:0,snap:1,zone:null};
-function loadZone(z,spawn){if(typeof Cutscene!=='undefined'&&Cutscene.active&&!Cutscene._internal)Cutscene.abort();Z=z;const sp=spawn||z.spawn;P.x=sp.x;P.y=sp.y;{const bs=G.bloodstain;if(bs&&bs.zone===z.id&&blocked(bs.x,bs.y)){bs.x=z.spawn.x+24;bs.y=z.spawn.y;}}Z.cols=Z.grid[0].length;Z.rows=Z.grid.length;CAM.snap=1;Z.torches=[];if(Z.id!=='overworld'){Z.grid[2].forEach((c,i)=>{if(c==='T')Z.torches.push({x:i*16+8,y:2*16+8});});if(Z.id==='town')for(let i=3;i<Z.cols-2;i+=8)if(i<35||i>38)Z.torches.push({x:i*16+8,y:44});}
+function loadZone(z,spawn){if(typeof Cutscene!=='undefined'&&Cutscene.active&&!Cutscene._internal)Cutscene.abort();Z=z;if(typeof Respawn!=='undefined')Respawn.refreshItems(z);const sp=spawn||z.spawn;P.x=sp.x;P.y=sp.y;{const bs=G.bloodstain;if(bs&&bs.zone===z.id&&blocked(bs.x,bs.y)){bs.x=z.spawn.x+24;bs.y=z.spawn.y;}}Z.cols=Z.grid[0].length;Z.rows=Z.grid.length;CAM.snap=1;Z.torches=[];if(Z.id!=='overworld'){Z.grid[2].forEach((c,i)=>{if(c==='T')Z.torches.push({x:i*16+8,y:2*16+8});});if(Z.id==='town')for(let i=3;i<Z.cols-2;i+=8)if(i<35||i>38)Z.torches.push({x:i*16+8,y:44});}
   if(!Z.safe&&Z.id!=='overworld'){for(const f of Z.foes)f.hidden=hideFoe(f)?1:0;keepFromDoors(Z);}   // v0.2.0: มอนทั่วไปซ่อนอยู่ (แบบ RPG Maker)
   for(const f of Z.foes)if(f.alive&&!f.hidden)Ency.see(f.kind,foeLevel(FOES[f.kind],Z.levelAt(Math.floor(f.x/16))));
   if((z.id==='town'||z.id==='city')&&!z.folk)z.folk=makeFolk(z);
@@ -419,7 +419,7 @@ function makeForestZone(){
 }
 function enterForestZone(){
   if(!FOREST_ZONE)FOREST_ZONE=makeForestZone();
-  else{for(const it of FOREST_ZONE.items)it.taken=false;}
+  /* ของบนพื้นไม่รีเซ็ตเมื่อเข้าใหม่ — เกิดใหม่ทีละชิ้นหลัง 5 นาที (Respawn.refreshItems) */
   loadZone(FOREST_ZONE,FOREST_ZONE.spawn);
   toast('🌲 เข้าสู่ป่าไม้คอลลาวาร์รี — กด E ที่ต้นไม้/ราวหนังเพื่อเก็บไม้และหนัง · แวะน้ำพุกลางป่าเพื่อบันทึกจุดเกิด',3600);
   Save.save&&Save.save();
@@ -452,13 +452,23 @@ function makeMineCaveZone(){
 }
 function enterMineCaveZone(){
   if(!MINECAVE_ZONE)MINECAVE_ZONE=makeMineCaveZone();
-  else{for(const it of MINECAVE_ZONE.items)it.taken=false;}
+  /* ของบนพื้นเกิดใหม่ทีละชิ้นหลัง 5 นาที (Respawn.refreshItems) */
   loadZone(MINECAVE_ZONE,MINECAVE_ZONE.spawn);
   toast('⛏️ เข้าสู่ถ้ำขุดแร่คอลลาวาร์รี — กด E ขุดแร่หิน แร่เหล็ก เก็บไม้ และบันทึกจุดเกิดที่น้ำพุได้',3600);
   Save.save&&Save.save();
 }
-function respawnAtSavedPoint(){
-  const rp=G.flags&&G.flags.respawnPoint;
+/* ---- วาร์ปจากแผนที่ (M): ไปได้เฉพาะจุดน้ำพุ/เสาแสงที่เคยแตะแล้ว · ห้ามวาร์ปออกจากดันเจี้ยน/หอคอย/ห้องบอส ---- */
+const WARP_SAFE=['town','city','forest','minecave','overworld','spire_hall_mage','spire_hall_aether'];
+const Warp={
+  list(){G.flags=G.flags||{};const w=G.flags.warps=G.flags.warps||{};if(!w.town)w.town={kind:'fountain',zoneId:'town',label:'น้ำพุเมือง Collawarrie'};return w;},
+  unlock(rp){if(rp&&rp.zoneId)this.list()[rp.zoneId]=Object.assign({},rp);},
+  canFrom(){return!!(Z&&(WARP_SAFE.includes(Z.id)||Z.safe&&!Z.theme))&&G.mode!=='battle'&&!(typeof BT!=='undefined'&&BT);},
+  why(){return this.canFrom()?'':'🚫 วาร์ปไม่ได้ระหว่างอยู่ในดันเจี้ยน/หอคอย — เดินออก หรือใช้คัมภีร์กลับเมือง';},
+  go(zid){const rp=this.list()[zid];if(!rp)return{ok:false,msg:'ยังไม่ปลดล็อกจุดวาร์ปนี้ (ต้องแตะน้ำพุ/เสาแสงก่อน)'};if(!this.canFrom())return{ok:false,msg:this.why()};
+    const lbl=respawnAtSavedPoint(rp);CAM.snap=1;Save.save&&Save.save();return{ok:true,msg:`🌀 วาร์ปไปที่ ${lbl} แล้ว`};}
+};
+function respawnAtSavedPoint(rpIn){
+  const rp=rpIn||(G.flags&&G.flags.respawnPoint);
   if(rp){
     if(rp.zoneId==='spire_hall_mage'||rp.zoneId==='spire_hall_aether'){
       const z=makeSpireHall(rp.tower||(rp.zoneId==='spire_hall_aether'?'aether':'mage'));
@@ -642,7 +652,7 @@ function grantChest(o){
 function interact(n){
   const o=n.o;
   if(o&&o.locked&&o.need){toast(o.need);return;}
-  if(n.type==='item'){o.taken=true;Inv.add(o.it);SFX.pick();toast(`ได้รับ ${mIco(o.it,14)} ${MATS[o.it].n}`);
+  if(n.type==='item'){o.taken=true;if(o.it!=='pan')Respawn.takeNode(o);Inv.add(o.it);SFX.pick();toast(`ได้รับ ${mIco(o.it,14)} ${MATS[o.it].n}`);
     for(let i=0;i<8;i++)EP.push({x:o.x,y:o.y-4,vx:rnd(-1,1),vy:rnd(-1.5,-.3),l:30,c:'#fff3b0'});}
   else if(n.type==='chest'){o.opened=true;SFX.craft();grantChest(o);for(let i=0;i<16;i++)EP.push({x:o.x,y:o.y-8,vx:rnd(-1.2,1.2),vy:rnd(-2,-.5),l:40,c:'#ffe27a'});}
   else if(n.type==='npc'){if(o.id==='reitem')UI.open('reitem');else talk(o.id);}
@@ -672,12 +682,13 @@ function interact(n){
     const tw=(Z&&Z.tower)||(o&&o.tower)||'mage',zid=tw==='aether'?'spire_hall_aether':'spire_hall_mage';
     const lbl=tw==='aether'?'เสาแสงทางเข้าหอคอยอัศวินแสง Aether':'เสาแสงทางเข้าหอคอยคริสตัลจอมเวท';
     G.flags=G.flags||{};G.flags.respawnTower=tw;G.flags.respawnTown=0;
-    G.flags.respawnPoint={kind:'light_pillar',zoneId:zid,tower:tw,x:(o&&o.x)||12*16,y:((o&&o.y)||9*16+10)+20,label:lbl};
+    G.flags.respawnPoint={kind:'light_pillar',zoneId:zid,tower:tw,x:(o&&o.x)||12*16,y:((o&&o.y)||9*16+10)+20,label:lbl};Warp.unlock(G.flags.respawnPoint);
     for(let i=0;i<24;i++)EP.push({x:((o&&o.x)||P.x)+rnd(-14,14),y:((o&&o.y)||P.y)-rnd(4,36),vx:rnd(-.45,.45),vy:-rnd(.5,1.4),l:38,c:i%2?'#ffe878':'#9ff4ff'});
     Save.save&&Save.save();
     toast(`✨ ${lbl} — HP และ MP ฟื้นเต็ม · บันทึกเกมและตั้งเป็นจุดเกิดใหม่แล้ว (ตายแล้วจะเกิดที่เสาแสงนี้)`,4000);
   }
   else if(n.type==='gather_wood'||n.type==='gather_hide'||n.type==='mine_stone'||n.type==='mine_iron'){
+    {const left=Respawn.nodeLeft(o);if(left>0){SFX.ui&&SFX.ui('error');toast(`⏳ จุดนี้ถูกเก็บไปแล้ว — เกิดใหม่ในอีก ${Respawn.fmt(left)}`,1800);return;}Respawn.takeNode(o);}
     const mat=n.type==='gather_wood'?'wood':n.type==='gather_hide'?'hide':n.type==='mine_stone'?'stoneore':'ore';
     const isMine=n.type==='mine_stone'||n.type==='mine_iron';
     Inv.add(mat,1);if(isMine)SFX.smash&&SFX.smash();else SFX.pick&&SFX.pick();
@@ -745,13 +756,14 @@ function interact(n){
     else if(r.reason==='full'){SFX.fail();toast('🎒 กระเป๋าเต็ม — ของยังอยู่บนพื้น เก็บได้ภายหลัง');}
     else if(r.reason==='owner')toast('ของชิ้นนี้เป็นของผู้เล่นอื่น');else if(r.reason==='expired')toast('ของหายไปแล้ว');}
   else if(n.type==='fountain'){const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;SFX.level();let extra='';
+    const fLeft=Respawn.fountainLeft();   // ฟื้นศัตรู/ทรัพยากรได้ครั้งละ 5 นาที
+    if(fLeft>0)extra+=` · ⏳ ศัตรูและทรัพยากรจะฟื้นได้อีกครั้งใน ${Respawn.fmt(fLeft)}`;else{Respawn.bag().fountain=Respawn.now()+RESPAWN_MS;
     if(Diff.cur().restRespawn&&CAVE){let k=0;for(const e of CAVE.foes)if(!e.alive&&!FOES[e.kind].boss&&!FOES[e.kind].miniboss){e.alive=true;e.x=e.home.x;e.y=e.home.y;e.respawn=0;e.cool=120;k++;}if(k)extra+=` · 🔥 ศัตรูในถ้ำฟื้นคืน ${k} ตัว`;}
     {const panDone=G.q&&G.q.pan&&(G.q.pan.step>0||G.q.pan.done);let rc=0;
-      for(const zl of[CAVE,FOREST_ZONE,MINECAVE_ZONE,Z])if(zl&&Array.isArray(zl.items))for(const it of zl.items){if(it.taken&&(it.it!=='pan'||!panDone)){it.taken=false;rc++;}}
-      if(rc)extra+=` · ✨ ทรัพยากรตามฉากเกิดใหม่ ${rc} ชิ้น`;}
+      /* ของบนพื้นไม่ฟื้นด้วยน้ำพุแล้ว — แต่ละชิ้นเกิดใหม่เองหลังเก็บ 5 นาที */}}
     const zid=(Z&&Z.id)||'town',lbl=zid==='forest'?'น้ำพุป่าไม้คอลลาวาร์รี':zid==='minecave'?'น้ำพุถ้ำขุดแร่คอลลาวาร์รี':zid==='city'?'น้ำพุเมืองหลวงออเรีย':'น้ำพุเมือง Collawarrie';
     G.flags=G.flags||{};G.flags.respawnTower=null;G.flags.respawnTown=1;
-    G.flags.respawnPoint={kind:'fountain',zoneId:zid,x:(o&&o.x)||P.x,y:((o&&o.y)||P.y)+22,label:lbl};
+    G.flags.respawnPoint={kind:'fountain',zoneId:zid,x:(o&&o.x)||P.x,y:((o&&o.y)||P.y)+22,label:lbl};Warp.unlock(G.flags.respawnPoint);   // น้ำพุที่แตะแล้ว = จุดวาร์ปบนแผนที่
     for(let i=0;i<20;i++)EP.push({x:((o&&o.x)||P.x)+rnd(-12,12),y:((o&&o.y)||P.y)-rnd(4,30),vx:rnd(-.4,.4),vy:-rnd(.4,1.2),l:36,c:i%2?'#9fe8ff':'#ffffff'});
     Save.save&&Save.save();
     toast(`💧 ${lbl} — HP และ MP ฟื้นเต็ม · บันทึกเกมและตั้งเป็นจุดเกิดใหม่แล้ว (ตายแล้วจะเกิดที่น้ำพุนี้)`+extra,3800);}
@@ -777,9 +789,29 @@ function enterDungeon(floor,theme){
   const th=theme||'lava';
   if(th==='lava'){Quest.activate('lava');if(floor===1)Quest.advance('lava',1);if(floor===3)Quest.advance('lava',2);}
   if(floor>=3){enterBossRoom(THEME_BOSS[th]);return;}
-  const zid=th+floor;loadZone(makeDungeon(floor,th));G.shake=4;toast(`${ZONE_INFO[zid].n} — ศัตรู Lv.${enemyLevel(ZONE_INFO[zid].lv,G.level)} โดยประมาณ`,3000);
+  const zid=th+floor,c=DUN_CACHE[zid],fresh=!c||Respawn.now()-c.at>=RESPAWN_MS;
+  if(fresh)DUN_CACHE[zid]={z:makeDungeon(floor,th),at:Respawn.now()};
+  loadZone(DUN_CACHE[zid].z);if(!fresh)toast(`⏳ ห้องนี้ยังไม่ฟื้น — ศัตรูและทรัพยากรจะเกิดใหม่ในอีก ${Respawn.fmt(RESPAWN_MS-(Respawn.now()-c.at))}`,3000);G.shake=4;toast(`${ZONE_INFO[zid].n} — ศัตรู Lv.${enemyLevel(ZONE_INFO[zid].lv,G.level)} โดยประมาณ`,3000);
 }
 const ENC={rad:15};
+/* ---- กันปั๊มทรัพยากร/ทอง: ทุกอย่างเกิดใหม่ทุก 5 นาที (เวลาจริง) ----
+   · จุดเก็บ/ขุด (ไม้ หนัง หิน แร่เหล็ก): เก็บแล้วหมด เกิดใหม่หลัง 5 นาทีต่อจุด
+   · น้ำพุ: ฟื้น HP/MP ทุกครั้ง แต่ฟื้นศัตรู + ทรัพยากรตามฉากได้ครั้งละ 5 นาที
+   · ดันเจี้ยน: ออกแล้วกลับเข้าภายใน 5 นาที ได้ห้องเดิม (ศัตรูที่ฆ่า/ของที่เก็บยังหายอยู่) */
+const RESPAWN_MS=5*60*1000;
+const Respawn={
+  now:()=>Date.now(),
+  bag(){G.flags=G.flags||{};return G.flags.respawn=G.flags.respawn||{node:{},fountain:0,dun:{}};},
+  key(o){return((Z&&Z.id)||'z')+':'+Math.round(o.x)+','+Math.round(o.y);},
+  nodeLeft(o){const t=this.bag().node[this.key(o)]||0;return Math.max(0,t-this.now());},
+  takeNode(o){const b=this.bag();b.node[this.key(o)]=this.now()+RESPAWN_MS;for(const k in b.node)if(b.node[k]<this.now())delete b.node[k];},
+  fountainLeft(){return Math.max(0,(this.bag().fountain||0)-this.now());},
+  fmt(ms){const s=Math.ceil(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');},
+  /* ของบนพื้นที่เก็บไปแล้ว: ครบ 5 นาทีหลังเก็บ → กลับมาวางที่เดิม (ไม่นับของเนื้อเรื่อง) */
+  refreshItems(z){if(!z||!Array.isArray(z.items))return 0;const zz=Z;let n=0;try{Z=z;for(const it of z.items)if(it.taken&&it.it!=='pan'&&!it.once&&this.nodeLeft(it)<=0){it.taken=false;n++;}}finally{Z=zz;}return n;}
+};
+const DUN_CACHE={};   // zid → {z,at} ห้องดันเจี้ยนที่เพิ่งเข้า (ไม่บันทึกลงเซฟ)
+const GATHER_LBL={gather_wood:'🌲 ตัดไม้',gather_hide:'🦌 เก็บหนังสัตว์',mine_stone:'⛏️ ขุดแร่หิน',mine_iron:'⛏️ ขุดแร่เหล็ก'};
 // กุญแจลงเหมืองลาวา: ได้จากคาเงะเท่านั้น (เซฟเก่าที่ชนะคาเงะไปแล้วเข้าได้เลย)
 const hasLavaKey=()=>Inv.has('key_lava')||!!G.flags.kageDown&&!G.flags.keyEra||!!G.flags.lavaKeyUsed;
 function encounter(e){Ency.see(e.kind,foeLevel(FOES[e.kind],Z.levelAt(Math.floor(e.x/16))));e.x=P.x+(P.face||1)*20;e.y=P.y;G.encBang=40;SFX.ui&&SFX.ui('error');startBattle(e);}
@@ -836,6 +868,7 @@ function updFolk(){
   }
 }
 function updExplore(){
+  if(G.t%60===0&&typeof Respawn!=='undefined')Respawn.refreshItems(Z);   // ของบนพื้นครบ 5 นาที → เกิดใหม่
   StatSync.frame('P');   // นับเวลาบัฟ/ดีบัฟนอกการต่อสู้
   {const S=StatSync.get();if(G.t%60===0&&(S.hotPct||0)>0&&G.hp>0&&G.hp<S.maxHP){G.hp=Math.min(S.maxHP,G.hp+Math.max(1,Math.round(S.maxHP*S.hotPct)));UI.hud&&UI.hud();}}
   if(Z.puddles&&G.t%30===0){const k=Math.floor(P.x/16)+','+Math.floor((P.y-2)/16),t=Z.puddles[k];   // แอ่งน้ำยาในหอคอย
@@ -1318,7 +1351,8 @@ function drawExplore(){
       g.strokeStyle=`rgba(${col},${.22+p*.15})`;g.lineWidth=.9;g.beginPath();g.ellipse(o.x,o.y-1,11+p*2,4+p*.7,0,0,7);g.stroke();
       for(let i=0;i<2;i++){const a=t*.045+i*3.14+o.x;g.fillStyle=`rgba(${col},.52)`;g.fillRect(o.x+Math.cos(a)*9,o.y-4+Math.sin(a)*3,1.2,1.2);}
     }
-    drawProp(o);
+    if(o.inter&&GATHER_LBL[o.inter]&&Respawn.nodeLeft(o)>0){g.save();g.globalAlpha*=.35;drawProp(o);g.restore();}   // จุดเก็บที่หมดแล้ว: จางลงจนกว่าจะเกิดใหม่
+    else drawProp(o);
   }});
   for(const o of Z.items)if(!o.taken)list.push({x:o.x,y:o.y,f:()=>drawItem(o)});
   for(const gi of Z.ground||[])if(!gi.picked)list.push({x:gi.x,y:gi.y,f:()=>drawGround(gi)});
@@ -1386,7 +1420,7 @@ function drawExploreUI(){
     outlineText(`บอสประจำชั้น: ${bDead?'✓ พิชิตแล้ว':'✕ ยังอยู่'} · ปริศนาผลึก: ${pzOk?'✓ ปลดล็อก':Z.puzzle.lit.length+'/3'}`,24,42,10.5,bDead&&pzOk?'#8affb8':'#ffd88a','left');
     D.restore();
   }
-  if(NEAR&&G.mode==='explore'){const o=NEAR.o;const lab=NEAR.type==='item'?'เก็บ '+MATS[o.it].n:NEAR.type==='ground'?'เก็บ '+LootManager.name(o.drop):NEAR.type==='puzzle_rune'?`จุด${o.rn}`:LABEL[NEAR.type];{const q=PJ.pt(o.x,o.y);pill(q.x*S,(q.y-(NEAR.type==='npc'?30:26)*q.s)*S,'[E] '+lab);}}
+  if(NEAR&&G.mode==='explore'){const o=NEAR.o;const lab=GATHER_LBL[NEAR.type]&&Respawn.nodeLeft(o)>0?`${GATHER_LBL[NEAR.type]} · ⏳ ${Respawn.fmt(Respawn.nodeLeft(o))}`:NEAR.type==='item'?'เก็บ '+MATS[o.it].n:NEAR.type==='ground'?'เก็บ '+LootManager.name(o.drop):NEAR.type==='puzzle_rune'?`จุด${o.rn}`:LABEL[NEAR.type];{const q=PJ.pt(o.x,o.y);pill(q.x*S,(q.y-(NEAR.type==='npc'?30:26)*q.s)*S,'[E] '+lab);}}
   if(!G.miniOff)drawMinimap();
 }
 function drawMinimap(){

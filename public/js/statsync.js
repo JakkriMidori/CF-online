@@ -58,7 +58,7 @@ const StatSync={
   recalc(owner,reason){
     if(owner&&owner!=='P'){   // นักสู้ในฉากต่อสู้
       if(!owner.S0)return null;owner.S=this.final(owner.S0,owner.mods);
-      if(owner.isP&&owner.S.maxHP){owner.maxHp=owner.S.maxHP;owner.hp=Math.min(owner.hp,owner.maxHp);}
+      if((owner.isP||owner.isP2)&&owner.S.maxHP){owner.maxHp=owner.S.maxHP;owner.hp=Math.min(owner.hp,owner.maxHp);}
       this.recalcs++;this.lastReason=reason;return owner.S;}
     if(typeof G==='undefined'||!G.talent)return null;
     const base=Stats.player();this.cur=this.final(base,this.mods);this.sigCache=this.sig();this.dirty=false;this.recalcs++;this.lastReason=reason;
