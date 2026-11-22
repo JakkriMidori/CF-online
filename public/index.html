@@ -18,7 +18,7 @@ canvas{display:block}#c{width:100%;height:100%;image-rendering:pixelated}   /* �
 #wrap.battle .tilt,#wrap.battle #hud,#wrap.battle #quest,#wrap.battle #menu{display:none}
 .ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .hidden{display:none!important}
-#ov{background:rgba(0,0,0,.35)}
+#ov{background:rgba(0,0,0,.35);z-index:4}
 #quest{position:absolute;top:2.5%;right:2.2%;max-width:42%;text-align:right;font-size:clamp(9px,1.4vw,14px);text-shadow:0 2px 4px #000,0 0 10px #000;line-height:1.5;pointer-events:none}
 #quest .t{color:var(--gold);font-weight:800}
 #hud{position:absolute;left:2%;top:2.5%;pointer-events:none;font-size:clamp(9px,1.3vw,13px);text-shadow:0 2px 3px #000;width:clamp(120px,24vw,230px)}
@@ -686,6 +686,12 @@ kbd{font-family:'Kanit',sans-serif;font-weight:500;letter-spacing:0}
 .emenu .mrow{transition:background .18s,box-shadow .18s,transform .18s}
 .emenu .mrow:hover,.emenu .mrow:focus-visible{box-shadow:inset 3px 0 0 #ffd98a,0 0 14px rgba(122,216,255,.18);transform:translateX(2px)}
 .eq4>div,.bres{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 6px 18px rgba(0,0,0,.35)}
+.setcard{padding:10px 12px;margin:8px 0;border:1px solid rgba(130,196,255,.22);border-radius:10px;background:rgba(6,14,34,.62)}
+.setcard h3{margin:0 0 8px}
+.srow-vol{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px}
+.sv-hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sv-pct{color:#ffe3a0;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+.vol-range{width:100%;height:7px;accent-color:#f3c969;cursor:pointer}
 </style>
 </head>
 <body>
@@ -710,32 +716,34 @@ kbd{font-family:'Kanit',sans-serif;font-weight:500;letter-spacing:0}
     <div class="tbtns">
       <button class="btn" id="contBtn">เล่นต่อ</button>
       <button class="btn ghost" id="newBtn">เริ่มเกมใหม่</button>
+      <button class="btn ghost" id="optBtn">ตั้งค่า</button>
       <button class="btn ghost hidden" id="delBtn">ลบเซฟ</button>
     </div>
   </div>
-  <p class="ver">v0.3.5</p>
+  <p class="ver">v0.4.0Beta</p>
   <p class="credits">ไอคอน: game-icons.net (Lorc, Delapouite · CC BY 3.0) · เสียง UI: Kenney (CC0) · ฟอนต์: Kanit, Sarabun, Cinzel (OFL)</p>
   </div>
 </div>
-<script src="js/core.js?v=20261121i"></script>
-<script src="js/gameicons.js?v=20261121i"></script>
-<script src="js/icons.js?v=20261121i"></script>
-<script src="js/data.js?v=20261121i"></script>
-<script src="js/systems.js?v=20261121i"></script>
-<script src="js/statsync.js?v=20261121i"></script>
-<script src="js/balance-live.js?v=20261121i"></script>
-<script src="js/assets.js?v=20261121i"></script>
-<script src="js/hd2d.js?v=20261121i"></script>
-<script src="js/sfx.js?v=20261121i"></script>
-<script src="js/world.js?v=20261121i"></script>
-<script src="js/overworld.js?v=20261121i"></script>
-<script src="js/battle.js?v=20261121i"></script>
-<script src="js/ui.js?v=20261121i"></script>
-<script src="js/charspec.js?v=20261121i"></script>
-<script src="js/net.js?v=20261121i"></script>
-<script src="js/tests.js?v=20261121i"></script>
-<script src="js/sfvfx.js?v=20261121i"></script>
-<script src="js/vfx.js?v=20261121i"></script>
-<script src="js/main.js?v=20261121i"></script>
+<script src="js/core.js?v=20261122q"></script>
+<script src="js/gameicons.js?v=20261122q"></script>
+<script src="js/icons.js?v=20261122q"></script>
+<script src="js/data.js?v=20261122q"></script>
+<script src="js/systems.js?v=20261122q"></script>
+<script src="js/statsync.js?v=20261122q"></script>
+<script src="js/balance-live.js?v=20261122q"></script>
+<script src="js/assets.js?v=20261122q"></script>
+<script src="js/hd2d.js?v=20261122q"></script>
+<script src="js/sfx.js?v=20261122q"></script>
+<script src="js/world.js?v=20261122q"></script>
+<script src="js/overworld.js?v=20261122q"></script>
+<script src="js/battle.js?v=20261122q"></script>
+<script src="js/ui.js?v=20261122q"></script>
+<script src="js/charspec.js?v=20261122q"></script>
+<script src="js/net.js?v=20261122q"></script>
+<script src="js/tests.js?v=20261122q"></script>
+<script src="js/sfvfx.js?v=20261122q"></script>
+<script src="js/pxfx.js?v=20261122q"></script>
+<script src="js/vfx.js?v=20261122q"></script>
+<script src="js/main.js?v=20261122q"></script>
 </body>
 </html>

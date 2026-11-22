@@ -6,8 +6,10 @@
 const OW_COLS = 72, OW_ROWS = 48;
 
 const OW_LOCATIONS = [
-  { id:'ow_spire',   k:'ow_spire',   kind:'spire',   tx:9,  ty:27, icon:'🔮', tag:'T',  n:'หอคอยคริสตัลจอมเวท',       lv:'Lv.50–95 · 5 ชั้น (Rank G+)', island:'south', dest:'spire',   desc:'หอคอยอเมทิสต์ 5 ชั้น ทางทิศตะวันตกของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) มีห้องทั่วไป · หัวหน้า · บอส ต้องแก้ปริศนาคริสตัลเพื่อขึ้นชั้นถัดไป' },
-  { id:'ow_spire_s', k:'ow_spire_s', kind:'spire', tx:27, ty:28, icon:'⚔️', tag:'T2', n:'หอคอยอัศวินแสง Aether', lv:'Lv.55–100 · 5 ชั้น (Rank G+)', island:'south', dest:'spire_aether', desc:'หอคอยศักดิ์สิทธิ์ 5 ชั้นบนทุ่งเหนือของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) พิทักษ์โดยจอมดาบกุหลาบ เทพสายฟ้าทอง และบอสใหญ่ชั้น 5: ราชาอัศวินแสง ผู้ครอบครอง Aether' },
+  { id:'ow_spire',   k:'ow_spire',   kind:'spire',   tx:9,  ty:27, icon:'🔮', tag:'T',  n:'หอคอยคริสตัลจอมเวท',       lv:'Lv.50–95 · 5 ชั้น (Rank D+)', island:'south', dest:'spire',   desc:'หอคอยอเมทิสต์ 5 ชั้น ทางทิศตะวันตกของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) มีโถงเสาแสงบันทึกจุดเกิด ห้องทั่วไป · หัวหน้า · บอส ต้องแก้ปริศนาคริสตัลเพื่อขึ้นชั้นถัดไป' },
+  { id:'ow_spire_s', k:'ow_spire_s', kind:'spire', tx:27, ty:28, icon:'⚔️', tag:'T2', n:'หอคอยอัศวินแสง Aether', lv:'Lv.55–100 · 5 ชั้น (Rank D+)', island:'south', dest:'spire_aether', desc:'หอคอยศักดิ์สิทธิ์ 5 ชั้นบนทุ่งเหนือของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) มีโถงเสาแสงบันทึกจุดเกิด พิทักษ์โดยจอมดาบกุหลาบ เทพสายฟ้าทอง และบอสใหญ่ชั้น 5: ราชาอัศวินแสง ผู้ครอบครอง Aether' },
+  { id:'ow_forest',  k:'ow_forest',  kind:'gather',  tx:21, ty:31, icon:'🌲', tag:'F',  n:'ป่าไม้คอลลาวาร์รี',         lv:'เก็บไม้ & หนัง · มีน้ำพุบันทึกจุดเกิด', island:'south', dest:'forest', desc:'ป่าไม้ใหญ่กลางทุ่งทางเหนือของเมือง Collawarrie เขตปลอดภัยไร้สัตว์ประหลาด เข้าไปตัดไม้ เก็บหนังสัตว์ และพักฟื้นบันทึกจุดเกิดใหม่ที่น้ำพุได้' },
+  { id:'ow_mine',    k:'ow_mine',    kind:'gather',  tx:29, ty:37, icon:'⛏️', tag:'M',  n:'ถ้ำขุดแร่คอลลาวาร์รี',       lv:'ขุดหิน · แร่เหล็ก · เก็บไม้ · มีน้ำพุ', island:'south', dest:'minecave', desc:'ถ้ำเหมืองแร่ทางตะวันออกของเมือง Collawarrie เขตปลอดภัยสำหรับขุดแร่หิน แร่เหล็ก เก็บไม้ และพักบันทึกจุดเกิดที่น้ำพุใต้ดิน' },
   { id:'ow_town',    k:'ow_town',    kind:'town',    tx:20, ty:40, icon:'🏰', tag:'1',  n:'เมือง Collawarrie',         lv:'เมืองหลัก · เขตปลอดภัย',    island:'south', dest:'town',    desc:'เมืองท่ากลางหุบเขา ร้านค้า ตีเหล็ก กิลด์นักผจญภัย ลานประลอง และประตูสู่ดันเจี้ยนทั้งหมด' },
   { id:'ow_port',    k:'ow_port',    kind:'port',    tx:34, ty:31, icon:'⚓', tag:'⚓', n:'ท่าเรือเกาะใต้',            lv:'สะพานถูกตัด · ข้ามไม่ได้',   island:'south', dest:'port',    desc:'ท่าเรือริมฝั่งตะวันออก สะพานข้ามเกาะถูกตัดขาดทั้งหมด ไม่สามารถข้ามไปยังเกาะกลางและเกาะเหนือได้' },
   { id:'ow_outpost', k:'ow_outpost', kind:'outpost', tx:50, ty:26, icon:'⛺', tag:'2',  n:'จุดพักแรมเกาะกลาง',        lv:'🔒 ข้ามทะเลไม่ได้',         island:'mid',   dest:'outpost', desc:'ค่ายพักนักเดินทางบนเกาะหินแดง ปัจจุบันสะพานถูกตัดขาด ไม่สามารถเดินทางข้ามมาได้' },
@@ -22,7 +24,9 @@ const OW_ZONE_META = {
   ow_south:  { n:'เกาะใต้ · ถนนสู่เมือง Collawarrie', lv:1, biome:'town', safe:1 },
   ow_mid:    { n:'เกาะกลาง · ช่องแคบจุดพักแรม', lv:1, biome:'lava', safe:1 },
   ow_north:  { n:'เกาะเหนือ · หอคอยคริสตัลจอมเวท', lv:50, biome:'ice', safe:1 },
-  city:      { n:'เมืองหลวงออเรีย (ถูกผนึก)', lv:1, biome:'town', safe:1 }
+  city:      { n:'เมืองหลวงออเรีย (ถูกผนึก)', lv:1, biome:'town', safe:1 },
+  forest:    { n:'ป่าไม้คอลลาวาร์รี (เก็บไม้ & หนัง)', lv:1, biome:'town', safe:1 },
+  minecave:  { n:'ถ้ำขุดแร่คอลลาวาร์รี (หิน · แร่เหล็ก · ไม้)', lv:1, biome:'cave', safe:1 }
 };
 
 let OVERWORLD = null, CITY = null;
@@ -362,6 +366,37 @@ const OW = {
       if (G.t % 14 === 0) EP.push({ x: x + 8, y: y - 5, vx: rnd(-.08, .08), vy: -.28, l: 24, c: '#ffb45a' });
       return true;
     }
+    if (k === 'ow_forest') {
+      shadow(g, x, y, 18);
+      const sw = Math.sin(G.t * .035) * .6;
+      // ซุ้มป่าไม้ใหญ่ + กองซุง + ป้ายหนังสัตว์
+      for (const [dx, dy, r1, r2] of [[-10, -4, 6, 8], [10, -4, 6, 8], [0, -7, 7, 10]]) {
+        g.fillStyle = '#4e331e'; g.fillRect(x + dx - 1.5, y + dy - 6, 3, 7);
+        g.fillStyle = '#1f5426'; g.beginPath(); g.arc(x + dx + sw * .4, y + dy - 10, r2, 0, 7); g.fill();
+        g.fillStyle = '#327c3a'; g.beginPath(); g.arc(x + dx - 1.5 + sw * .5, y + dy - 12, r1, 0, 7); g.fill();
+        g.fillStyle = '#58ad52'; g.beginPath(); g.arc(x + dx + 1 + sw * .5, y + dy - 14, r1 * .65, 0, 7); g.fill();
+      }
+      // กองไม้ซุง & ราวตากหนังหน้าป่า
+      g.fillStyle = '#7a4e28'; g.fillRect(x - 11, y - 3, 8, 3); g.fillStyle = '#c89b62'; g.fillRect(x - 4, y - 3, 2, 3);
+      g.fillStyle = '#5c3a1e'; g.fillRect(x + 4, y - 7, 1.5, 7); g.fillRect(x + 11, y - 7, 1.5, 7); g.fillRect(x + 3, y - 7, 10, 1.5);
+      g.fillStyle = '#c8884a'; g.fillRect(x + 5.5, y - 5.5, 5, 4);
+      return true;
+    }
+    if (k === 'ow_mine') {
+      shadow(g, x, y, 18);
+      // ปากถ้ำเหมืองหิน + โครงไม้ค้ำ + แร่เหล็กเรืองแสง
+      g.fillStyle = '#5c5852'; g.beginPath(); g.moveTo(x - 15, y); g.lineTo(x - 12, y - 15); g.lineTo(x, y - 19); g.lineTo(x + 12, y - 15); g.lineTo(x + 15, y); g.closePath(); g.fill();
+      g.fillStyle = '#7a756c'; g.beginPath(); g.moveTo(x - 14, y); g.lineTo(x - 11, y - 14); g.lineTo(x - 1, y - 18); g.lineTo(x - 3, y); g.closePath(); g.fill();
+      g.fillStyle = '#181412'; g.beginPath(); g.arc(x, y - 2, 7, Math.PI, 0); g.lineTo(x + 7, y); g.lineTo(x - 7, y); g.closePath(); g.fill();
+      // เสาไม้ค้ำปากเหมือง
+      g.fillStyle = '#7a4c24'; g.fillRect(x - 8, y - 11, 2.2, 11); g.fillRect(x + 5.8, y - 11, 2.2, 11); g.fillRect(x - 9, y - 12, 18, 2.2);
+      // ก้อนแร่เหล็กและหินหน้าถ้ำ
+      g.fillStyle = '#8b939c'; g.beginPath(); g.moveTo(x - 13, y); g.lineTo(x - 10, y - 5); g.lineTo(x - 7, y); g.closePath(); g.fill();
+      g.fillStyle = '#c8d6e5'; g.fillRect(x - 11, y - 4, 2, 2);
+      g.fillStyle = '#9aa8b8'; g.beginPath(); g.moveTo(x + 8, y); g.lineTo(x + 11, y - 6); g.lineTo(x + 14, y); g.closePath(); g.fill();
+      g.fillStyle = '#e2f0ff'; g.fillRect(x + 10, y - 4, 2, 2);
+      return true;
+    }
     if (k === 'ow_port') {
       shadow(g, x, y, 12);
       g.fillStyle = '#7a5230'; g.fillRect(x - 8, y - 5, 22, 5);
@@ -404,7 +439,7 @@ const OW = {
       D.fillRect(mx + x * sc, my + y * sc, sc + .4, sc + .4);
     }
     for (const l of OW_LOCATIONS) {
-      D.fillStyle = l.locked ? '#ff5a6a' : l.kind === 'spire' ? '#d870ff' : l.kind === 'town' ? '#ffe066' : l.kind === 'home' ? '#7dff9a' : l.kind === 'outpost' ? '#ffb85a' : '#7ce2ff';
+      D.fillStyle = l.locked ? '#ff5a6a' : l.kind === 'spire' ? '#d870ff' : l.kind === 'town' ? '#ffe066' : l.kind === 'gather' ? '#7dff9a' : l.kind === 'outpost' ? '#ffb85a' : '#7ce2ff';
       D.beginPath(); D.arc(mx + (l.tx + .5) * sc, my + (l.ty + .5) * sc, 3, 0, 7); D.fill();
     }
     D.fillStyle = '#ffffff'; D.strokeStyle = '#ff3838'; D.lineWidth = 1.4;
@@ -436,8 +471,10 @@ const OW = {
   interact(type) {
     if (type === 'ow_town') { loadZone(TOWN, TOWN.southGateSpawn || TOWN.spawn); toast('🏰 เข้าสู่เมือง Collawarrie'); Save.save(); return true; }
     if (type === 'ow_city') { OW.enterCity(); return true; }
-    if (type === 'ow_spire') { if (typeof enterTowerFront === 'function') enterTowerFront('mage'); else if (typeof enterSpire === 'function') enterSpire(1, 'mage'); return true; }
-    if (type === 'ow_spire_s') { if (typeof enterTowerFront === 'function') enterTowerFront('aether'); else if (typeof enterSpire === 'function') enterSpire(1, 'aether'); return true; }
+    if (type === 'ow_forest') { if (typeof enterForestZone === 'function') enterForestZone(); return true; }
+    if (type === 'ow_mine') { if (typeof enterMineCaveZone === 'function') enterMineCaveZone(); return true; }
+    if (type === 'ow_spire') { if (typeof enterSpireHall === 'function') enterSpireHall('mage'); else if (typeof enterSpire === 'function') enterSpire(1, 'mage'); return true; }
+    if (type === 'ow_spire_s') { if (typeof enterSpireHall === 'function') enterSpireHall('aether'); else if (typeof enterSpire === 'function') enterSpire(1, 'aether'); return true; }
     if (type === 'ow_spire_w' || type === 'ow_spire_m' || type === 'ow_spire_n') {
       const loc = OW_LOCATIONS.find(l => l.id === type);
       toast(`🔒 ${(loc && loc.n) || 'หอคอยคริสตัล'} — ม่านพลังผนึกอยู่ ยังไม่สามารถเข้าได้ในขณะนี้`, 2800);

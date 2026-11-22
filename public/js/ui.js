@@ -5,43 +5,60 @@
 const pn=$('#pn'),ov=$('#ov');
 // รวมราคาของที่เลือกไว้ในหน้าขาย (อุปกรณ์ = ทีละชิ้น, วัตถุดิบ = ทั้งกอง)
 function sellSelValue(){let g=0,n=0;for(const k of UI.sellSel){const v=k.slice(2);if(k[0]==='i'){const it=itemByUid(+v);if(it&&!Equip.isEquipped(it)){g+=Inv.sellPrice(it);n++;}}else if(G.mats[v]>0){g+=Inv.matPrice(v)*G.mats[v];n++;}}return{g,n};}
-const ATTR_HINT={str:'ATK +2/หน่วย · ทุก 10 = ต้านสถานะ +1%',agi:'ความเร็ว · ทุก 10 = หลบ +1%, DEF +3',int:'MP +10, พลังเวท +3/หน่วย',vit:'HP +20/หน่วย',luk:'คริ +0.2%, ดาเมจคริ +1%/หน่วย'};
-const MENU_SUB=['char','bag','equip','skills','quests','map','ency','controls','debug'];   // หน้าที่เปิดจากเมนู Tab จะมีปุ่มกลับเมนูด้านบน
+const ATTR_HINT={str:'ATK +2/หน่วย · ทุก 10 = ต้านสถานะ +1%',agi:'ทุก 10 = หลบ +1%, DEF +3',int:'MP +10, ATK +2/หน่วย',vit:'HP +20/หน่วย',luk:'คริ +0.2%, ดาเมจคริ +1%/หน่วย'};
+const MENU_SUB=['char','bag','equip','skills','quests','map','ency','settings','controls','debug'];   // หน้าที่เปิดจากเมนู Tab จะมีปุ่มกลับเมนูด้านบน
 const pct=v=>(Math.round(v*1000)/10)+'%';
 const rc=r=>`style="color:${RARC[r]}"`;
 const matRar=k=>{const m=MATS[k];return m?(m.rar||(m.rareMat?'rare':m.manaPotion&&k==='mp_x'?'epic':m.manaPotion&&k==='mp_l'?'rare':'normal')):'normal';};
 const rb=r=>`style="border-color:${RARC[r]}"`;
 function statLines(s){return Object.keys(s).map(k=>`<div>${STATN2[k]||k} <b>${fmtStat(k,s[k])}</b></div>`).join('');}
+const TIERC=['#b8bcc8','#5fd38d','#4fa8ff','#c88aff','#ffb347'];
+const tierTag=t=>`<b style="color:${TIERC[t-1]};font-size:11px">T${t}</b>`;
+/* ธาตุของอาวุธ = ป้ายดาเมจของท่าธรรมดา (จากชุดท่าของอาวุธ) */
+const wElTag=baseId=>{const b=BASES[baseId];if(!b||b.type!=='weapon')return null;const el=(WEAPONS[b.wt]||{}).el||'phys';return typeof dmgTag==='function'?dmgTag({el,type:'phys'}):el;};
+/* ธาตุของสกิล: ชิปสีตามธาตุ (สกิลที่ไม่มีดาเมจ เช่น บัฟ/พาสซีฟ แสดง 'ไม่มีธาตุ') */
+const skEl=(s,big)=>!s?'':s.el==='weapon'?`<span class="dim" style="font-size:11px">⚔ ตามธาตุอาวุธ</span>`:s.el&&(s.coef||s.status||s.buff&&s.buff.fireShield)?elChip(s.el,big):'<span class="dim" style="font-size:11px">ไม่มีธาตุ</span>';
+const elChip=(t,big)=>{const c=DMGCOL[t]||DMGCOL.phys;return`<span style="display:inline-flex;align-items:center;gap:3px;padding:${big?'2px 9px':'0 6px'};border-radius:999px;background:rgba(0,0,0,.45);border:1px solid ${c[0]}88;color:${c[0]};font-weight:800;font-size:${big?13:11}px;text-shadow:-1px -1px 0 ${c[1]},1px -1px 0 ${c[1]},-1px 1px 0 ${c[1]},1px 1px 0 ${c[1]}">${c[2]?c[2]+' ':''}${ELNAME[t]||t}</span>`;};
+const RUNEC={rune_atk:'#ff6a5a',rune_matk:'#c88aff',rune_def:'#9fd0ff',rune_hp:'#6aff9a',rune_crit:'#ffd23a',rune_agi:'#7af0c0'};
+const runeTxt=rk=>{const m=MATS[rk];return m?(m.desc||'').replace('ใส่ช่องรูน: ',''):'';};
 function itemTip(it,cmp){
-  const b=BASES[it.base],s=itemStats(it),c=cmp?itemStats(cmp):null;
-  const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),mxLv=Equip.capLv(it),needExp=(noCap||lv<mxLv)?Equip.expNext(lv,it):0;
-  let h=`<div class="tip" style="border-color:${RARC[it.rar]}"><div class="tn" ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</div><div class="ts">${RARN[it.rar]}${it.rar==='legendary'?` LV.${it.legLv||1}/5`:''} · ${CAT_N[b.cat]||SLOTN[b.type]} · Lv.${lv}/${noCap?'∞':mxLv}${noCap||lv<mxLv?` (${it.exp||0}/${needExp} EXP)`:' (MAX)'} · iLv.${it.ilvl} · ต้องการ Lv.${it.req}${G.level<it.req?' <span class="bad">(เลเวลไม่พอ)</span>':''}</div>`;
-  h+=`<div class="ts">ตีบวก <b>+${it.enh||0}</b> / +${Equip.maxEnh(it)}${it.crafted?' · <span class="good">ของ craft</span>':''} · ทุกขั้น: ค่าแบบหน่วย +${CONFIG.enhFlat} · ค่า % +${CONFIG.enhPct*100}%</div>`;
-  if(b.wt)h+=`<div class="ts">ชุดท่า: ${WEAPONS[b.wt].n}</div>`;
-  const keys=new Set([...Object.keys(s),...(c?Object.keys(c):[])]);
-  h+='<div class="tl">'+[...keys].map(k=>{const v=s[k]||0,d=c?v-(c[k]||0):0;return`<div>${STATN2[k]||k} <b>${fmtStat(k,v)}</b>${c&&Math.abs(d)>1e-6?` <span class="${d>0?'good':'bad'}">(${fmtStat(k,d)})</span>`:''}</div>`;}).join('')+'</div>';
-  const maxSock=RARITY[it.rar].sockets||0,socks=it.sockets||[];
-  if(maxSock>0){h+=`<div class="ts">ช่องรูน (${socks.filter(Boolean).length}/${maxSock}): `+Array.from({length:maxSock},(_,i)=>{const r=socks[i]&&RUNES[socks[i]];return r?`<span style="color:${r.c}">[${r.n}]</span>`:'<span class="dim">[ว่าง]</span>';}).join(' ')+`</div>`;}
-  if(it.uniq){const P=PASSIVES.leg[it.uniq]||PASSIVES.god[it.uniq];h+=`<div class="tu">★ ${P.n}: ${P.d}</div>`;}
-  if(b.set){const S=SETS[b.set],cnt=setCounts(equipped())[b.set]||0;h+=`<div class="tset">ชุด: ${S.n} (${cnt} ชิ้น)`+Object.entries(S.b).map(([n,bb])=>`<div class="${cnt>=n?'good':'dim'}">${n} ชิ้น: ${bb.d||Object.keys(bb).map(k=>(STATN2[k]||k)+' '+fmtStat(k,bb[k])).join(', ')}</div>`).join('')+'</div>';}
-  if(c)h+=`<div class="ts dim">เทียบกับที่สวมอยู่: ${itemName(cmp)}</div>`;
+  /* การ์ดไอเทม: ธาตุ (อาวุธ) · ค่าฐาน × ระดับ × ตีบวก · ค่าความสามารถ + เทียร์ · ความสามารถเทพ · ช่องรูน */
+  const b=BASES[it.base],R=RARITY[it.rar],s=itemStats(it),c=cmp?itemStats(cmp):null,wt=wElTag(it.base),cap=Equip.maxEnh(it);
+  const dlt=(k,v)=>{if(!c)return'';const d=v-(c[k]||0);return Math.abs(d)>1e-6?` <span class="${d>0?'good':'bad'}">(${fmtStat(k,d)})</span>`:'';};
+  let h=`<div class="tip" style="border-color:${RARC[it.rar]}"><div class="tn" ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</div><div class="ts">${RARN[it.rar]} · ${CAT_N[b.cat]||SLOTN[b.type]}${wt?' · ธาตุ '+elChip(wt):''}</div>`;
+  h+=`<div class="ts">ตีบวก <b>+${it.enh||0}</b> / +${cap}${cap<GEAR.enhMax?` <span class="dim">(เพดานแรงค์ · สูงสุด +${GEAR.enhMax})</span>`:''}${it.crafted?' · <span class="good">ของ craft</span>':''}${b.wt?' · ชุดท่า: '+WEAPONS[b.wt].n:''}</div>`;
+  const em=1+GEAR.enhStep*(it.enh||0);
+  if(b.atk)h+=`<div class="ts" style="font-size:15px">ATK <b>${s.watk||0}</b>${dlt('watk',s.watk||0)} <span class="dim" style="font-size:11px">(ฐาน ${b.atk} × ${R.mult} × ${em.toFixed(1)})</span></div>`;
+  else if(b.def)h+=`<div class="ts" style="font-size:15px">DEF <b>${Math.round(b.def*R.mult*em)}</b> <span class="dim" style="font-size:11px">(ฐาน ${b.def} × ${R.mult} × ${em.toFixed(1)})</span></div>`;
+  else h+=`<div class="ts dim">ไม่มีค่าฐาน (เครื่องประดับ)</div>`;
+  const imp=[];if(b.edmg)for(const k in b.edmg)imp.push(`${STATN2['dmg_'+k]||'โบนัส'+k} ${fmtStat('dmg_'+k,b.edmg[k])}`);if(b.res)for(const k in b.res)imp.push(`${STATN2['res_'+k]||k} ${fmtStat('res_'+k,b.res[k])}`);
+  if(b.implicit)for(const k in b.implicit)imp.push(`${STATN2[k]||k} ${fmtStat(k,b.implicit[k])}`);
+  if(imp.length)h+=`<div class="ts">ค่าติดตัว: ${imp.join(' · ')}</div>`;
+  const af=it.affixes||[];
+  h+=`<div class="ts dim">ค่าความสามารถ (${af.length}/${R.affix})</div><div class="tl">`+(af.map(a=>`<div>${a.lock?'🔒 ':''}${Gear.label(a,it)} ${tierTag(a.t)}</div>`).join('')||'<div class="dim">—</div>')+'</div>';
+  if(it.uniq&&PASSIVES.god[it.uniq]){const P=PASSIVES.god[it.uniq];h+=`<div class="tu">✦ ความสามารถเทพ · ${P.n}: ${P.d}</div>`;}
+  else if(it.rar==='god')h+=`<div class="tu">✦ ความสามารถเทพ: —</div>`;
+  const mx=R.sockets||0,socks=it.sockets||[];
+  h+=`<div class="ts">ช่องรูน ${socks.length}/${mx}: `+(socks.length?socks.map(rk=>rk&&MATS[rk]?`<span style="color:${RUNEC[rk]||'#fff'}">[${MATS[rk].n}]</span>`:'<span class="dim">[ว่าง]</span>').join(' '):'<span class="dim">ยังไม่เจาะ (ใช้สว่านรูน)</span>')+`</div>`;
+  if(c){const keys=[...new Set([...Object.keys(s),...Object.keys(c)])].filter(k=>k!=='watk'&&Math.abs((s[k]||0)-(c[k]||0))>1e-6);
+    if(keys.length)h+=`<div class="ts dim">เทียบกับที่สวมอยู่ (${itemName(cmp)}): `+keys.map(k=>`${STATN2[k]||k}${dlt(k,s[k]||0)}`).join(' · ')+'</div>';}
   return h+'</div>';
 }
 const UI={
   cur:null,sel:null,filt:{type:'all',rar:'all',sort:'rarity'},
-  open(name,arg){if(name==='map'&&arg===undefined){this.mapSel=null;this.mapTab='continents';}this.cur=name;G.mode='menu';ov.classList.remove('hidden');this.render(arg);SFX.ui('open');},
-  close(){const was=this.cur;if(this.cur)SFX.ui('cancel');ov.classList.add('hidden');this.cur=null;this.mapTab=null;this.talentSwitch=false;pvCtx=null;mapPinCtx=null;if(G.mode==='menu')G.mode='explore';this.hud();if(typeof Net!=='undefined')Net.onUIClose();
+  open(name,arg){if(!this.cur)this._prevMode=G.mode==='title'?'title':null;if(name==='map'&&arg===undefined){this.mapSel=null;this.mapTab='continents';}this.cur=name;G.mode='menu';ov.classList.remove('hidden');this.render(arg);SFX.ui('open');},
+  close(){const was=this.cur;if(this.cur)SFX.ui('cancel');ov.classList.add('hidden');this.cur=null;this.mapTab=null;this.talentSwitch=false;pvCtx=null;mapPinCtx=null;if(G.mode==='menu')G.mode=this._prevMode||'explore';this._prevMode=null;this.hud();if(typeof Net!=='undefined')Net.onUIClose();
     if(was==='skills'&&G.flags&&G.flags.pendingIntroCS&&!G.flags.introDone&&typeof Cutscene!=='undefined'){G.flags.pendingIntroCS=0;Cutscene.startIntro();}
     else if(was==='craft'&&G.flags&&G.flags.pendingBoroCraftDlg){G.flags.pendingBoroCraftDlg=0;G.flags.boroFirstCraftSay=1;if(typeof say==='function')say([['โบโร','นี่คือการคราฟต์ จงจำไว้ว่าการคราฟต์แต่ละครั้งมีความเสี่ยง — วัตถุดิบอาจสูญหายได้หากล้มเหลว'],['โบโร','และเวลาลงดันเจี้ยนอย่าลืมที่จะพก "คัมภีร์ทางออก" ไปด้วย เผื่อมีอุบัติเหตุจะได้ออกได้ทันที คัมภีร์หาได้จากร้านค้าในเมืองนะ!']]);}
     else if(was==='loot'&&G.flags&&G.flags.pendingBbqyWinDlg){G.flags.pendingBbqyWinDlg=0;if(typeof say==='function')say([['bbqy legendary','ในเมื่อเจ้าชนะข้าได้ งั้นก็สืบต่อพลังของข้าให้กับเจ้า']]);}},
-  render(arg){const ae=document.activeElement,key=ae&&pn.contains(ae)?Nav.key(ae):null;const f=this['scr_'+this.cur];let html=f?f.call(this,arg):'';if(MENU_SUB.includes(this.cur))html=`<div class="backbar"><button class="btn ghost sm" data-open="menu">‹ กลับเมนู</button></div>`+html;pn.innerHTML=html;pvCtx=null;mapPinCtx=null;const pv=$('#pv');if(pv)pvCtx=pv.getContext('2d');const mp=$('#mapHeroCv');if(mp){mapPinCtx=mp.getContext('2d');drawMapHeroPin();}
+  render(arg){const ae=document.activeElement,key=ae&&pn.contains(ae)?Nav.key(ae):null;const f=this['scr_'+this.cur];let html=f?f.call(this,arg):'';if(MENU_SUB.includes(this.cur)){const back=this._prevMode==='title'?`<button class="btn ghost sm" data-close="1">✕ ปิด</button>`:`<button class="btn ghost sm" data-open="menu">‹ กลับเมนู</button>`;html=`<div class="backbar">${back}</div>`+html;}pn.innerHTML=html;pvCtx=null;mapPinCtx=null;const pv=$('#pv');if(pv)pvCtx=pv.getContext('2d');const mp=$('#mapHeroCv');if(mp){mapPinCtx=mp.getContext('2d');drawMapHeroPin();}
     const af=pn.querySelector('[autofocus]');if(af)af.focus();else if(key){const el=Nav.items().find(e=>Nav.key(e)===key);if(el)el.focus();}},
   rerender(){if(this.cur)this.render();},
   hud(){
     if(!G.talent)return;const S=StatSync.get();G.hp=Math.min(G.hp,S.maxHP);
     const rk=typeof Guild!=='undefined'&&G.guildRank?Guild.info():null;
     const rkTag=rk?` <small style="color:${rk.col};border:1px solid ${rk.col}88;border-radius:3px;padding:0 4px">Rank ${rk.id}</small>`:'';
-    $('#hudname').innerHTML=`Lv.${G.level}${rkTag} ${ico(TALENT_ICO[G.talent],14)} <small>${TALENTS[G.talent].th}</small>${G.points?` <span class="pts">+${G.points} แต้ม (C)</span>`:''} <small style="color:#ffd23a">⚡${Math.floor(G.ult||0)}</small> <small title="ระดับความยาก">${Diff.cur().ic}</small>${G.bloodstain?' <small style="color:#ff5a4a">🩸'+G.bloodstain.gold+'g</small>':''}`;
+    $('#hudname').innerHTML=`Lv.${G.level}${rkTag} ${ico(TALENT_ICO[G.talent],14)} <small>${TALENTS[G.talent].th}</small>${G.points?` <span class="pts">+${G.points} แต้ม (C)</span>`:''} <small style="color:#ffd23a">⚡${Math.floor(G.ult||0)}</small>${G.bloodstain?' <small style="color:#ff5a4a">🩸'+G.bloodstain.gold+'g</small>':''}`;
     $('#hpb').style.width=(G.hp/S.maxHP*100)+'%';$('#hpt').textContent=`${G.hp}/${S.maxHP}`;
     $('#mpb').style.width=(G.mp/S.maxMP*100)+'%';$('#mpt').textContent=`${Math.floor(G.mp)}/${S.maxMP}`;
     $('#xpb').style.width=((!(typeof hasNoMaxLv==='function'&&hasNoMaxLv())&&G.level>=CONFIG.levelCap)?100:G.xp/CONFIG.xpNext(G.level)*100)+'%';$('#gold').textContent=G.gold;
@@ -61,7 +78,7 @@ const UI={
   levelUp(n){SFX.level();toast(`⬆️ เลเวลอัป! Lv.${G.level} — ได้รับ ${n*CONFIG.levelPoints} แต้มค่าพลัง (กด C เพื่อแจก)`,3500);this.hud();},
 
   /* ---- talent selection (character creation) ---- */
-  diffSel:'normal',
+  diffSel:'souls',
   scr_create(){const L=Object.assign({},DEFLOOK,G.look);
     const sw=(arr,key)=>arr.map(c=>`<button class="sw ${L[key]===c?'on':''}" data-lk="${key}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')+
       `<label class="sw pick" title="เลือกสีเอง"><input type="color" id="pc-${key}" value="${/^#[0-9a-f]{6}$/i.test(L[key]||'')?L[key]:'#888888'}"></label>`;
@@ -79,26 +96,85 @@ const UI={
     const S=StatSync.get(),bar=(v,m,c)=>`<div class="mbar"><i style="width:${Math.max(0,Math.min(100,v/Math.max(1,m)*100))}%;background:${c}"></i></div>`;
     return`<div class="emenu"><div class="emn-l">
         <div class="mlist">${R('char','status','สถานะตัวละคร',kbName('char'))}${R('bag','bag','ช่องเก็บของ',kbName('bag'))}${R('equip','equip','สวมใส่อุปกรณ์',kbName('equip'))}${R('skills','skill','สกิล',kbName('skills'))}${R('quests','scroll','เควสต์',kbName('quests'))}${R('map','map','แผนที่โลก',kbName('map'))}${R('ency','ency','สารานุกรมศัตรู',kbName('ency'))}</div>
-        <div class="mlist sub">${A('save','save','บันทึกเกม','')}${A('load','load','โหลดเกม','')}${A('vol','sound','เสียง: '+Math.round(SND.vol*100)+'%','')}${R('controls','controls','ปุ่มควบคุม','?')}${A('title','home','กลับหน้าหลัก (บันทึกก่อน)','')}${window.CF_WS?'':`<a class="mrow" href="balance.html" style="text-decoration:none"><span class="mi">${ico('controls')}</span><span class="ml">Balance Lab (ปรับค่าเกม)</span></a>`}</div>
+        <div class="mlist sub">${A('save','save','บันทึกเกม','')}${A('load','load','โหลดเกม','')}${R('settings','gear',`ตั้งค่า (เสียง ${Math.round(SND.vol*100)}%)`,'')}${R('controls','controls','ปุ่มควบคุม','?')}${A('title','home','กลับหน้าหลัก (บันทึกก่อน)','')}${window.CF_WS?'':`<a class="mrow" href="balance.html" style="text-decoration:none"><span class="mi">${ico('controls')}</span><span class="ml">Balance Lab (ปรับค่าเกม)</span></a>`}</div>
       </div>
       <div class="emn-r"><div class="sumcard"><canvas id="pv" class="mport" width="220" height="270"></canvas>
         <div class="emn-head">${pname()}</div>
-        <div class="sl">Lv.${G.level} · <b style="color:${(typeof Guild!=='undefined'&&Guild.registered()?Guild.info().col:'#99a')}">Rank ${typeof Guild!=='undefined'&&Guild.registered()?Guild.rank():'-'}</b> · ${TALENTS[G.talent].th} · ${Diff.cur().n}</div>
+        <div class="sl">Lv.${G.level} · <b style="color:${(typeof Guild!=='undefined'&&Guild.registered()?Guild.info().col:'#99a')}">Rank ${typeof Guild!=='undefined'&&Guild.registered()?Guild.rank():'-'}</b> · ${TALENTS[G.talent].th}</div>
         <div class="sb"><span>HP</span>${bar(G.hp,S.maxHP,'#b8413a')}<b>${Math.round(G.hp)} / ${S.maxHP}</b></div>
         <div class="sb"><span>MP</span>${bar(G.mp,S.maxMP,'#3a7ac8')}<b>${Math.round(G.mp)} / ${S.maxMP}</b></div>
         <div class="sb"><span>XP</span>${bar(G.xp,CONFIG.xpNext(G.level),'#c8a464')}<b>${!(typeof hasNoMaxLv==='function'&&hasNoMaxLv())&&G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)+(typeof hasNoMaxLv==='function'&&hasNoMaxLv()?' (∞)':'')}</b></div>
         <div class="sgold">${ico('coin',18)} ${G.gold}</div>
       </div>
 </div></div>`;},
+  scr_settings(){
+    const row=(k,ic,title,desc,v)=>{const p=Math.round((v??1)*100);
+      return`<div class="srow-vol"><div class="sv-hd"><span>${ic} <b>${title}</b> <small class="dim">${desc}</small></span><b id="sv_${k}" class="sv-pct">${p}%</b></div>
+        <input class="vol-range" type="range" min="0" max="100" step="1" value="${p}" data-sndvol="${k}" aria-label="${title}"></div>`;};
+    const fxOn=typeof FX!=='undefined'?FX.on:true;
+    return`<h2>${ico('gear',22)} ตั้งค่า</h2>
+      <div class="setcard"><h3>🔊 ระบบเสียง</h3>
+        ${row('vol','🔊','เสียงหลัก (Master)','ปรับความดังรวมทุกเสียงในเกม',SND.vol)}
+        <div class="acts" style="margin:2px 0 10px">
+          <button class="btn sm ghost" data-setvol="0">🔇 ปิดเสียง</button>
+          <button class="btn sm ghost" data-setvol="0.1">10%</button>
+          <button class="btn sm ghost" data-setvol="0.4">40%</button>
+          <button class="btn sm ghost" data-setvol="0.7">70%</button>
+          <button class="btn sm ghost" data-setvol="1">100%</button>
+          <button class="btn sm" data-testsnd="1">🔔 ทดสอบเสียง</button>
+        </div>
+        ${row('sfx','⚔️','เสียงเอฟเฟกต์ (SFX)','เสียงฟัน ป้องกัน สกิล และปุ่มกด',SND.sfxVol??1)}
+        ${row('mus','🎵','เพลงประกอบ (Music)','เพลงเมือง และเพลงบอส',SND.musVol??1)}
+        ${row('amb','🌿','เสียงบรรยากาศ (Ambient)','เสียงลม ถ้ำ ลาวา และธรรมชาติ',SND.ambVol??1)}
+      </div>
+      <div class="setcard"><h3>⚙️ ภาพและการควบคุม</h3>
+        <div class="acts">
+          <button class="btn sm ${fxOn?'':'ghost'}" data-togglefx="1">✨ แสงเงา HD-2D: ${fxOn?'เปิด':'ปิด'} [V]</button>
+          <button class="btn sm ghost" data-open="controls">⌨️ ตั้งค่าปุ่มควบคุม</button>
+        </div>
+      </div>`;
+  },
   scr_controls(){
     const grp=(g,t)=>`<div class="kbsec"><h3>${t}</h3>${KB_DEFS.filter(a=>a.g===g).map(a=>{const w=KB_WAIT===a.id;return`<div class="kbrow"><span>${a.n}</span><kbd class="kbk${w?' wait':''}">${w?'กดปุ่มใหม่… (Esc ยกเลิก)':kbName(a.id)}</kbd><button class="btn sm ghost" data-kbset="${a.id}">เปลี่ยน</button></div>`;}).join('')}</div>`;
     return`<h2>${ico('controls',22)} ปุ่มควบคุม</h2><div class="kbcols">${grp('move','เคลื่อนที่และพุ่งหลบ')}${grp('battle','ต่อสู้')}${grp('explore','สำรวจและเมนู')}</div>
       <p class="dim">ปุ่มคงที่: ลูกศรใช้เดิน กระโดด ย่อได้เสมอ · Enter / Space ยืนยันและคุย · Tab / Esc เปิดหรือปิดเมนู · V เปิดปิด HD-2D · แพดใช้ X / Y แทนต่อยและเตะ</p>
       <div class="acts"><button class="btn ghost" data-kbreset="1">คืนค่าเริ่มต้นทั้งหมด</button></div>`;
   },
-  scr_talent(){const sw=this.talentSwitch;return(sw?`<h2>✨ พรสวรรค์แห่งการวิวัฒน์ — เลือกพรสวรรค์ใหม่</h2><p class="dim">คงเลเวล อุปกรณ์ และไอเทมเดิมทั้งหมด · ปัจจุบัน: <b>${TALENTS[G.talent].n}</b> <button class="btn ghost sm" data-close="1">ยกเลิก</button></p>`:`<h2>ระดับความยาก${CONFIG.diffLock?' <small class="dim">(ล็อกไว้ที่ดาร์กโซล)</small>':''}</h2><div class="diffrow">${Object.entries(DIFFICULTY).filter(([k])=>!CONFIG.diffLock||k===CONFIG.diffLock).map(([k,d])=>`<button class="diffc ${k} on" ${CONFIG.diffLock?'disabled style="grid-column:1/-1;cursor:default"':`data-diff="${k}"`}><b>${d.ic} ${d.n}</b><small>${d.desc}</small></button>`).join('')}</div><h2>เลือกพรสวรรค์ (Unique Talent) — เลือกได้ 1 อย่างเท่านั้น</h2>`)+`<div class="tal">`+Object.entries(TALENTS).map(([k,t])=>{const sk=SKILLS[t.skill];
-    return`<button class="talc" data-tal="${k}"><div class="ti">${ico(TALENT_ICO[k],34)}</div><b>${t.n}</b><div class="dim">${t.th}</div><p>${t.desc}</p><div class="sk">สกิลเฉพาะตัว: <b>${sk.n}</b><br><small>${sk.desc}</small></div></button>`;}).join('')+'</div><p class="dim">พรสวรรค์กำหนดสกิลช่องที่ 3 (เฉพาะตัว)</p>';},
+  scr_talent(){const sw=this.talentSwitch;return(sw?`<h2>✨ พรสวรรค์แห่งการวิวัฒน์ — เลือกพรสวรรค์ใหม่</h2><p class="dim">คงเลเวล อุปกรณ์ และไอเทมเดิมทั้งหมด · ปัจจุบัน: <b>${TALENTS[G.talent].n}</b> <button class="btn ghost sm" data-close="1">ยกเลิก</button></p>`:`<h2>เลือกพรสวรรค์ (Unique Talent) — เลือกได้ 1 อย่างเท่านั้น</h2>`)+`<div class="tal">`+Object.entries(TALENTS).map(([k,t])=>{const sk=SKILLS[t.skill];
+    return`<button class="talc" data-tal="${k}"><div class="ti">${ico(TALENT_ICO[k],34)}</div><b>${t.n}</b><div class="dim">${t.th}</div><p>${t.desc}</p><div class="sk">สกิลเฉพาะตัว: <b>${sk.n}</b><br><small>${sk.desc}</small></div></button>`;}).join('')+'</div><p class="dim">พรสวรรค์จะผนึกสกิลเฉพาะตัวลงช่องที่ 4 ให้อัตโนมัติหลังสร้างตัว</p>';},
 
+  /* ---- หน้าค่าสถานะ: รายการเดียว ไม่แยกหมวด ---- */
+  v2Stats(S){
+    const tg=(t,txt)=>{const c=DMGCOL[t]||DMGCOL.phys;return`<span style="color:${c[0]};text-shadow:-1px -1px 0 ${c[1]},1px -1px 0 ${c[1]},-1px 1px 0 ${c[1]},1px 1px 0 ${c[1]};font-weight:800">${txt}</span>`;};
+    const ic=t=>(DMGCOL[t]&&DMGCOL[t][2]?DMGCOL[t][2]+' ':'');
+    const lv=G.level||1,K=armorK({level:lv}),arm=1-K/(K+S.def),wEl=(WEAPONS[Equip.weaponType()]||{}).el||'phys',wTag=dmgTag({el:wEl,type:'phys'});
+    const TAGS=[['phys','กายภาพ'],['fire','ไฟ'],['ice','น้ำแข็ง'],['lightning','สายฟ้า'],['shadow','มืด'],['holy','แสง'],['magic','เวท']];
+    const bon=TAGS.map(([t,n])=>{const v=((S.elDmg&&S.elDmg[t])||0)+(S.dmgPct||0);return`<div class="v2c${v?' on':''}">${tg(t,ic(t)+n)}<b>+${Math.round(v*1000)/10}%</b></div>`;}).join('');
+    const RES=[['fire','ไฟ'],['ice','น้ำแข็ง'],['lightning','สายฟ้า'],['shadow','มืด'],['holy','แสง'],['arcane','เวท'],['poison','พิษ']];
+    const res=RES.map(([k,n])=>{const v=(S.res&&S.res[k])||0,t=k==='arcane'?'magic':k;return`<div class="v2c${v?' on':''}">${tg(t,ic(t)+n)}<b>${Math.round(v*100)}%</b></div>`;}).join('');
+    return`<style>.v2g{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px 8px;margin:4px 0 10px}.v2c{display:flex;justify-content:space-between;gap:6px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.04);font-size:13px}.v2c.on{background:rgba(255,210,58,.10)}.v2c b{white-space:nowrap}</style>
+      <h3>ค่าที่คำนวณได้</h3><div class="stat2">
+      <span>HP สูงสุด</span><b>${S.maxHP}</b>
+      <span>MP สูงสุด</span><b>${S.maxMP}</b>
+      <span>พลังโจมตี (ATK)</span><b>${S.ap}</b>
+      <span>ธาตุอาวุธ</span><b>${tg(wTag,ic(wTag)+(ELNAME[wTag]||wTag))}</b>
+      <span>DEF</span><b>${S.def} <small class="dim">(กัน ${pct(arm)})</small></b>
+      <span>ลดดาเมจ</span><b>${pct(S.dr)}</b>
+      <span>อัตราคริติคอล</span><b>${pct(S.critRate)}</b>
+      <span>ดาเมจคริติคอล</span><b>${pct(S.critDmg)}</b>
+      <span>เจาะเกราะ %</span><b>${pct(S.apenPct)}</b>
+      <span>เจาะเกราะ (คงที่)</span><b>${S.apen}</b>
+      <span>หลบหลีก</span><b>${pct(S.evasion)}</b>
+      <span>สตามินา</span><b>${S.maxSTA}</b>
+      <span>โอกาสสร้างสถานะ</span><b>+${pct(S.statusChance||0)}</b>
+      <span>ต้านสถานะผิดปกติ</span><b>${pct(S.statusRes)}</b>
+      <span>ฟื้นฟูมานา</span><b>+${pct(S.mpRegen)}</b>
+      <span>ลดค่ามานา</span><b>${pct(S.mpCost)}</b>
+      <span>เกจท่าไม้ตาย</span><b>${Math.floor(G.ult||0)} / 100</b></div>
+      <h3>โบนัสดาเมจธาตุ</h3><div class="v2g">${bon}</div>
+      <h3>ต้านธาตุ <small class="dim">(สูงสุด ${Math.round(CONFIG.resCap*100)}%)</small></h3><div class="v2g">${res}</div>
+`;
+  },
   /* ---- character status ---- */
   scr_char(){
     const S=StatSync.get(),L=equipped();
@@ -110,33 +186,12 @@ const UI={
     const ago=StatSync.lastTickAt?Math.round((Date.now()-StatSync.lastTickAt)/1000):null;
     const syncLine=`<div class="ts dim">${ico('gear',14)} ทรัพยากร: HP ${Math.round(G.hp)}/${S.maxHP} · MP ${Math.round(G.mp)}/${S.maxMP} · สตามินา ${S.maxSTA}/${S.maxSTA}</div>`;
     return`<h2>${ico('status',22)} ค่าสถานะตัวละคร${G.look&&G.look.name?' — '+G.look.name.replace(/[<>&]/g,''):''}</h2><div class="eqg"><div><canvas id="pv" width="220" height="270"></canvas><p><button class="btn sm" data-open="create">🎨 แต่งตัวละคร</button></p>
-      <div class="stat"><span>เลเวล</span><b>${G.level}</b><span>แรงค์กิลด์</span><b style="color:${(typeof Guild!=='undefined'&&Guild.registered()?Guild.info().col:'#a8b4c8')}">${typeof Guild!=='undefined'&&Guild.registered()?`Rank ${Guild.rank()} (${Guild.info().n})`:'ยังไม่สมัคร'}</b><span>XP</span><b>${!(typeof hasNoMaxLv==='function'&&hasNoMaxLv())&&G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)+(typeof hasNoMaxLv==='function'&&hasNoMaxLv()?' (∞)':'')}</b><span>พรสวรรค์</span><b>${TALENTS[G.talent].ic} ${TALENTS[G.talent].th}</b><span>ความยาก</span><b>${Diff.cur().ic} ${Diff.cur().n}</b><span>ทอง</span><b>${G.gold}</b></div></div>
+      <div class="stat"><span>เลเวล</span><b>${G.level}</b><span>แรงค์กิลด์</span><b style="color:${(typeof Guild!=='undefined'&&Guild.registered()?Guild.info().col:'#a8b4c8')}">${typeof Guild!=='undefined'&&Guild.registered()?`Rank ${Guild.rank()} (${Guild.info().n})`:'ยังไม่สมัคร'}</b><span>XP</span><b>${!(typeof hasNoMaxLv==='function'&&hasNoMaxLv())&&G.level>=CONFIG.levelCap?'เลเวลสูงสุด (Lv.'+CONFIG.levelCap+')':G.xp+' / '+CONFIG.xpNext(G.level)+(typeof hasNoMaxLv==='function'&&hasNoMaxLv()?' (∞)':'')}</b><span>พรสวรรค์</span><b>${TALENTS[G.talent].ic} ${TALENTS[G.talent].th}</b><span>ทอง</span><b>${G.gold}</b></div></div>
     <div><h3>ค่าพลังหลัก — แต้มคงเหลือ <span class="pts">${G.points}</span> ${Inv.has('reset')?'<button class="btn ghost sm" data-use="reset">📜 ใช้คัมภีร์ล้างค่าพลัง</button>':''}</h3>${attrs}
-      <h3>ค่าที่คำนวณได้</h3><div class="stat2">
-      <span>HP สูงสุด</span><b>${S.maxHP}</b>
-      <span>MP สูงสุด</span><b>${S.maxMP}</b>
-      <span>สตามินา</span><b>${S.maxSTA}</b>
-      <span>พลังโจมตี</span><b>${S.ap}</b>
-      <span>พลังเวท</span><b>${S.mpow}</b>
-      <span>DEF / M.DEF</span><b>${S.def} / ${S.mdef}</b>
-      <span>อัตราคริติคอล</span><b>${pct(S.critRate)}</b>
-      <span>ดาเมจคริติคอล</span><b>${pct(S.critDmg)}</b>
-      <span>เจาะเกราะ %</span><b>${pct(S.apenPct)}</b>
-      <span>เจาะเกราะ (คงที่)</span><b>${S.apen}</b>
-      <span>เจาะเวท %</span><b>${pct(S.mpenPct)}</b>
-      <span>เจาะเวท (คงที่)</span><b>${S.mpen}</b>
-      <span>ต้านคริติคอลกายภาพ</span><b>${pct(S.pcritRes)}</b>
-      <span>ต้านคริติคอลเวท</span><b>${pct(S.mcritRes)}</b>
-      <span>หลบหลีก</span><b>${pct(S.evasion)}</b>
-      <span>ลดดาเมจ</span><b>${pct(S.dr)}</b>
-      <span>ความเร็ว</span><b>${pct(S.spd)}</b>
-      <span>ฟื้นฟูมานา</span><b>+${pct(S.mpRegen)}</b>
-      <span>ลดค่ามานา</span><b>${pct(S.mpCost)}</b>
-      <span>ต้านสถานะผิดปกติ</span><b>${pct(S.statusRes)}</b>
-      <span>เกจสุดยอด</span><b>${Math.floor(G.ult||0)} / 100</b></div>
+      ${this.v2Stats(S)}
       ${S.uniq?`<div class="ts">พาสซีฟเฉพาะตัว: ${SKILLS[S.uniq.skill].n} (${S.uniq.id} ${pct(S.uniq.v)})</div>`:''}
       <h3>บัฟ / ดีบัฟที่ทำงานอยู่</h3>${modsHtml}${syncLine}
-      <h3>โบนัสเซ็ต</h3>${sets}<h3>พาสซีฟพิเศษ</h3>${pas}<h3>ความชำนาญอาวุธ</h3>${mast}</div></div>`;
+      <h3>พาสซีฟพิเศษ</h3>${pas}<h3>ความชำนาญอาวุธ</h3>${mast}</div></div>`;
   },
 
   /* ---- equipment + inventory ---- */
@@ -144,7 +199,7 @@ const UI={
     let det='<div class="dim">—</div>';
     if(sel){const sl=Equip.slotFor(sel),cur=G.eq[sl]&&itemByUid(G.eq[sl]),eqd=Equip.isEquipped(sel),ec=Equip.enhanceCost(sel);
       det=itemTip(sel,!eqd&&cur?cur:null)+`<div class="acts">${eqd?`<button class="btn sm" data-uneq="${sel.uid}">ถอด</button>`:`<button class="btn sm" data-eq="${sel.uid}" ${Equip.canEquip(sel)?'':'disabled'}>สวมใส่</button>`}
-        <span class="dim">ตีบวก +${sel.enh}/+${Equip.maxEnh(sel)} · ตีบวกได้ที่โต๊ะตีเหล็ก (ข้างโบโร)</span>
+        <span class="dim">ตีบวก +${sel.enh}/+${Equip.maxEnh(sel)} · ตีบวก / ปรับค่า / วิวัฒน์ / รูน ได้ที่โต๊ะตีเหล็ก (ข้างโบโร)</span>
         ${eqd?'':`<button class="btn ghost sm" data-salv="${sel.uid}">แยกชิ้นส่วน</button>`}${eqd?'':`<span class="dim" style="align-self:center">${ico('coin',14)} ขายได้ที่ร้านค้ามาร์คัสเท่านั้น</span>`}</div>`;}
     return det;
   },
@@ -153,8 +208,8 @@ const UI={
     const S=StatSync.get(),sel=this.sel&&itemByUid(this.sel),slot=SLOTS.includes(this.eqSlot)?this.eqSlot:'weapon';
     const typ=slot.startsWith('ring')?'ring':slot,cur=G.eq[slot]&&itemByUid(G.eq[slot]);
     const rows=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return`<button class="eqrow${s===slot?' on':''}" data-slot="${s}" ${it?rb(it.rar):''}><small>${SLOTN[s]}</small><span ${it?rc(it.rar):'class="dim"'}>${it?bIco(it.base,16)+' '+itemName(it):'— ว่าง —'}</span></button>`;}).join('');
-    const A=[['พลังโจมตี',S.ap],['พลังเวท',S.mpow],['DEF',S.def],['M.DEF',S.mdef],['STR',S.str],['AGI',S.agi],['INT',S.int],['VIT',S.vit],['LUK',S.luk],['อัตราคริ',pct(S.critRate)],['HP สูงสุด',S.maxHP],['MP สูงสุด',S.maxMP]].map(([n,v])=>`<div class="eqa"><span>${n}</span><b>${v}</b></div>`).join('');
-    const cands=G.bag.filter(it=>BASES[it.base].type===typ&&it.uid!==(cur&&cur.uid)),list=(cur?[cur]:[]).concat(cands).map(it=>`<button class="eqcand${sel&&sel.uid===it.uid?' on':''}" data-sel="${it.uid}" ${rb(it.rar)}>${cur&&it.uid===cur.uid?'<em>สวมอยู่</em>':''}<span ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</span><b>อัป Lv.${it.lv||1} · ใช้ Lv.${it.req}</b></button>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ชนิดนี้ในช่องเก็บของ</div>';
+    const A=[['พลังโจมตี',S.ap],['DEF',S.def+' (กัน '+pct(1-armorK({level:G.level})/(armorK({level:G.level})+S.def))+')'],['STR',S.str],['AGI',S.agi],['INT',S.int],['VIT',S.vit],['LUK',S.luk],['อัตราคริ',pct(S.critRate)],['HP สูงสุด',S.maxHP],['MP สูงสุด',S.maxMP]].map(([n,v])=>`<div class="eqa"><span>${n}</span><b>${v}</b></div>`).join('');
+    const cands=G.bag.filter(it=>BASES[it.base].type===typ&&it.uid!==(cur&&cur.uid)),list=(cur?[cur]:[]).concat(cands).map(it=>`<button class="eqcand${sel&&sel.uid===it.uid?' on':''}" data-sel="${it.uid}" ${rb(it.rar)}>${cur&&it.uid===cur.uid?'<em>สวมอยู่</em>':''}<span ${rc(it.rar)}>${bIco(it.base,16)} ${itemName(it)}</span><b>${wElTag(it.base)?elChip(wElTag(it.base))+' ':''}${RARN[it.rar]} · +${it.enh||0}</b></button>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ชนิดนี้ในช่องเก็บของ</div>';
     return`<h2>${ico('equip',22)} สวมใส่อุปกรณ์ <small class="gold-r">${ico('coin',16)} ${G.gold}</small></h2>
       <div class="eq4"><div class="eqc"><canvas id="pv" width="220" height="270"></canvas><div class="eqn">${pname()}</div><div class="dim">Lv.${G.level} · ${TALENTS[G.talent].th}</div>
           <div class="sb"><span>HP</span><div class="mbar"><i style="width:${Math.min(100,G.hp/Math.max(1,S.maxHP)*100)}%;background:#b8413a"></i></div><b>${Math.round(G.hp)}/${S.maxHP}</b></div>
@@ -171,7 +226,7 @@ const UI={
   bagItems(tab){
     const matIs=k=>{const m=MATS[k];return m.key?'key':(m.scroll||m.use||m.manaPotion)?'use':'mat';};
     if(tab==='use'||tab==='mat'||tab==='key')return Object.keys(G.mats).filter(k=>G.mats[k]>0&&matIs(k)===tab).map(k=>({mat:k}));
-    const T={weapon:['weapon'],armor:['helmet','armor','gloves','pants','boots'],acc:['ring','necklace']}[tab]||[];
+    const T={weapon:['weapon'],armor:['helmet','armor','pants','boots'],acc:['ring','necklace','belt','gloves']}[tab]||[];
     return Inv.sorted(G.bag.filter(it=>T.includes(BASES[it.base].type)),this.filt.sort).map(it=>({gear:it}));},
   bagStep(d){const ks=this.BAGTABS.map(t=>t[0]),i=ks.indexOf(this.bagTab);this.bagTab=ks[(i+d+ks.length)%ks.length];this.sel=null;this.selMat=null;SFX.ui('cursor');this.rerender();},
   matDet(k){
@@ -182,8 +237,8 @@ const UI={
     if(m.desc)lines.push(m.desc);
     if(m.manaPotion)lines.push(`ฟื้นฟู MP +${m.manaPotion} (ใช้จากกระเป๋า หรือกด [R] ในการต่อสู้ · คูลดาวน์ 10 วิ)`);
     if(m.use==='learn'&&m.skillBook&&SKILLS[m.skillBook]){
-      const s=SKILLS[m.skillBook],cost=s.tier==='ultimate'?CONFIG.ult.cost+' เกจสุดยอด':s.type==='passive'?'พาสซีฟ':Mana.cost(m.skillBook,Stats.player())+' MP';
-      lines.push(`<b>${s.n}</b> [${TIERN[s.tier]}] · ใช้ ${cost} · คูลดาวน์ ${s.cd} วิ`);
+      const s=SKILLS[m.skillBook],cost=s.tier==='ultimate'?CONFIG.ult.cost+' เกจท่าไม้ตาย':s.type==='passive'?'พาสซีฟ':Mana.cost(m.skillBook,Stats.player())+' MP';
+      lines.push(`<b>${s.n}</b> [${TIERN[s.tier]}] ${skEl(s)} · ใช้ ${cost} · คูลดาวน์ ${s.cd} วิ`);
       lines.push(s.desc);
       lines.push(G.skills.learned.has(m.skillBook)?'<span class="good">✔ เรียนสกิลนี้แล้ว</span>':'<span class="tu">ยังไม่ได้เรียน — กดใช้เพื่อเรียนรู้</span>');
     }
@@ -210,7 +265,7 @@ const UI={
       if(o.mat){const k=o.mat,m=MATS[k],mr=matRar(k);
         return`<button class="brow it${this.selMat===k?' sel':''}" data-selmat="${k}" style="border-color:${RARC[mr]};border-left-width:3px"><span class="bn">${mIco(k,20)} <span ${rc(mr)}>${m.n}</span></span><b class="bq">× ${G.mats[k]}</b></button>`;}
       const it=o.gear,eqd=Equip.isEquipped(it);
-      return`<button class="brow it${this.sel===it.uid?' sel':''}" data-sel="${it.uid}" style="border-color:${RARC[it.rar]};border-left-width:3px"><span class="bn">${bIco(it.base,20)} <span ${rc(it.rar)}>${itemName(it)}</span></span><small class="bq">อัป Lv.${it.lv||1} · ใช้ Lv.${it.req}${eqd?' · <b class="good">สวมอยู่</b>':''}</small></button>`;}).join('')||'<div class="dim" style="padding:14px">ไม่มีไอเท็มในหมวดนี้</div>';
+      return`<button class="brow it${this.sel===it.uid?' sel':''}" data-sel="${it.uid}" style="border-color:${RARC[it.rar]};border-left-width:3px"><span class="bn">${bIco(it.base,20)} <span ${rc(it.rar)}>${itemName(it)}</span></span><small class="bq">${wElTag(it.base)?elChip(wElTag(it.base))+' ':''}${RARN[it.rar]} · +${it.enh||0}${eqd?' · <b class="good">สวมอยู่</b>':''}</small></button>`;}).join('')||'<div class="dim" style="padding:14px">ไม่มีไอเท็มในหมวดนี้</div>';
     const eqCnt=`<span class="${G.bag.length>=LOOT_CONFIG.inventory.equipSlots?'bad':''}">${G.bag.length}/${LOOT_CONFIG.inventory.equipSlots}</span>`;
     const detail=isGear?this.itemDet(sel&&list.some(o=>o.gear===sel)?sel:null):this.matDet(list.some(o=>o.mat===this.selMat)?this.selMat:null);
     return`<h2>${ico('bag',22)} ช่องเก็บของ <small class="dim">ทอง ${G.gold} · ช่องอุปกรณ์ ${eqCnt}</small></h2>
@@ -222,26 +277,26 @@ const UI={
   sk:{sel:0,modal:null,pick:null,cand:null},
   skStats(id){const s=SKILLS[id],sc=Skills.scale(id),lv=Skills.level(id);
     if(s.type==='passive')return`<div class="skst"><span>ผล <b>${s.desc.replace('พาสซีฟ: ','')}</b> ×${sc.coef.toFixed(2)}</span><span>ใช้ <b>ไม่ใช้ MP</b></span><span>เลเวล <b>${lv}</b></span></div>`;
-    const dmg=s.coef?`${Math.round(s.coef*sc.coef*100)}% ${s.type==='magic'?'พลังเวท':'พลังโจมตี'}${s.multi?` (${s.multi} ฮิต)`:''}`:'—';
-    return`<div class="skst"><span>ดาเมจ <b>${dmg}</b></span><span>คูลดาวน์ <b>${(s.cd*sc.cd).toFixed(1)} วิ</b></span><span>ใช้ <b>${s.tier==='ultimate'?CONFIG.ult.cost+' เกจสุดยอด':s.type==='passive'?'ไม่ใช้ (พาสซีฟ)':Mana.cost(id,Stats.player())+' MP'+(s.hpCost?' + '+(s.hpCost*100)+'% HP':'')}</b></span>
+    const dmg=s.coef?`${Math.round(s.coef*sc.coef*100)}% ATK${s.multi?` (${s.multi} ฮิต)`:''}`:'—';
+    return`<div class="skst"><span>ธาตุ <b>${skEl(s)}</b></span><span>ดาเมจ <b>${dmg}</b></span><span>คูลดาวน์ <b>${(s.cd*sc.cd).toFixed(1)} วิ</b></span><span>ใช้ <b>${s.tier==='ultimate'?CONFIG.ult.cost+' เกจท่าไม้ตาย':s.type==='passive'?'ไม่ใช้ (พาสซีฟ)':Mana.cost(id,Stats.player())+' MP'+(s.hpCost?' + '+(s.hpCost*100)+'% HP':'')}</b></span>
       <span>ระยะ <b>${s.range}</b></span><span>ต่อคอมโบ <b>${s.combo?'ได้':'ไม่ได้'}</b></span><span>ท่า <b>${s.anim}</b></span><span>เลเวล <b>${lv}</b></span></div>`;},
   scr_skills(){
-    /* หน้าสกิล (สไตล์หน้าสวมใส่อุปกรณ์): ช่องสกิล 4 ช่อง | เปลี่ยนเป็น + รายละเอียด */
-    const K=G.skills,T=this.sk,S=StatSync.get();if(T.sel==null||T.sel<0||T.sel>3)T.sel=0;
+    /* หน้าสกิล (สไตล์หน้าสวมใส่อุปกรณ์): ช่องสกิล 5 ช่อง (1–3 ทั่วไป/หายาก · 4 เฉพาะตัว · 5 สุดยอด) */
+    const K=G.skills,T=this.sk,S=StatSync.get();if(T.sel==null||T.sel<0||T.sel>4)T.sel=0;
     const i=T.sel,cur=K.slots[i],TC={common:'#a8c4e4',rare:'#52b8ff',unique:'#e27aff',ultimate:'#ffd98a'};
-    const rows=K.slots.map((id,j)=>{const s=id&&SKILLS[id],lockd=j===2&&K.bound,up=id&&j===2&&Skills.upgradeInfo(id).can;
-      return`<button class="eqrow skrow${j===i?' on':''}" data-ssock="${j}" style="border-left:3px solid ${s?TC[s.tier]:'rgba(255,255,255,.14)'}"><small>ช่อง ${j+1} · ${slotTierName(j)}</small><span ${s?`style="color:${TC[s.tier]}"`:'class="dim"'}>${s?sIco(s,16)+' '+s.n+` <small class="dim">Lv.${Skills.level(id)}</small>`:(j===2&&!K.bound?'— ว่าง (รอผนึก) —':'— ว่าง —')}${lockd?' 🔒':''}${up?' <b class="good">⬆</b>':''}</span></button>`;}).join('');
+    const rows=K.slots.map((id,j)=>{const s=id&&SKILLS[id],lockd=j===3&&K.bound,up=id&&j===3&&Skills.upgradeInfo(id).can;
+      return`<button class="eqrow skrow${j===i?' on':''}" data-ssock="${j}" style="border-left:3px solid ${s?TC[s.tier]:'rgba(255,255,255,.14)'}"><small>ช่อง ${j+1} · ${slotTierName(j)}</small><span ${s?`style="color:${TC[s.tier]}"`:'class="dim"'}>${s?sIco(s,16)+' '+s.n+(s.el&&s.coef?' '+skEl(s):'')+` <small class="dim">Lv.${Skills.level(id)}</small>`:(j===3&&!K.bound?'— ว่าง (รอผนึก) —':'— ว่าง —')}${lockd?' 🔒':''}${up?' <b class="good">⬆</b>':''}</span></button>`;}).join('');
     // รายการสกิลที่ใส่ช่องนี้ได้ (เฉพาะที่เรียนแล้ว)
-    const cands=[...K.learned].filter(k=>skillUsable(k,'player')&&(i===2?SKILLS[k].tier==='unique':slotAccepts(i,k)))
+    const cands=[...K.learned].filter(k=>skillUsable(k,'player')&&(i===3?SKILLS[k].tier==='unique':slotAccepts(i,k)))
       .sort((a,b)=>(b===cur)-(a===cur)||TIERS.indexOf(SKILLS[b].tier)-TIERS.indexOf(SKILLS[a].tier)||SKILLS[a].n.localeCompare(SKILLS[b].n));
     if(!T.cand||!cands.includes(T.cand))T.cand=cur&&cands.includes(cur)?cur:cands[0]||null;
     const list=cands.map(k=>{const s=SKILLS[k],o=K.slots.indexOf(k);
-      return`<button class="eqcand${T.cand===k?' on':''}" data-skpick="${k}" style="border-left:3px solid ${TC[s.tier]}"><span style="color:${TC[s.tier]}">${sIco(s,16)} ${s.n} ${o===i?'<em style="white-space:nowrap">ใส่อยู่</em>':o>=0?`<em class="dim" style="white-space:nowrap">ช่อง ${o+1}</em>`:''}</span><b>${TIERN[s.tier]} · Lv.${Skills.level(k)}</b></button>`;}).join('')
+      return`<button class="eqcand${T.cand===k?' on':''}" data-skpick="${k}" style="border-left:3px solid ${TC[s.tier]}"><span style="color:${TC[s.tier]}">${sIco(s,16)} ${s.n} ${s.el&&s.coef?skEl(s):''} ${o===i?'<em style="white-space:nowrap">ใส่อยู่</em>':o>=0?`<em class="dim" style="white-space:nowrap">ช่อง ${o+1}</em>`:''}</span><b>${TIERN[s.tier]} · Lv.${Skills.level(k)}</b></button>`;}).join('')
       ||`<p class="dim">ยังไม่มีสกิลที่ใส่ช่องนี้ได้ — หาตำราสกิล (${slotTierName(i)}) จากการปราบมอนสเตอร์</p>`;
     // รายละเอียด + ปุ่มคำสั่งของสกิลที่เลือก
     let det='<p class="dim">เลือกสกิลจากรายการด้านบน</p>';const c=T.cand&&SKILLS[T.cand];
     if(c){const k=T.cand,o=K.slots.indexOf(k);let act='';
-      if(i===2){
+      if(i===3){
         if(!K.bound)act=`<button class="btn sm" data-skbind="${k}">🔒 ผนึกถาวร</button><div class="warn">⚠ สกิลเฉพาะตัวจะถูกผนึกกับตัวละครอย่างถาวร ถอดหรือเปลี่ยนไม่ได้ ยกเว้นใช้ 🗝️ ตราทำลายผนึกเฉพาะตัว</div>`;
         else if(k===K.bound){const u=Skills.upgradeInfo(k),L=u.req?SKILL_UPGRADE.levels[u.next]:null,C2=Skills.scale(k);
           act=`<div class="upbox"><h3>⬆ อัปเกรด <small class="dim">Lv.${Skills.level(k)} / ${SKILL_UPGRADE.maxLevel}</small></h3>
@@ -251,10 +306,10 @@ const UI={
         else{const nb=G.mats[SEAL_BREAKER.item]||0;act=`<button class="btn ghost sm" data-skrep="${k}" ${nb?'':'disabled'}>🗝️ เปลี่ยนเป็นสกิลนี้ (ตรา ×${nb})</button>${nb?'':'<div class="dim">ต้องมีตราทำลายผนึกเฉพาะตัวจึงจะเปลี่ยนได้</div>'}`;}
       }else if(o===i)act=`<button class="btn ghost sm" data-skun="${i}">ถอดออก</button>`;
       else act=`<button class="btn sm" data-skeq="${k}" data-slot="${i}">${o>=0?`ย้ายจากช่อง ${o+1} มาช่องนี้`:cur?'แทนที่':'ติดตั้ง'}</button>`;
-      det=`<h3 style="color:${TC[c.tier]}">${sIco(c,20)} ${c.n} <small class="dim">[${TIERN[c.tier]}]</small></h3><div class="dim">${c.desc}</div>${this.skStats(k)}<div class="acts">${act}</div>`
-        +(i===3?'<div class="dim">สกิลสุดยอดใช้เกจสุดยอด 100 (ไม่ใช้ MP)</div>':'');}
+      det=`<h3 style="color:${TC[c.tier]}">${sIco(c,20)} ${c.n} <small class="dim">[${TIERN[c.tier]}]</small> ${skEl(c,true)}</h3><div class="dim">${c.desc}</div>${this.skStats(k)}<div class="acts">${act}</div>`
+        +(i===4?'<div class="dim">สกิลสุดยอดใช้เกจท่าไม้ตาย 100 (ไม่ใช้ MP)</div>':'');}
     const panel=`<div class="eq4 sk2" style="grid-template-columns:minmax(280px,40%) 1fr">
-        <div class="eqp"><h3>สกิลที่ติดตั้ง</h3>${rows}<div class="dim skhint">ช่อง 1–2 ใส่ได้ทั้งสกิลทั่วไปและหายาก</div></div>
+        <div class="eqp"><h3>สกิลที่ติดตั้ง</h3>${rows}<div class="dim skhint">ช่อง 1–3 ใส่ได้ทั้งสกิลทั่วไปและหายาก · ช่อง 4 เฉพาะตัว · ช่อง 5 สุดยอด</div></div>
         <div class="eqp"><h3>เปลี่ยนเป็น · ช่อง ${i+1}</h3><div class="eqlist">${list}</div><div class="detail">${det}</div></div></div>`;
     let modal='';
     if(T.modal==='bind'){const s=SKILLS[T.pick];modal=`<div class="cmodal"><div class="cbox"><h3>🔒 ยืนยันการผนึกถาวร</h3><p>ผนึก <b>${sIco(s)} ${s.n}</b> เข้ากับตัวละครนี้ <b class="bad">อย่างถาวร</b></p>
@@ -292,7 +347,7 @@ const UI={
       <div>วัตถุดิบที่เสียไป: ${Object.entries(x.lost).map(([k,q])=>mIco(k,14)+' '+MATS[k].n+' ×'+q).join(', ')}</div><div class="dim">ไม่ได้อุปกรณ์</div></div>`;}
     else if(r){const base=Craft.base(r),fin=Craft.chance(r,C.boost),out=r.out.base?BASES[r.out.base]:MATS[r.out.mat];
       prev=`<div class="cres match" style="border-color:${RARC[r.rar]}"><div class="rico">${r.out.base?bIco(r.out.base,30):mIco(r.out.mat,30)}</div><div class="tn" ${rc(r.rar)}>${recipeName(r)} ${Craft.discovered(r)?'':'<span class="newr">สูตรใหม่!</span>'}</div>
-        <div class="ts">ความหายาก <b ${rc(r.rar)}>${RARN[r.rar]}</b>${r.out.base?` · ${SLOTN[BASES[r.out.base].type]} · iLv.${Math.max(RECIPE_ILVL[r.rar],G.level)} · <b class="good">ได้ตีบวก +${CONFIG.craftEnhMin} ถึง +${CONFIG.craftEnhMax} ทันที</b>`:''}</div>
+        <div class="ts">ความหายาก <b ${rc(r.rar)}>${r.out.base&&!BASES[r.out.base].fixRar?`สุ่ม (${RARN[r.rar]} ขึ้นไป · สูงสุด ${RARN[CONFIG.maxRarity]})`:RARN[r.rar]}</b>${r.out.base?` · ${SLOTN[BASES[r.out.base].type]} ·  <span class="dim">เริ่ม +0 · ค่าความสามารถสุ่ม</span>`:''}</div>
         <div class="ts">ใช้: ${Object.entries(r.mats).map(([k,q])=>`<span class="${(G.mats[k]||0)>=q?'':'bad'}">${mIco(k,14)} ${MATS[k].n} ×${q} (มี ${G.mats[k]||0})</span>`).join(' · ')}${r.gold?` · <span class="${G.gold>=r.gold?'':'bad'}">🪙 ทอง ×${r.gold} (มี ${G.gold})</span>`:''}</div>
         <div class="chance"><span>โอกาสสำเร็จ</span><b>${pct(base)}</b>${boostKey?` <span class="good">+ ${mIco(boostKey,12)} ${pct(boostAmt)}</span> = <b class="good">${pct(fin)}</b>`:''}</div>
         <div class="bar2"><i style="width:${fin*100}%;background:${RARC[r.rar]}"></i></div>
@@ -300,23 +355,23 @@ const UI={
         <div class="dim">ล้มเหลว = เสียวัตถุดิบทั้งหมด${boostKey?' และคริสตัล':''} และไม่ได้อุปกรณ์</div></div>`;}
     else if(!empty){const hs=Craft.hints(C.slots);prev=`<div class="cres none"><div class="big">❔ ส่วนผสมนี้ไม่ตรงกับสูตรใด</div>`+
       (hs.length?hs.slice(0,3).map(h=>`<div>ใกล้เคียง <b ${rc(h.r.rar)}>${recipeName(h.r)}</b> — ยังขาด ${h.missing.map(m=>mIco(m.id,14)+MATS[m.id].n+' ×'+m.q).join(', ')}</div>`).join(''):'<div class="dim">ลองปรับสัดส่วนวัตถุดิบดูใหม่อีกครั้ง</div>')+`</div>`;}
-    else prev=`<div class="cres none"><div class="big dim">⚔️ ผลลัพธ์การคราฟต์</div><div class="dim">คลิกวัตถุดิบทางขวาเพื่อวางลงช่อง (อุปกรณ์ที่ได้จะติด +${CONFIG.craftEnhMin} ถึง +${CONFIG.craftEnhMax} ทันที)</div></div>`;
+    else prev=`<div class="cres none"><div class="big dim">⚔️ ผลลัพธ์การคราฟต์</div><div class="dim">คลิกวัตถุดิบทางขวาเพื่อวางลงช่อง (ระดับของอุปกรณ์สุ่มตามสูตร · เพดานตามแรงค์กิลด์)</div></div>`;
     const bag=Object.keys(G.mats).filter(k=>!MATS[k].scroll&&!MATS[k].booster&&!MATS[k].use).map(k=>{const left=G.mats[k]-this.csInSlots(k),mr=matRar(k);
       return`<button class="it" data-cadd="${k}" ${left>0&&!busy?'':'disabled'} ${rb(mr)}><span class="ic">${mIco(k,14)}</span><span ${rc(mr)}>${MATS[k].n}</span><br><small>เหลือ ${left}/${G.mats[k]}${MATS[k].rareMat?' · <b class="tu">หายาก</b>':''}</small></button>`;}).join('')||'<div class="dim">ไม่มีวัตถุดิบ</div>';
     const can=chk.ok&&!busy;
     const T=this.craftTab||'make';
     const ctabs=`<div class="ctabs">`
       +`<button class="btn ${T==='make'?'':'ghost'} sm" data-ctab="make">${ico('craft',14)} คราฟต์</button>`
-      +`<button class="btn ${T==='lv'?'':'ghost'} sm" data-ctab="lv">${ico('star',14)} อัปเลเวล</button>`
+      +`<button class="btn ${T==='afx'?'':'ghost'} sm" data-ctab="afx">${ico('gem',14)} ปรับค่าความสามารถ</button>`
       +`<button class="btn ${T==='enh'?'':'ghost'} sm" data-ctab="enh">${ico('sword',14)} ตีบวก</button>`
       +`<button class="btn ${T==='evo'?'':'ghost'} sm" data-ctab="evo">${ico('crown',14)} วิวัฒน์</button>`
       +`<button class="btn ${T==='rune'?'':'ghost'} sm" data-ctab="rune">${ico('gem',14)} ใส่รูน</button>`
       +`</div>`;
-    if(T==='lv')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — อัปเลเวลอุปกรณ์ <small class="dim">หินเสริมพลัง ${G.mats.exprock||0} ชิ้น (+${CONFIG.equipExp.stone} EXP)</small></h2>${ctabs}`+this.lvList();
-    if(T==='enh')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — ตีบวก <small class="dim">ทอง ${G.gold} · แร่เหล็ก ${G.mats.ore||0} · สูงสุด +${CONFIG.enhanceMax}</small></h2>${ctabs}`+this.enhList();
-    if(T==='evo')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — วิวัฒน์อุปกรณ์ <small class="dim">หินวิวัฒน์ ${G.mats.evostone||0} ชิ้น · ต้องเลเวลเต็มตามระดับ (40/60/80/100) และ +${CONFIG.enhanceMax}</small></h2>${ctabs}`+this.evoList();
-    if(T==='rune')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — ใส่รูน <small class="dim">เลือกจากคลังรูนแล้วคลิกที่ช่องรูนของอุปกรณ์</small></h2>${ctabs}`+this.runeList();
-    return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — คราฟต์ <small class="dim">สำเร็จ ${G.stats.craftOk}/${G.stats.crafts} ครั้ง · ทอง ${G.gold} · อุปกรณ์ที่คราฟต์ได้ +${CONFIG.craftEnhMin} ถึง +${CONFIG.craftEnhMax} ทันที</small></h2>${ctabs}`+
+    if(T==='afx')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — ปรับค่าความสามารถ <small class="dim">${['rerollstone','philostone','pickstone','tierstone'].map(k=>`${MATS[k].n} ${G.mats[k]||0}`).join(' · ')} · ทอง ${G.gold}</small></h2>${ctabs}`+this.afxPanel();
+    if(T==='enh')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — ตีบวก <small class="dim">ทอง ${G.gold} · แร่เหล็ก ${G.mats.ore||0} · หินเสริมพลัง ${G.mats.exprock||0} · สูงสุด +${GEAR.enhMax}</small></h2>${ctabs}`+this.enhList();
+    if(T==='evo')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — วิวัฒน์อุปกรณ์ <small class="dim">หินวิวัฒน์ ${G.mats.evostone||0} ก้อน · ต้องตีบวก +${GEAR.enhMax}</small></h2>${ctabs}`+this.evoList();
+    if(T==='rune')return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — รูน <small class="dim">สว่านรูน ${G.mats.runedrill||0} ชิ้น · เลือกรูนแล้วคลิกช่องที่เปิดแล้ว</small></h2>${ctabs}`+this.runeList();
+    return`<h2>${ico('craft',22)} โต๊ะตีเหล็ก — คราฟต์ <small class="dim">สำเร็จ ${G.stats.craftOk}/${G.stats.crafts} ครั้ง · ทอง ${G.gold} · ระดับสุ่ม (เพดาน ${RARN[rarCap()]} ตามแรงค์)</small></h2>${ctabs}`+
     `<div class="cgrid"><div><div class="cslots">${slots}</div>${boost}<div class="carrow">↓</div>${prev}
       <div class="acts"><button class="btn" data-cgo="1" ${can?'':'disabled'}>⚒️ ${busy?'กำลังตีเหล็ก...':'เริ่มคราฟต์'+(chk.ok?` (${pct(chk.chance)})`:'')}</button>
         <button class="btn ghost" data-cclear="1" ${busy?'disabled':''}>ล้างช่อง</button><button class="btn ghost" data-ccancel="1" ${busy?'disabled':''}>ปิด</button></div></div>
@@ -365,7 +420,7 @@ const UI={
     const gsum=r=>gear.filter(it=>!r||it.rar===r).reduce((s,it)=>s+Inv.sellPrice(it),0);
     const bulk=`<div class="acts">`+[['all','ขายอุปกรณ์ทั้งหมด'],...RARS.map(r=>[r,'ขายระดับ'+RARN[r]+'ทั้งหมด'])].map(([r,l])=>{const n=gear.filter(it=>r==='all'||it.rar===r).length;
         return n?`<button class="btn ${r==='all'?'':'ghost'} sm" data-sellall="${r}">${arm('g:'+r,l)} (${n} ชิ้น · ${gsum(r==='all'?null:r)} ทอง)</button>`:'';}).join('')+`</div>`;
-    const rows=gear.map(it=>`<div class="srow sel${SS.has('i:'+it.uid)?' on':''}" ${rb(it.rar)}>${cb('i:'+it.uid)}<span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}</span><small class="dim">${SLOTN[BASES[it.base].type]} · Lv.${it.req}</small><button class="btn sm" data-sell="${it.uid}">${this.sellArm===it.uid?'ยืนยันขาย':'ขาย'} ${Inv.sellPrice(it)} ทอง</button></div>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ที่ขายได้ (ของที่สวมอยู่ขายไม่ได้)</div>';
+    const rows=gear.map(it=>`<div class="srow sel${SS.has('i:'+it.uid)?' on':''}" ${rb(it.rar)}>${cb('i:'+it.uid)}<span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}</span><small class="dim">${SLOTN[BASES[it.base].type]} · ${RARN[it.rar]} +${it.enh||0}</small><button class="btn sm" data-sell="${it.uid}">${this.sellArm===it.uid?'ยืนยันขาย':'ขาย'} ${Inv.sellPrice(it)} ทอง</button></div>`).join('')||'<div class="dim">ไม่มีอุปกรณ์ที่ขายได้ (ของที่สวมอยู่ขายไม่ได้)</div>';
     const mk=Object.keys(G.mats).filter(k=>MATS[k]&&Inv.matPrice(k)>0);
     const junk=mk.filter(k=>Inv.isJunkMat(k)),jsum=junk.reduce((s,k)=>s+Inv.matPrice(k)*G.mats[k],0);
     const mrows=mk.map(k=>`<div class="srow sel${SS.has('m:'+k)?' on':''}">${cb('m:'+k)}<span class="ic">${mIco(k,16)}</span><span>${MATS[k].n} <b>×${G.mats[k]}</b></span><small class="dim">${Inv.matPrice(k)} ทอง/ชิ้น</small><span><button class="btn ghost sm" data-sellmat="${k}" data-q="1">ขาย 1</button> <button class="btn ghost sm" data-sellmat="${k}" data-q="all">${arm('m:'+k,'ขายหมด')} ${Inv.matPrice(k)*G.mats[k]}</button></span></div>`).join('')||'<div class="dim">ไม่มีวัตถุดิบ</div>';
@@ -373,7 +428,7 @@ const UI={
       <h3>วัตถุดิบ / ของใช้</h3>${junk.length?`<div class="acts"><button class="btn sm" data-selljunk="1">${arm('junk','ขายวัตถุดิบทั่วไปทั้งหมด')} (${jsum} ทอง)</button> <small class="dim">ไม่รวมตำราสกิล ยา และวัตถุดิบหายาก</small></div>`:''}<div class="slist">${mrows}</div>`;},
   /* ---- ร้านตีเหล็ก ---- */
   smTab:'buy',
-  SMITH_STOCK:[['w_club',60],['w_sword',150],['w_spear',150],['h_leather',60],['h_iron',140],['a_leather',120],['g_leather',60],['g_iron',140],['p_leather',80],['b_iron',140],['r_copper',100],['n_fang',100]],
+  SMITH_STOCK:[['be_rope',80],['w_club',60],['w_sword',150],['w_spear',150],['h_leather',60],['h_iron',140],['a_leather',120],['g_leather',60],['g_iron',140],['p_leather',80],['b_iron',140],['r_copper',100],['n_fang',100]],
   scr_smithy(){const T=this.smTab,tab=(k,l)=>`<button class="btn ${T===k?'':'ghost'} sm" data-smtab="${k}">${l}</button>`;
     const full=G.bag.length>=LOOT_CONFIG.inventory.equipSlots;
     const head=`<h2>${ico('craft',22)} ร้านตีเหล็กโบโร <small class="dim">ทอง ${G.gold} · แร่เหล็ก ${G.mats.ore||0} · กระเป๋า ${G.bag.length}/${LOOT_CONFIG.inventory.equipSlots}</small></h2>
@@ -381,81 +436,87 @@ const UI={
     if(T==='buy'||true)return head+`<div class="inv">`+this.SMITH_STOCK.map(([k,c])=>{const B=BASES[k],r=B.fixRar||'normal';return`<button class="it" data-buygear="${k}" data-cost="${c}" ${G.gold>=c&&!full?'':'disabled'} ${rb(r)}><span class="ic">${bIco(k,18)}</span><span ${rc(r)}>${B.n}</span><br><small>${SLOTN[B.type]} · ${c} ทอง${B.atk?' · ATK '+B.atk:''}${B.def?' · DEF '+B.def:''}</small></button>`;}).join('')+`</div><p class="dim">ของจากร้านเป็นระดับธรรมดา เลเวลเท่าตัวละคร ${full?'· <b class="bad">กระเป๋าเต็ม</b>':''}</p>`;
     return head;},
   runePick:null,
-  /* ---- อัปเลเวลอุปกรณ์ ---- */
-  lvList(){
-    const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
-    const stones=G.mats.exprock||0;
-    return`<div class="flist">`+(list.map(it=>{
-      const lv=it.lv||1,noCap=typeof hasNoMaxLv==='function'&&hasNoMaxLv(),cap=Equip.capLv(it),mx=!noCap&&lv>=cap,need=mx?0:Equip.expNext(lv,it),pctExp=mx?100:Math.min(100,(it.exp||0)/Math.max(1,need)*100);
-      return`<div class="frow" style="border-color:${RARC[it.rar]}66">
-        <div class="frow-main"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,20)}</span>
-          <div><div ${rc(it.rar)}><b>${itemName(it)}</b>${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
-            <div class="dim">${RARN[it.rar]} · Lv.${lv}/${noCap?'∞':cap}${mx?' (MAX)':` · EXP ${it.exp||0}/${need} (${Math.floor(pctExp)}%)`}</div></div>
-        </div>
-        <div class="frow-act">${mx?'<span class="good">MAX</span>':`<button class="btn sm" data-exprock="${it.uid}" ${stones>0?'':'disabled'}>⬆ +${CONFIG.equipExp.stone} EXP (หิน ×1)</button>`}</div>
-      </div>`;
-    }).join('')||'<div class="dim">ไม่มีอุปกรณ์</div>')+`</div>`;
-  },
+  gearList(){return[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];},
   /* ---- ตีบวก (ใช้ทอง + แร่เหล็กเท่านั้น — ไม่ใช้คริสตัล) ---- */
   enhList(){
-    const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
-    return`<div class="dim" style="margin-bottom:8px">ตีบวกได้สูงสุด +${CONFIG.enhanceMax} · ใช้ทองและแร่เหล็ก (เริ่มที่ 3 ก้อน · โอกาสต่ำสุด 55%) · หากล้มเหลวระดับตีบวกจะลดลง 1 · คริสตัลใช้ได้กับคราฟต์เท่านั้น</div>
-      <div class="flist">`+(list.map(it=>{const c=Equip.enhanceCost(it),mx=it.enh>=Equip.maxEnh(it);
+    const list=this.gearList(),cap=Equip.maxEnh(null),nx=Guild.next();
+    return`<div class="dim" style="margin-bottom:8px">ตีบวกคือตัวโตหลักของอุปกรณ์ · ทุกขั้นเพิ่มค่าฐาน (ATK/DEF) และค่าความสามารถแบบตัวเลข ${GEAR.enhStep*100}% ของฐาน · เพดานตามแรงค์ <b>+${cap}</b>${nx&&cap<GEAR.enhMax?` (แรงค์ ${GUILD_RANKS.find(k=>k.enhMax>cap).id} ปลด +${GUILD_RANKS.find(k=>k.enhMax>cap).enhMax})`:''} · +${GEAR.enhRockFrom+1} ขึ้นไปใช้หินเสริมพลังเพิ่ม · <b>พลาดไม่ลดขั้น</b></div>
+      <div class="flist">`+(list.map(it=>{const c=Equip.enhanceCost(it),e=it.enh||0,mx=e>=cap,R=RARITY[it.rar],b=BASES[it.base],st=b.atk?'ATK':b.def?'DEF':'',bv=b.atk||b.def||0,now=Math.round(bv*R.mult*(1+GEAR.enhStep*e)),nxt=Math.round(bv*R.mult*(1+GEAR.enhStep*(e+1)));
       return`<div class="frow" style="border-color:${RARC[it.rar]}66">
         <div class="frow-main"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,20)}</span>
-          <div><div ${rc(it.rar)}><b>${itemName(it)}</b>${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
-            <div class="dim">${mx?`ตีบวกเต็ม +${Equip.maxEnh(it)} แล้ว`:`โอกาส <b style="color:#ffd98a">${pct(c.rate)}</b> · ใช้ <b class="${G.gold>=c.gold?'':'bad'}">${c.gold} ทอง</b> + <b class="${(G.mats.ore||0)>=c.ore?'':'bad'}">แร่ ${c.ore}</b>`}</div></div>
+          <div><div ${rc(it.rar)}><b>${itemName(it)}</b> ${wElTag(it.base)?elChip(wElTag(it.base)):''}${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
+            <div class="dim">${st?`${st} <b>${now}</b>${mx?'':` → <b class="good">${nxt}</b>`} · `:''}${mx?`เต็มเพดาน +${cap}${cap<GEAR.enhMax?' (เลื่อนแรงค์เพื่อตีต่อ)':''}`:`โอกาส <b style="color:#ffd98a">${pct(c.rate)}</b> · <b class="${G.gold>=c.gold?'':'bad'}">${c.gold} ทอง</b> · <b class="${(G.mats.ore||0)>=c.ore?'':'bad'}">แร่ ${G.mats.ore||0}/${c.ore}</b>${c.rock?` · <b class="${(G.mats.exprock||0)>=c.rock?'':'bad'}">หินเสริมพลัง ${G.mats.exprock||0}/${c.rock}</b>`:''}`}</div></div>
         </div>
-        <div class="frow-act">${mx?`<span class="good">MAX +${CONFIG.enhanceMax}</span>`:`<button class="btn sm" data-enh="${it.uid}" ${G.gold>=c.gold&&(G.mats.ore||0)>=c.ore?'':'disabled'}>✨ ตีบวก +${it.enh+1}</button>`}</div>
+        <div class="frow-act">${mx?`<span class="good">+${e}</span>`:`<button class="btn sm" data-enh="${it.uid}" ${Equip.canPay(c)?'':'disabled'}>✨ ตีบวก +${e+1}</button>`}</div>
       </div>`;
     }).join('')||'<div class="dim">ไม่มีอุปกรณ์</div>')+`</div>`;
   },
   /* ---- วิวัฒน์ (แยกออกจากใส่รูนชัดเจน ไม่บีบข้อความ) ---- */
   evoList(){
-    const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
-    const stones=G.mats.evostone||0;
-    return`<div class="flist">`+(list.map(it=>{
-      const ri=RARS.indexOf(it.rar),nextR=ri<RARS.length-1?RARS[ri+1]:null,lv=it.lv||1,enh=it.enh||0,reqLv=Equip.capLv(it);
-      const lvOk=lv>=reqLv,enhOk=enh>=CONFIG.enhanceMax,canEvo=Equip.canEvolve(it)&&stones>0;
+    const list=this.gearList(),stones=G.mats.evostone||0,g=GEAR.cost.evo.gold,cap=Equip.maxEnh(null);
+    return`<div class="dim" style="margin-bottom:8px">ต้องตีบวกถึงเพดานแรงค์ <b>+${cap}</b> · ใช้หินวิวัฒน์ ${Object.entries(GEAR.evoCost).map(([r,n])=>RARN[r]+' '+n).join(' / ')} ก้อน + ${g} ทอง · ขึ้นระดับ 1 ขั้น (ไม่เกินเพดานแรงค์ ${RARN[rarCap()]}) · ได้ค่าความสามารถใหม่ 1 ค่า (ตำนาน → เทพ ได้ความสามารถเทพแทน) · ช่องรูนสูงสุดเพิ่ม · <b>ตีบวกคงเดิม</b></div><div class="flist">`+(list.map(it=>{
+      const ri=RARS.indexOf(it.rar),nextR=ri<RARS.length-1?RARS[ri+1]:null,enh=it.enh||0,n=Equip.evoCost(it),enhOk=enh>=cap,rkOk=nextR&&Equip.evoAllowed(it),canEvo=Equip.canEvolve(it)&&stones>=n&&G.gold>=g;
       const evoBtn=nextR?`<button class="btn sm" data-evolve="${it.uid}" ${canEvo?'':'disabled'}>🌟 วิวัฒน์ → ${RARN[nextR]}</button>`:`<span class="good">ระดับสูงสุด (${RARN[it.rar]})</span>`;
-      const lc=Equip.legUpgradeCost(it),canLeg=lc&&lc.mats.every(k=>Inv.has(k,lc.q));
-      const legLine=it.rar==='legendary'?`<div class="frow-sub">${lc?`<span class="dim">อัปเกรดตำนาน LV.${lc.lv}→${lc.next}/5 (บอส 4 ชนิด ชิ้นละ ×${lc.q}: ${lc.mats.map(k=>`${MATS[k].n} ${G.mats[k]||0}/${lc.q}`).join(', ')})</span><button class="btn sm" data-legup="${it.uid}" ${canLeg?'':'disabled'}>★ อัปเกรดตำนาน LV.${lc.next}/5</button>`:`<span class="good">★ อัปเกรดตำนานเต็ม LV.5/5 (MAX)</span>`}</div>`:'';
-      return`<div class="frow col" style="border-color:${RARC[it.rar]}66">
-        <div class="frow-top">
+      return`<div class="frow" style="border-color:${RARC[it.rar]}66">
           <div class="frow-main"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,20)}</span>
-            <div><div ${rc(it.rar)}><b>${itemName(it)}</b>${it.rar==='legendary'?` <small class="tu">[LV.${it.legLv||1}/5]</small>`:''}${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
-              <div class="dim">เงื่อนไขวิวัฒน์: <span class="${lvOk?'good':'bad'}">Lv.${lv}/${reqLv}</span> · <span class="${enhOk?'good':'bad'}">+${enh}/${CONFIG.enhanceMax}</span> · <span class="${stones>0?'good':'bad'}">หินวิวัฒน์ ${stones}/1</span></div></div>
+            <div><div ${rc(it.rar)}><b>${itemName(it)}</b> ${wElTag(it.base)?elChip(wElTag(it.base)):''}${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
+              <div class="dim">${nextR?`<span class="${enhOk?'good':'bad'}">ตีบวก +${enh}/+${cap}</span> · <span class="${stones>=n?'good':'bad'}">หินวิวัฒน์ ${stones}/${n}</span> · <span class="${G.gold>=g?'good':'bad'}">${g} ทอง</span>${rkOk?'':` · <span class="bad">ต้องเลื่อนแรงค์ก่อน</span>`}`:'เทพเป็นระดับสูงสุด'}</div></div>
           </div>
           <div class="frow-act">${evoBtn}</div>
-        </div>${legLine}
       </div>`;
     }).join('')||'<div class="dim">ไม่มีอุปกรณ์</div>')+`</div>`;
   },
-  /* ---- ใส่รูน (แยกหน้าเฉพาะ ใช้ง่าย) ---- */
+  /* ---- ปรับค่าความสามารถ: รีค่าทั้งหมด (+ล็อก) · เปลี่ยนค่าที่เลือก (เทียร์สุ่ม) · อัปเทียร์ ---- */
+  afIt:null,afSel:-1,afFlash:-1,
+  afxPanel(){
+    const list=this.gearList();let it=this.afIt&&itemByUid(this.afIt);if(!it||!list.includes(it)){it=list[0]||null;this.afIt=it&&it.uid;this.afSel=-1;}
+    if(!it)return'<div class="dim">ไม่มีอุปกรณ์</div>';
+    const af=it.affixes||[];if(this.afSel>=af.length)this.afSel=-1;
+    const sel=af[this.afSel],C=GEAR.cost,rc2=Gear.rerollCost(it),grpN={off:'⚔ โจมตี',def:'🛡 ป้องกัน',util:'✧ เสริม'},have=k=>G.mats[k]||0;
+    const pick=list.map(x=>`<button class="eqcand${x===it?' on':''}" data-afit="${x.uid}" style="border-left:3px solid ${RARC[x.rar]}"><span ${rc(x.rar)}>${bIco(x.base,16)} ${itemName(x)}</span><b>${wElTag(x.base)?elChip(wElTag(x.base))+' ':''}${RARN[x.rar]} · ${(x.affixes||[]).length} ค่า${Equip.isEquipped(x)?' · สวมอยู่':''}</b></button>`).join('');
+    const rows=af.map((a,i)=>{const on=i===this.afSel,fl=i===this.afFlash;return`<div class="frow" style="border-color:${on?'#ffe27a':fl?'#5fd38d':'rgba(255,255,255,.12)'}${on?';background:rgba(255,226,122,.08)':fl?';background:rgba(95,211,141,.10)':''}">
+        <div class="frow-main" style="width:100%"><button class="btn sm ghost" data-aflock="${i}" title="${a.lock?'ปลดล็อก':'ล็อก: ไม่เปลี่ยนตอนรีค่าทั้งหมด'}">${a.lock?'🔒':'🔓'}</button><button class="eqcand${on?' on':''}" data-afsel="${i}" style="flex:1;margin:0" title="${on?'คลิกอีกครั้งเพื่อยกเลิกเลือก':'คลิกเพื่อเลือก'}"><span><b>${Gear.label(a,it)}</b> ${tierTag(a.t)}</span><b>${grpN[GAFX[a.k].g]}${on?' · ✓ เลือกอยู่':''}</b></button></div></div>`;}).join('')||'<div class="dim">ไม่มีค่าความสามารถ</div>';
+    const used=new Set(af.filter((x,i)=>i!==this.afSel).map(x=>x.k));
+    const rng=k=>{const A=GAFX[k],v=t=>A.pct?A.t[t]+'%':(A.lv?Math.round(A.t[t]*RARITY[it.rar].mult*(1+GEAR.enhStep*(it.enh||0))):A.t[t]);return`${v(0)}–${v(4)}`;};
+    const opts=Gear.pool(it).filter(k=>!used.has(k)).map(k=>`<option value="${k}" ${sel&&sel.k===k?'selected':''}>${GAFX[k].n}${GAFX[k].pct?' %':''} (T1–T5: ${rng(k)})</option>`).join('');
+    const why=[];const lacks=(k,n)=>have(k)<n;
+    const rollWhy=rc2.locks>=af.length?'ล็อกครบทุกค่าแล้ว':lacks('rerollstone',1)?'หินรีค่าไม่พอ':rc2.locks&&lacks('philostone',rc2.locks)?'ตราล็อกไม่พอ':G.gold<C.reroll.gold?'ทองไม่พอ':'';
+    const pickWhy=!sel?'เลือกค่าก่อน':sel.lock?'ค่านี้ถูกล็อก':lacks('pickstone',1)?'ศิลาเลือกค่าไม่พอ':G.gold<C.pick.gold?'ทองไม่พอ':'';
+    const tierWhy=!sel?'เลือกค่าก่อน':sel.t>=5?'T5 สูงสุดแล้ว':lacks('tierstone',1)?'หินอัปเทียร์ไม่พอ':G.gold<C.tier.gold?'ทองไม่พอ':'';
+    const cost=(k,n,g)=>`<span class="${have(k)>=n?'':'bad'}">${MATS[k].n} ${have(k)}/${n}</span> · <span class="${G.gold>=g?'':'bad'}">${g} ทอง</span>`;
+    const btn=(attr,label,w)=>`<button class="btn sm" ${attr} ${w?`disabled title="${w}"`:''}>${label}</button>${w?` <span class="bad" style="font-size:12px">${w}</span>`:''}`;
+    return`<div style="display:grid;grid-template-columns:minmax(200px,1fr) 2fr;gap:10px;align-items:start"><div class="eqp"><h3>เลือกอุปกรณ์</h3><div class="eqlist" style="max-height:360px;overflow:auto">${pick}</div></div>
+      <div class="eqp"><h3>${itemName(it)} <small ${rc(it.rar)}>${RARN[it.rar]}</small> ${wElTag(it.base)?elChip(wElTag(it.base),1):''}</h3>
+        <div class="dim" style="margin-bottom:6px">คลิกค่าเพื่อเลือก · คลิกซ้ำเพื่อยกเลิก · 🔒 = ไม่เปลี่ยนตอนรีค่าทั้งหมด · เทียร์ ${[1,2,3,4,5].map(tierTag).join(' ')}${sel?` · <button class="btn sm ghost" data-afclear="1">✕ ยกเลิกเลือก</button>`:''}</div>${rows}
+        <div class="tset" style="margin-top:10px;padding:8px 10px">
+          <div class="acts" style="margin:0 0 6px">${btn('data-afroll="1"','🎲 รีค่าทั้งหมด'+(rc2.locks?` (ล็อก ${rc2.locks})`:''),rollWhy)}</div>
+          <div class="dim" style="margin-bottom:8px">ใช้ ${cost('rerollstone',1,C.reroll.gold)}${rc2.locks?` · <span class="${have('philostone')>=rc2.locks?'':'bad'}">ตราล็อก (${MATS.philostone.n}) ${have('philostone')}/${rc2.locks}</span>`:''}</div>
+          <div class="acts" style="margin:0 0 6px"><select id="afPick" ${sel&&!sel.lock?'':'disabled'} style="max-width:320px">${opts}</select>${btn('data-afpick="1"','🎯 เปลี่ยนค่าที่เลือก',pickWhy)}</div>
+          <div class="dim" style="margin-bottom:8px">เทียร์สุ่มใหม่ · ใช้ ${cost('pickstone',1,C.pick.gold)}</div>
+          <div class="acts" style="margin:0 0 6px">${btn('data-aftier="1"','✦ อัปเทียร์'+(sel&&sel.t<5?` T${sel.t}→T${sel.t+1} (${Math.round(GEAR.tierUp[sel.t-1]*100)}%)`:''),tierWhy)}</div>
+          <div class="dim">พลาดไม่ลด · ใช้ ${cost('tierstone',1,C.tier.gold)}</div>
+        </div>
+        <div class="detail" style="margin-top:8px">${itemTip(it)}</div></div></div>`;
+  },
+  /* ---- รูน: เลือกรูนจากคลัง → คลิกช่องที่เปิดแล้ว · ช่องที่ยังไม่เจาะแสดงเป็นแม่กุญแจพร้อมปุ่มเจาะ ---- */
   runeList(){
-    const list=[...SLOTS.map(s=>G.eq[s]&&itemByUid(G.eq[s])).filter(Boolean),...G.bag.filter(it=>!Equip.isEquipped(it))];
-    const ownedRunes=Object.keys(RUNES).filter(rk=>(G.mats[rk]||0)>0);
+    const list=this.gearList(),ownedRunes=RUNES.filter(rk=>(G.mats[rk]||0)>0),dg=GEAR.cost.drill.gold,canDrill=(G.mats.runedrill||0)>=1&&G.gold>=dg;
     if(this.runePick&&!ownedRunes.includes(this.runePick))this.runePick=null;
     if(!this.runePick&&ownedRunes.length)this.runePick=ownedRunes[0];
-    const rBar=`<div class="tset" style="margin-bottom:8px;padding:8px 10px;border:1px solid rgba(130,196,255,.3);border-radius:4px;background:rgba(6,16,44,.65)"><b>เลือกรูนจากคลังที่จะใส่</b> <small class="dim">(คลิกช่องว่างเพื่อใส่ · คลิกช่องที่มีรูนเพื่อถอดคืนโดยไม่เสียรูน)</small><div class="acts" style="margin-top:6px">`
-      +(ownedRunes.length?ownedRunes.map(rk=>{const r=RUNES[rk],on=this.runePick===rk;return`<button class="btn sm ${on?'':'ghost'}" data-rpick="${rk}" style="border-color:${r.c}">${r.n} ×${G.mats[rk]}</button>`;}).join(''):'<span class="dim">ยังไม่มีรูนในกระเป๋า</span>')
-      +`</div></div>`;
-    return rBar+`<div class="flist">`+(list.map(it=>{
-      const maxSock=RARITY[it.rar].sockets||0,socks=it.sockets||[];
-      const sockHtml=maxSock?Array.from({length:maxSock},(_,i)=>{
-        const rk=socks[i],r=rk&&RUNES[rk];
-        return r?`<button class="btn sm ghost" data-unsock="${it.uid}:${i}" style="border-color:${r.c};color:${r.c}">${r.n} ✕</button>`:`<button class="btn sm ghost" data-sock="${it.uid}:${i}" ${this.runePick?'':'disabled'}>+ ช่อง ${i+1}</button>`;
-      }).join(''):'<span class="dim">ไม่มีช่องรูน (ต้องระดับหายากขึ้นไป)</span>';
-      return`<div class="frow col" style="border-color:${RARC[it.rar]}66">
-        <div class="frow-top">
-          <div class="frow-main"><span class="ic" style="color:${RARC[it.rar]}">${bIco(it.base,20)}</span>
-            <div><div ${rc(it.rar)}><b>${itemName(it)}</b>${Equip.isEquipped(it)?' <span class="good">[สวมอยู่]</span>':''}</div>
-              <div class="dim">${RARN[it.rar]} · ช่องรูน ${socks.filter(Boolean).length}/${maxSock}</div></div>
-          </div>
-          <div class="acts" style="margin:0">${sockHtml}</div>
-        </div>
-      </div>`;
-    }).join('')||'<div class="dim">ไม่มีอุปกรณ์</div>')+`</div>`;
+    const css=`<style>.rbar{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin:6px 0 10px}.rchip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:6px 9px;border-radius:8px;background:rgba(6,16,44,.7);border:1px solid rgba(255,255,255,.14);cursor:pointer;color:inherit;font:inherit}.rchip.on{outline:2px solid #ffe27a;background:rgba(255,226,122,.10)}.rchip small{opacity:.8}.rcard{display:grid;grid-template-columns:minmax(220px,1fr) 2fr;gap:10px;align-items:center;padding:8px 10px;margin-bottom:6px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(6,16,44,.55)}.socks{display:flex;flex-wrap:wrap;gap:6px}.sock{width:118px;min-height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 12px Sarabun,sans-serif;cursor:pointer;color:inherit;padding:4px}.sock.empty{border:2px dashed rgba(255,226,122,.55);background:rgba(255,226,122,.05)}.sock.full{border:2px solid;background:rgba(0,0,0,.35)}.sock.lock{border:2px solid rgba(255,255,255,.08);background:rgba(0,0,0,.25);opacity:.6;cursor:default}.sock.drill{border:2px solid #ffb347;background:rgba(255,179,71,.12)}.sock:disabled{opacity:.45;cursor:not-allowed}</style>`;
+    const bar=ownedRunes.length?ownedRunes.map(rk=>`<button class="rchip${this.runePick===rk?' on':''}" data-rpick="${rk}" style="border-color:${RUNEC[rk]}"><b style="color:${RUNEC[rk]}">${MATS[rk].ic||''} ${MATS[rk].n} ×${G.mats[rk]}</b><small>${runeTxt(rk)}</small></button>`).join(''):'<div class="dim">ยังไม่มีรูนในกระเป๋า — ได้จากการดรอปและร้าน</div>';
+    const pk=this.runePick;
+    const cards=list.map(it=>{const mx=RARITY[it.rar].sockets||0,socks=it.sockets||[];
+      const slots=Array.from({length:mx},(_,i)=>{
+        if(i<socks.length){const rk=socks[i];
+          return rk&&MATS[rk]?`<button class="sock full" data-unsock="${it.uid}:${i}" style="border-color:${RUNEC[rk]}" title="คลิกเพื่อถอดคืนกระเป๋า (ไม่เสียรูน)"><b style="color:${RUNEC[rk]}">${MATS[rk].ic||''} ${MATS[rk].n}</b><small>${runeTxt(rk)}</small><small class="dim">✕ ถอด</small></button>`
+            :`<button class="sock empty" data-sock="${it.uid}:${i}" ${pk?'':'disabled'} title="${pk?'ใส่ '+MATS[pk].n:'เลือกรูนด้านบนก่อน'}"><b>＋ ช่อง ${i+1}</b><small class="dim">${pk?'ใส่ '+MATS[pk].n:'เลือกรูนก่อน'}</small></button>`;}
+        if(i===socks.length)return`<button class="sock drill" data-drill="${it.uid}" ${canDrill?'':'disabled'} title="สว่านรูน 1 + ${dg} ทอง"><b>🔩 เจาะช่อง ${i+1}</b><small class="${(G.mats.runedrill||0)>=1?'':'bad'}">สว่าน ${G.mats.runedrill||0}/1 · ${dg} ทอง</small></button>`;
+        return`<div class="sock lock"><b>🔒</b><small>ช่อง ${i+1}</small></div>`;}).join('');
+      return`<div class="rcard" style="border-left:3px solid ${RARC[it.rar]}"><div><div ${rc(it.rar)}><b>${bIco(it.base,18)} ${itemName(it)}</b></div>
+        <div class="dim" style="font-size:12px">${wElTag(it.base)?elChip(wElTag(it.base))+' · ':''}${RARN[it.rar]} · เปิด ${socks.length}/${mx} · ใส่ ${socks.filter(Boolean).length}${Equip.isEquipped(it)?' · <span class="good">สวมอยู่</span>':''}</div></div>
+        <div class="socks">${slots}</div></div>`;}).join('')||'<div class="dim">ไม่มีอุปกรณ์</div>';
+    return css+`<div class="tset" style="padding:8px 10px"><b>คลังรูน</b> <small class="dim">เลือกรูน แล้วคลิกช่องว่างของอุปกรณ์ · คลิกรูนที่ใส่อยู่เพื่อถอดคืน · ช่องสูงสุดตามระดับ (ธรรมดา 1 … เทพ 5)</small><div class="rbar">${bar}</div></div>`+cards;
   },
   scr_reitem(){const rs=this.reRes||[],full=G.bag.length>=LOOT_CONFIG.inventory.equipSlots,can=G.gold>=REITEM.cost,done=!!this.reBought,buyOk=G.gold>=REITEM.buy;
     const slots=[0,1,2,3].map(i=>{const it=rs[i];if(!it)return`<div class="it"><span class="dim">ว่าง</span></div>`;
@@ -467,19 +528,8 @@ const UI={
       <p class="dim">อัตรา: ${reitemOdds(true).map(([r,p])=>`${RARN[r]} ${p}%`).join(' · ')}</p>
       <div class="acts"><button class="btn" data-reroll="1" ${can?'':'disabled'}>${ico('craft',14)} สุ่มไอเทม — ${REITEM.cost} เหรียญ</button></div>
       <p class="dim">เหรียญของคุณ ${G.gold}</p>`;},
-  scr_alchemy(){const sel=(this.alSel||[]).map(itemByUid).filter(Boolean),first=sel[0];
-    const list=G.bag.filter(it=>!Equip.isEquipped(it)),cnt={};for(const it of list)cnt[it.base]=(cnt[it.base]||0)+1;
-    const pool=list.filter(it=>cnt[it.base]>=2).sort((a,b)=>a.base<b.base?-1:a.base>b.base?1:RARS.indexOf(b.rar)-RARS.indexOf(a.rar));
-    const chip=it=>{const on=sel.includes(it),dis=first&&!on&&(it.base!==first.base||sel.length>=2);
-      return`<button class="it${on?' on':''}" data-alsel="${it.uid}" ${dis?'disabled':''} style="border-color:${on?'#ffe27a':RARC[it.rar]+'88'}"><span class="ic">${bIco(it.base,18)}</span><span ${rc(it.rar)}>${itemName(it)}</span><br><small>${RARN[it.rar]} · ${it.affixes.map(x=>AFFIX[x.k]?AFFIX[x.k].n:x.k).join(', ')||'ไม่มีค่าเสริม'}</small></button>`;};
-    const ok=sel.length===2&&Alchemy.canFuse(sel[0],sel[1]),ps=G.mats.philostone||0,L=this.alLock;
-    const lockRow=ok&&ps?`<div class="tset">${mIco('philostone',14)} ${MATS.philostone.n} ×${ps} — เลือกค่าเสริม 1 ค่าที่จะ<b>ล็อกไว้</b> (ใช้ 1 ก้อน) หรือไม่ล็อกก็ได้:<div class="acts">`+
-      [...sel[0].affixes,...sel[1].affixes].map(x=>{const on=L&&L.k===x.k&&L.v===x.v;return`<button class="btn sm ${on?'':'ghost'}" data-allock="${x.k}|${x.v}">${on?'🔒 ':''}${STATN2[x.k]||x.k} ${fmtStat(x.k,x.v)}</button>`;}).join('')+`</div></div>`:'';
-    return`<h2>${ico('gem',22)} นักเล่นแร่แปรธาตุ</h2>
-      <p class="dim">"อาจารย์ของข้าหายไปในหอคอยทางเหนือ… ถ้าเจอ${MATS.philostone.n} เอามาให้ข้า จะล็อกค่าที่ชอบไว้ให้"</p><p class="dim">เลือกอุปกรณ์ <b>ชนิดเดียวกัน 2 ชิ้น</b> แล้วหลอมรวม → ได้ชิ้นเดิม 1 ชิ้นที่ <b>สุ่มค่าเสริมใหม่ทั้งหมด</b> · ได้ระดับ / iLv / ตีบวก ของชิ้นที่สูงกว่า · ของที่สวมอยู่ใช้ไม่ได้</p>
-      ${this.alRes?`<div class="cres win"><div class="big good">✨ แปรธาตุสำเร็จ!</div>${itemTip(this.alRes)}</div>`:''}
-      ${pool.length?`<div class="inv">${pool.map(chip).join('')}</div>`:'<p class="dim">ยังไม่มีอุปกรณ์ชนิดเดียวกันซ้ำ 2 ชิ้นในกระเป๋า</p>'}
-      ${lockRow}<div class="acts"><button class="btn" data-alfuse="1" ${ok?'':'disabled'}>${ico('craft',14)} หลอมรวม (${sel.length}/2)${L?' + ล็อก 1 ค่า':''}</button> <button class="btn ghost" data-alclear="1">ล้างที่เลือก</button></div>`;},
+  scr_alchemy(){return`<h2>${ico('gem',22)} นักเล่นแร่แปรธาตุ — ปรับค่าความสามารถ</h2>
+      <p class="dim">"เอาของมาให้ข้าดูสิ… หินรีค่า ศิลาเลือกค่า หินอัปเทียร์ — ข้าใช้ได้หมด ส่วน${MATS.philostone.n}ใช้ล็อกค่าที่ชอบไว้"</p>`+this.afxPanel();},
   scr_citygate(){
     const lk=hasLavaKey()?'':'🔒 ต้องมีกุญแจลาวา (ชนะคาเงะในถ้ำชีส) ก่อน · ';
     const dests=[
@@ -519,14 +569,17 @@ const UI={
     const cur=Guild.rank(),ci=GUILD_RANKS.findIndex(r=>r.id===cur);
     const cards=GUILD_RANKS.map((r,i)=>{
       if(i===0)return`<div class="talc" style="border-color:${r.col}"><div class="ti" style="color:${r.col}">F</div><b>แรงค์ F · ${r.n}</b><small class="good">✓ แรงค์เริ่มต้น</small><p>ระดับพื้นฐานหลังสมัครกิลด์นักผจญภัย</p></div>`;
-      const done=ci>=i||(r.promoQuest&&Guild.questDone(r.promoQuest)),prevOk=ci===i-1,lvOk=G.level>=r.lvReq,open=prevOk&&lvOk&&r.id==='G',soon=prevOk&&lvOk&&r.id!=='G';
-      const st=done?'<small class="good">✓ ผ่านบททดสอบแล้ว</small>':!prevOk?`<small class="bad">🔒 ต้องอยู่แรงค์ ${GUILD_RANKS[i-1].id} ก่อน</small>`:!lvOk?`<small class="bad">🔒 ต้องการ Lv.${r.lvReq}+ (ตอนนี้ Lv.${G.level})</small>`:open?'<small class="good">⚔️ พร้อมท้าทาย · Lv.35 (3 คู่ต่อสู้) · ห้ามใช้ยา</small>':'<small class="dim">🚧 ด่านทดสอบแรงค์นี้เตรียมเปิดเร็วๆ นี้</small>';
-      if(open)return`<button class="talc" data-colenter="${r.id}" style="border-color:${r.col}"><div class="ti" style="color:${r.col}">${r.id}</div><b>บททดสอบเลื่อนขั้น → Rank ${r.id}</b>${st}<p>ผู้ท้าทาย 3 คน (Lv.35): เอเกล / วาลิน / เซเรส · เลือกลำดับสู้เองได้ · ห้ามใช้ยาฟื้นพลังและยามานา</p></button>`;
-      return`<div class="talc dim" style="opacity:${done?.82:.6}"><div class="ti" style="color:${r.col}">${r.id}</div><b>บททดสอบ Rank ${r.id} (${r.n})</b>${st}<p>เกณฑ์เลเวล: Lv.${r.lvReq}+${soon?' · ผ่านเกณฑ์เลเวลแล้ว':''}</p></div>`;
+      const tr=(typeof COLOSSEUM_TRIALS!=='undefined'&&COLOSSEUM_TRIALS[r.id])||null;
+      const cnt=tr?tr.foes.length:0,tlv=tr?tr.lv:r.lvReq,names=tr?tr.foes.map(k=>((FOES[k]&&FOES[k].n)||k).split(' (')[0]).join(' / '):'';
+      const done=ci>=i||(r.promoQuest&&Guild.questDone(r.promoQuest)),prevOk=ci===i-1,lvOk=G.level>=r.lvReq,open=!done&&prevOk&&lvOk&&!!tr;
+      const st=done?'<small class="good">✓ ผ่านบททดสอบแล้ว</small>':!prevOk?`<small class="bad">🔒 ต้องอยู่แรงค์ ${GUILD_RANKS[i-1].id} ก่อน</small>`:!lvOk?`<small class="bad">🔒 ต้องการ Lv.${r.lvReq}+ (ตอนนี้ Lv.${G.level})</small>`:open?`<small class="good">⚔️ พร้อมท้าทาย · Lv.${tlv} (${cnt} คู่ต่อสู้) · ห้ามใช้ยา</small>`:'<small class="dim">🚧 ด่านทดสอบแรงค์นี้เตรียมเปิดเร็วๆ นี้</small>';
+      const descTxt=tr?`ผู้ท้าทาย ${cnt} คน (Lv.${tlv}): ${names} · เลือกลำดับสู้เองได้ · ห้ามใช้ยาฟื้นพลังและยามานา`:`เกณฑ์เลเวล: Lv.${r.lvReq}+`;
+      if(open)return`<button class="talc" data-colenter="${r.id}" style="border-color:${r.col}"><div class="ti" style="color:${r.col}">${r.id}</div><b>บททดสอบเลื่อนขั้น → Rank ${r.id} (${r.n})</b>${st}<p>${descTxt}</p></button>`;
+      return`<div class="talc dim" style="opacity:${done?.82:.6}"><div class="ti" style="color:${r.col}">${r.id}</div><b>บททดสอบ Rank ${r.id} (${r.n})</b>${st}<p>เกณฑ์เลเวล: Lv.${r.lvReq}+${tr?` · ผู้ท้าทาย ${cnt} คน (Lv.${tlv}): ${names}`:''}</p></div>`;
     }).join('');
     const trainCard=`<button class="talc" data-coltrain="1" style="border-color:#ffd23a"><div class="ti">🎯</div><b>โรงฝึกซ้อมโคลอสเซียม (Training Ground)</b><small class="good">✓ เปิดตลอดเวลา · ไม่จำกัดแรงค์</small><p>ซ้อมคอมโบ ทดสอบสกิล และวัดดาเมจกับ <b>หุ่นซ้อมอมตะ</b> ที่ยืนนิ่งเฉยๆ (กดออกฝึกได้ทันทีตลอดเวลา)</p></button>`;
     return`<h2>🏛️ โคลอสเซียมทดสอบแรงค์นักผจญภัย</h2>
-      <p class="dim">แรงค์ปัจจุบัน: <b style="color:${Guild.info(cur).col}">Rank ${cur} (${Guild.info(cur).n})</b> · Lv.${G.level} · เงื่อนไขเลื่อนขั้น: F → G (Lv.30) → D (Lv.60) → C (Lv.90) → B (Lv.120) → A (Lv.150) → S (Lv.180)<br>กติกา: <b>ห้ามใช้ยาฮีลหรือยามานา</b> · ชนะคู่ต่อสู้ทีละคนจนครบเพื่อปลดล็อกสิทธิ์เลื่อนแรงค์ที่กิลด์</p>
+      <p class="dim">แรงค์ปัจจุบัน: <b style="color:${Guild.info(cur).col}">Rank ${cur} (${Guild.info(cur).n})</b> · Lv.${G.level} · เงื่อนไขเลื่อนขั้น: ${GUILD_RANKS.map(r=>r.id+(r.lvReq>1?' (Lv.'+r.lvReq+')':'')).join(' → ')} · ต้นเกม F–D (ของสูงสุดหายาก) · กลางเกม C–B (มหากาพย์) · ท้ายเกม A–S (ตำนาน · วิวัฒน์เทพ)</p>
       <div class="tal" style="grid-template-columns:1fr 1fr">${trainCard}${cards}</div>
       <div style="text-align:right;margin-top:10px"><button class="btn ghost" data-close="1">ออกจากโคลอสเซียม</button></div>`;},
   vsResult(w,wins,net,names){this.cur='vsres';G.mode='menu';ov.classList.remove('hidden');SFX.loot('legendary');
@@ -570,10 +623,12 @@ const UI={
   scr_continentsMap(){
     const locs=(typeof OW_LOCATIONS!=='undefined'?OW_LOCATIONS:[]).filter(l=>l.kind!=='dungeon');
     const V=Object.assign({town:1,ow_town:1},G.visited||{});
-    const coords={ow_spire:[16,53],ow_spire_s:[35,54],ow_town:[28,80],ow_port:[47,63],ow_outpost:[66,54.5],ow_spire_m:[70,47],ow_spire_w:[52,30],ow_spire_n:[67,29],ow_city:[40,27]};
+    const coords={ow_spire:[16,53],ow_spire_s:[35,54],ow_forest:[27,63],ow_mine:[38,73],ow_town:[28,80],ow_port:[47,63],ow_outpost:[66,54.5],ow_spire_m:[70,47],ow_spire_w:[52,30],ow_spire_n:[67,29],ow_city:[40,27]};
     const spireLockedSvg='<svg viewBox="0 0 32 32"><path d="M12 28l1-15h6l1 15z" fill="#524d58" stroke="#1e1228" stroke-width="1.5"/><path d="M9 14l4-9 3 4 3-5 4 10z" fill="#6d4890" stroke="#241234" stroke-width="1.2"/><circle cx="16" cy="20" r="6" fill="rgba(220,40,60,.25)" stroke="#ff6b7a" stroke-width="1.3"/><rect x="14" y="18" width="4" height="4" fill="#ff7080"/></svg>';
     const icons={
       ow_spire_w:spireLockedSvg,ow_spire_s:'<svg viewBox="0 0 32 32"><path d="M12 28l1-15h6l1 15z" fill="#cbbd9a" stroke="#2c2212" stroke-width="1.6"/><path d="M9 14l4-9 3 4 3-5 4 10z" fill="#facc15" stroke="#5a400a" stroke-width="1.3"/><path d="M8 28l3-5 2 5M19 28l2-5 3 5" fill="#eab308"/><rect x="14" y="21" width="4" height="7" fill="#2c2212"/><circle cx="16" cy="17" r="2.2" fill="#fff9c4"/></svg>',ow_spire_m:spireLockedSvg,ow_spire_n:spireLockedSvg,
+      ow_forest:'<svg viewBox="0 0 32 32"><path d="M16 5L7 19h5l-3 7h14l-3-7h5z" fill="#3b8c42" stroke="#18381c" stroke-width="1.6" stroke-linejoin="round"/><rect x="14" y="24" width="4" height="5" fill="#6b4423"/></svg>',
+      ow_mine:'<svg viewBox="0 0 32 32"><path d="M4 26l4-14 8-5 8 5 4 14z" fill="#6d726a" stroke="#222420" stroke-width="1.6"/><path d="M11 26v-9a5 5 0 0 1 10 0v9z" fill="#1b1816"/><circle cx="21" cy="13" r="2" fill="#9fe8ff"/></svg>',
       ow_town:WM_ICONS.town,
       ow_port:'<svg viewBox="0 0 32 32"><path d="M16 5v18M11 11h10M7 18c0 5 4 9 9 9s9-4 9-9" fill="none" stroke="#7fe4ff" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="5" r="2.2" fill="#ffe082"/></svg>',
       ow_outpost:'<svg viewBox="0 0 32 32"><path d="M4 26L14 9l10 17z" fill="#d9a45b" stroke="#23170b" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 26l3-8 3 8z" fill="#523018"/><path d="M24 26c-2-3 0-6 2-8 2 2 4 5 2 8z" fill="#ff8a32"/></svg>',
@@ -600,8 +655,8 @@ const UI={
         :sel.kind==='town'
         ?`<button class="btn sm" data-owgo="ow_town">🏰 เข้าเมือง Collawarrie</button>`
         :sel.kind==='spire'&&typeof Guild!=='undefined'&&!Guild.canEnterSpire()
-        ?`<button class="btn sm" disabled>🔒 หอคอยคริสตัลปิดผนึก — ต้องมีแรงค์กิลด์สูงกว่า Rank F (อย่างน้อย Rank G)</button>`
-        :sel.kind==='spire'
+        ?`<button class="btn sm" disabled>🔒 หอคอยคริสตัลปิดผนึก — ต้องมีแรงค์กิลด์ Rank D ขึ้นไป</button>`
+        :(sel.kind==='spire'||sel.kind==='gather')
         ?`<button class="btn sm" data-owgo="${sel.id}">${sel.icon} เข้า${sel.n} (${sel.lv})</button>`
         :'';
       drawer=`<div class="wm-drawer">
@@ -749,8 +804,8 @@ const UI={
     if(!e)return`<div class="en dim"><b>???</b><small>ยังไม่เคยพบ</small></div>`;
     const L=LOOT_TABLES[d.loot]||{guaranteed:[]};const drops=e.kills>=3?(L.guaranteed||[]).map(f=>f.gold?'🪙 ทอง':MATS[f.mat]?mIco(f.mat,14)+MATS[f.mat].n:'?').join(', ')+' + สุ่มจากตารางของตัวเอง':'ปราบ 3 ครั้งเพื่อเปิดเผย';
     return`<div class="en"><b>${d.n}</b> ${d.boss?'👑 บอส':d.miniboss?'⚔ มินิบอส':''}<small>พบ ${e.seen} · ปราบ ${e.kills} · เลเวลสูงสุดที่เจอ ${e.maxLv}</small>
-      <div>HP ฐาน ${d.base.hp} · ATK ${d.base.atk} · DEF ${d.base.def} · M.DEF ${d.base.mdef}</div>
-      ${e.kills>=1?`<div>ค่าพลัง: ${Object.keys(BASE_ATTR).map(k=>k.toUpperCase()+' '+((d.attr||{})[k]??BASE_ATTR[k])).join(' · ')}</div><div>สกิล: ${(d.skills||[]).filter(id=>skillUsable(id,'enemy')).map(id=>SKILLS[id].n).join(', ')||'—'}</div>`:''}
+      <div>HP ฐาน ${d.base.hp} · ATK ${d.base.atk} · DEF ${d.base.def} · ต้านธาตุ ${Object.entries(d.res||{}).filter(([,v])=>v>0).map(([k,v])=>(ELNAME[k]||k)+Math.round(v*100)+'%').join(' ')||'—'}</div>
+      ${e.kills>=1?`<div>ค่าพลัง: ${Object.keys(BASE_ATTR).map(k=>k.toUpperCase()+' '+((d.attr||{})[k]??BASE_ATTR[k])).join(' · ')}</div><div>สกิล: ${(d.skills||[]).filter(id=>skillUsable(id,'enemy')).map(id=>SKILLS[id].n+(SKILLS[id].el&&SKILLS[id].coef?' '+skEl(SKILLS[id]):'')).join(', ')||'—'}</div>`:''}
       ${d.reflect?`<div>สกิลติดตัว: สะท้อนดาเมจที่ได้รับ ${Math.round(d.reflect*100)}% กลับไปหาผู้โจมตี</div>`:''}${d.statusRes?`<div>ต้านสถานะ: ${Object.entries(d.statusRes).map(([s,v])=>STN[s]+' '+pct(v)).join(', ')}</div>`:''}${d.phases?`<div>เฟส: ${d.phases.length+1} · จุดอ่อน: หลังท่า "${d.weakPoint.after}"</div>`:''}<div>ดรอปตายตัว: ${drops}</div></div>`;}).join('')+'</div>';},
 
   lootPopup(out,title,xp=0,ups=0,newSk=[],eqInfo=null){
@@ -774,12 +829,12 @@ const UI={
     const log=G.dmgLog.map(l=>`<tr><td>${esc(l.from)}→${esc(l.to)}</td><td>${esc(l.move)}</td><td>${l.type}</td><td>${l.base}</td><td>${Math.round(l.defUsed)}</td><td>${l.crit?'✔':''}</td><td>${l.mods}</td><td>${pct(l.dr)}</td><td><b>${l.dmg}</b></td></tr>`).join('');
     return`<h2>🛠 เครื่องมือดีบัก</h2><div class="acts">
       <button class="btn sm" data-dbg="xp">+500 XP</button><button class="btn sm" data-dbg="gold">+1000 ทอง</button><button class="btn sm" data-dbg="mats">+วัตถุดิบทุกชนิด ×5</button>
-      <button class="btn sm" data-dbg="scrolls">ปลดล็อกทุกสูตร</button><button class="btn sm" data-dbg="items">สุ่มไอเท็มทุกระดับ</button><button class="btn sm" data-dbg="god">โหมดอมตะ: ${G.god?'เปิด':'ปิด'}</button><button class="btn sm" data-dbg="onehit">⚔️ ตีทีเดียวตาย: ${G.oneHit?'เปิด':'ปิด'}</button>
+      <button class="btn sm" data-dbg="skills">🎯 เรียนสกิลทั้งหมด + จัดช่อง (1–3 ทั่วไป · 4 เฉพาะตัว · 5 สุดยอด)</button><button class="btn sm" data-dbg="skclear">ล้างช่องสกิล</button><button class="btn sm" data-dbg="scrolls">ปลดล็อกทุกสูตร</button><button class="btn sm" data-dbg="items">สุ่มไอเท็มทุกระดับ</button><button class="btn sm" data-dbg="god">โหมดอมตะ: ${G.god?'เปิด':'ปิด'}</button><button class="btn sm" data-dbg="onehit">⚔️ ตีทีเดียวตาย: ${G.oneHit?'เปิด':'ปิด'}</button>
       <button class="btn sm" data-dbg="heal">ฟื้นเต็ม</button><button class="btn sm" data-dbg="lava">วาร์ปเหมืองลาวา</button><button class="btn sm" data-dbg="w_golem">🪨 วาร์ปบอสโกเลม</button><button class="btn sm" data-dbg="w_lavaking">🌋 วาร์ปบอสราชันย์ลาวา</button><button class="btn sm" data-dbg="w_homunculus">🧪 วาร์ปบอสหอคอย (นักแปรธาตุที่บิดเบี้ยว)</button><button class="btn sm" data-dbg="w_seraph">👁️ วาร์ปบอสเซราฟ</button><button class="btn sm" data-dbg="sp_1">🔮 วาร์ปบอสหอคอยชั้น 1</button><button class="btn sm" data-dbg="sp_2">🔮 วาร์ปบอสหอคอยชั้น 2</button><button class="btn sm" data-dbg="sp_3">🔮 วาร์ปบอสหอคอยชั้น 3</button><button class="btn sm" data-dbg="sp_4">🔮 วาร์ปบอสหอคอยชั้น 4</button><button class="btn sm" data-dbg="sp_5">🔮 วาร์ปบอสหอคอยชั้น 5</button><button class="btn sm" data-dbg="ap_1">☀️ วาร์ปบอสหอ Aether ชั้น 1</button><button class="btn sm" data-dbg="ap_2">☀️ วาร์ปบอสหอ Aether ชั้น 2</button><button class="btn sm" data-dbg="ap_3">☀️ วาร์ปบอสหอ Aether ชั้น 3</button><button class="btn sm" data-dbg="ap_4">☀️ วาร์ปบอสหอ Aether ชั้น 4</button><button class="btn sm" data-dbg="ap_5">☀️ วาร์ปบอสหอ Aether ชั้น 5</button><button class="btn sm" data-dbg="books">📚 ให้ตำราสกิลทุกเล่ม</button><button class="btn sm" data-dbg="seal">🗝️ +ตราทำลายผนึก & เรียนสกิลเฉพาะตัวทั้งหมด</button></div>
       <div class="filt">หน้าต่างคอมโบ <input type="range" min="4" max="30" value="${CONFIG.comboWindow}" data-cw> <b id="cwv">${CONFIG.comboWindow}</b> เฟรม</div>
       <h3>บันทึกดาเมจล่าสุด (สูตร: พลัง×สัมประสิทธิ์ − DEF หลังเจาะ × คริ × ตัวคูณ × (1−ลดดาเมจ))</h3>
       <table class="fd"><tr><th>ใคร</th><th>ท่า</th><th>ชนิด</th><th>ฐาน</th><th>DEF ใช้</th><th>คริ</th><th>ตัวคูณ</th><th>DR</th><th>ผล</th></tr>${log||'<tr><td colspan=9 class="dim">ยังไม่มี</td></tr>'}</table>
-      <h3>Loot <button class="btn sm" data-dbg="diff" ${CONFIG.diffLock?'disabled':''}>ความยาก: ${Diff.cur().ic} ${Diff.cur().n}${CONFIG.diffLock?' 🔒':''}</button> <button class="btn sm" data-dbg="pity">Pity บอส: ${LOOT_CONFIG.pity.enabled?'เปิด':'ปิด'}</button> <button class="btn sm" data-dbg="p2">จำลองของตกของ P2 ข้างตัว</button> <button class="btn sm" data-dbg="fill">เติมกระเป๋าให้เต็ม</button> <button class="btn sm" data-dbg="dropnow">สุ่มดรอปหนูตรงนี้</button></h3>
+      <h3>Loot <button class="btn sm" data-dbg="pity">Pity บอส: ${LOOT_CONFIG.pity.enabled?'เปิด':'ปิด'}</button> <button class="btn sm" data-dbg="p2">จำลองของตกของ P2 ข้างตัว</button> <button class="btn sm" data-dbg="fill">เติมกระเป๋าให้เต็ม</button> <button class="btn sm" data-dbg="dropnow">สุ่มดรอปหนูตรงนี้</button></h3>
       <div class="dim">${LootManager.validateAll().length} รายการอ้างอิงไม่ถูกต้อง (รวมตารางตัวอย่างที่ยังไม่มีไอเท็ม)</div>
       <table class="fd"><tr><th>ผู้เล่น</th><th>ตาราง/เหตุการณ์</th><th>คลาส</th><th>โอกาส (ฐาน→Luck)</th><th>สุ่มได้</th><th>ผล</th></tr>${(G.lootLog||[]).slice(0,10).map(l=>`<tr><td>${l.pid||''}</td><td>${l.tableId||l.pity||('pickup #'+(l.pickup??''))}</td><td>${l.cls||''}</td>
         <td>${l.base!==undefined?pct(l.base)+' → '+pct(l.chance)+' (+'+pct(l.luckBonus)+')':''}</td><td>${l.roll!==undefined?l.roll.toFixed(3):''}</td>
@@ -799,6 +854,9 @@ pn.addEventListener('click',e=>{
   if(d.cyf){UI.filt[d.cyf]=d.cyv;UI.rerender();return;}
   if(d.close){UI.close();return;}
   if(d.vol){SND.cycle();UI.rerender();return;}
+  if(d.setvol!==undefined){initAudio();SND.setVol(+d.setvol);if(SND.vol>0)SFX.ui('confirm');UI.rerender();return;}
+  if(d.testsnd){initAudio();SFX.ui('confirm');return;}
+  if(d.togglefx&&typeof FX!=='undefined'){FX.on=!FX.on;toast(FX.on?'✨ HD-2D: เปิด':'HD-2D: ปิด',1400);UI.rerender();return;}
   if(d.save){saveNow();return;}
   if(d.title){if(Z&&Z.bossRoom&&!Z.cleared){toast('🔒 ออกจากห้องบอสไม่ได้ — ชนะหรือตายก่อน');return;}UI.close();if(!(Z&&Z.bossRoom&&!Z.cleared))Save.save();G.mode='title';StatSync.reset();$('#title').classList.remove('hidden');renderTitle();return;}
   if(d.load){UI.close();loadNow();return;}
@@ -816,8 +874,8 @@ pn.addEventListener('click',e=>{
   if(d.lookreset){G.look=Object.assign({},DEFLOOK,{name:(G.look||{}).name||''});UI.rerender();return;}
   if(d.tal){if(UI.talentSwitch){UI.talentSwitch=false;if(d.tal===G.talent){toast('เป็นพรสวรรค์นี้อยู่แล้ว');UI.close();return;}
     if(!Inv.take('talentevo',1)){toast('ไม่มีไอเทม พรสวรรค์แห่งการวิวัฒน์');UI.close();return;}
-    const oldSk=TALENTS[G.talent]&&TALENTS[G.talent].skill;if(oldSk){G.skills.learned.delete(oldSk);if(G.skills.slots[2]===oldSk){G.skills.slots[2]=null;G.skills.bound=false;}}
-    G.talent=d.tal;const newSk=TALENTS[d.tal].skill;G.skills.learned.add(newSk);
+    const oldSk=TALENTS[G.talent]&&TALENTS[G.talent].skill;if(oldSk){G.skills.learned.delete(oldSk);if(G.skills.slots[3]===oldSk)G.skills.slots[3]=null;if(G.skills.bound===oldSk)G.skills.bound=null;}
+    G.talent=d.tal;const newSk=TALENTS[d.tal].skill;G.skills.learned.add(newSk);if(!G.skills.bound)Skills.bind(newSk);
     StatSync.invalidate('talent');UI.close();UI.hud();Save.save();SFX.level();toast(`✨ เปลี่ยนพรสวรรค์เป็น ${TALENTS[d.tal].n} แล้ว!`);return;}
     newGame(d.tal);return;}
   if(d.al){Prog.allocate(d.al);UI.rerender();UI.hud();return;}
@@ -827,9 +885,15 @@ pn.addEventListener('click',e=>{
   if(d.eq){const it=itemByUid(+d.eq);if(!Equip.equip(it))toast('เลเวลไม่ถึงที่ต้องการ');else SFX.pick();UI.rerender();return;}
   if(d.uneq){for(const s of SLOTS)if(G.eq[s]===+d.uneq)G.eq[s]=null;UI.rerender();return;}
   if(d.enh){const r=Equip.enhance(itemByUid(+d.enh));toast(r.msg);r.ok?SFX.craft():SFX.fail();UI.rerender();return;}
-  if(d.exprock){const r=Equip.useExpStone(itemByUid(+d.exprock));toast(r.msg);r.ok?SFX.level():SFX.fail();UI.rerender();return;}
+  if(d.afit){UI.afIt=+d.afit;UI.afSel=-1;UI.afFlash=-1;UI.rerender();return;}
+  if(d.aflock!==undefined){Gear.toggleLock(itemByUid(UI.afIt),+d.aflock);SFX.pick();UI.rerender();return;}
+  if(d.afsel!==undefined){const i=+d.afsel;UI.afSel=UI.afSel===i?-1:i;UI.afFlash=-1;SFX.ui&&SFX.ui('cursor');UI.rerender();return;}
+  if(d.afclear){UI.afSel=-1;UI.rerender();return;}
+  if(d.afroll){const r=Gear.reroll(itemByUid(UI.afIt));toast(r.msg);r.ok?SFX.craft():SFX.fail();if(r.ok){UI.afFlash=-1;Save.save();}UI.rerender();return;}
+  if(d.afpick){const el=document.getElementById('afPick'),r=Gear.pick(itemByUid(UI.afIt),UI.afSel,el&&el.value);toast(r.msg);r.ok?SFX.craft():SFX.fail();if(r.ok){UI.afFlash=UI.afSel;Save.save();}UI.rerender();return;}
+  if(d.aftier){const r=Gear.tierUp(itemByUid(UI.afIt),UI.afSel);toast(r.msg);r.ok?SFX.level():SFX.fail();UI.afFlash=r.ok?UI.afSel:-1;Save.save();UI.rerender();return;}
+  if(d.drill){const r=Gear.drill(itemByUid(+d.drill));toast(r.msg);r.ok?SFX.craft():SFX.fail();if(r.ok)Save.save();UI.rerender();return;}
   if(d.evolve){const r=Equip.evolve(itemByUid(+d.evolve));toast(r.msg);r.ok?SFX.level():SFX.fail();UI.rerender();return;}
-  if(d.legup){const r=Equip.legUpgrade(itemByUid(+d.legup));toast(r.msg);r.ok?SFX.level():SFX.fail();UI.rerender();return;}
   if(d.rpick){UI.runePick=d.rpick;UI.rerender();return;}
   if(d.sock){const[u,idx]=d.sock.split(':');const r=Equip.socketRune(itemByUid(+u),+idx,UI.runePick);toast(r.msg);r.ok?SFX.craft():SFX.fail();UI.rerender();return;}
   if(d.unsock){const[u,idx]=d.unsock.split(':');const r=Equip.unsocketRune(itemByUid(+u),+idx);toast(r.msg);r.ok?SFX.pick():SFX.fail();UI.rerender();return;}
@@ -840,7 +904,7 @@ pn.addEventListener('click',e=>{
     const price=Inv.sellPrice(it);if(Inv.sell(it)){UI.sel=null;UI.sellArm=null;SFX.pick();toast('ขาย '+itemName(it)+' ได้ '+price+' ทอง');}else toast('สวมอยู่ ถอดก่อนจึงขายได้');UI.rerender();return;}
   if(d.ssock!==undefined){UI.sk.sel=+d.ssock;UI.sk.cand=null;UI.sk.modal=null;SFX.talk();UI.rerender();return;}
   if(d.skpick){UI.sk.cand=d.skpick;SFX.talk&&SFX.talk();UI.rerender();return;}
-  if(d.skeq){const sl=+d.slot,o=G.skills.slots.indexOf(d.skeq),prev=G.skills.slots[sl];if(o>=0&&o!==sl&&o!==2)G.skills.slots[o]=null;const r=Skills.equip(sl,d.skeq);if(r.ok&&o>=0&&o!==sl&&o!==2&&prev&&slotAccepts(o,prev))G.skills.slots[o]=prev;   /* ย้ายระหว่างช่อง = สลับกัน */r.ok?SFX.pick():toast(r.err);UI.rerender();return;}
+  if(d.skeq){const sl=+d.slot,o=G.skills.slots.indexOf(d.skeq),prev=G.skills.slots[sl];if(o>=0&&o!==sl&&o!==3)G.skills.slots[o]=null;const r=Skills.equip(sl,d.skeq);if(r.ok&&o>=0&&o!==sl&&o!==3&&prev&&slotAccepts(o,prev))G.skills.slots[o]=prev;   /* ย้ายระหว่างช่อง = สลับกัน */r.ok?SFX.pick():toast(r.err);UI.rerender();return;}
   if(d.skun!==undefined){const r=Skills.equip(+d.skun,null);if(!r.ok)toast(r.err);UI.rerender();return;}
   if(d.skbind){UI.sk.modal='bind';UI.sk.pick=d.skbind;UI.rerender();return;}
   if(d.skbindyes){const r=Skills.bind(UI.sk.pick);UI.sk.modal=null;if(r.ok){SFX.level();toast('🔒 ผนึก '+SKILLS[UI.sk.pick].n+' ถาวรแล้ว');Save.save();}else toast(r.err);UI.rerender();return;}
@@ -866,10 +930,6 @@ pn.addEventListener('click',e=>{
     UI.sellSel.clear();if(n){SFX.loot('rare');toast(`ขาย ${n} ชิ้น ได้ ${g} ทอง`);}UI.rerender();UI.hud();return;}
   if(d.ctab){UI.craftTab=d.ctab;if(UI.cur!=='craft')UI.open('craft');else UI.rerender();return;}
   if(d.smtab){UI.smTab=d.smtab;UI.rerender();return;}
-  if(d.alsel){UI.alLock=null;const u=+d.alsel,S=UI.alSel=UI.alSel||[];const i=S.indexOf(u);if(i>=0)S.splice(i,1);else if(S.length<2)S.push(u);UI.alRes=null;UI.rerender();return;}
-  if(d.alclear){UI.alSel=[];UI.alRes=null;UI.alLock=null;UI.rerender();return;}
-  if(d.allock){const [k,v]=d.allock.split('|');const L=UI.alLock;UI.alLock=L&&L.k===k&&String(L.v)===v?null:{k,v:+v};UI.rerender();return;}
-  if(d.alfuse){const [a,b]=(UI.alSel||[]).map(itemByUid);const r=Alchemy.fuse(a,b,UI.alLock);UI.alLock=null;if(!r.ok){SFX.fail();toast(r.err);return;}UI.alSel=[];UI.alRes=r.item;SFX.loot(r.item.rar);StatSync.invalidate('alchemy');Save.save();UI.rerender();return;}
   if(d.reroll){if(G.gold<REITEM.cost){SFX.fail();toast('เหรียญไม่พอ');return;}G.gold-=REITEM.cost;UI.reRes=[0,1,2,3].map(()=>reitemRoll(true));UI.reBought=null;UI.rerender();UI.hud();Save.save();return;}
   if(d.reclaim!==undefined){const i=+d.reclaim,it=(UI.reRes||[])[i];if(!it||UI.reBought)return;   // ซื้อได้ชิ้นเดียวต่อการสุ่ม
     if(G.bag.length>=LOOT_CONFIG.inventory.equipSlots){SFX.fail();toast('🎒 กระเป๋าเต็ม');return;}if(G.gold<REITEM.buy){SFX.fail();toast('เหรียญไม่พอ');return;}
@@ -882,14 +942,21 @@ pn.addEventListener('click',e=>{
   if(d.buy){const c=+d.cost;if(G.gold<c)return;if((G.mats[d.buy]||0)+1>LOOT_CONFIG.inventory.stackMax){toast('ช่องวัตถุดิบเต็ม');return;}G.gold-=c;Inv.add(d.buy,1);SFX.pick();UI.rerender();UI.hud();return;}
   if(d.maptab){UI.mapTab=d.maptab;UI.mapSel=null;SFX.ui('cursor');if(UI.cur!=='map')UI.open('map');else UI.rerender();return;}
   if(d.owworld){UI.close();typeof OW!=='undefined'&&OW.enter(d.owworld);return;}
-  if(d.owgo){UI.close();if(typeof OW!=='undefined'){if(d.owgo==='ow_home')OW.enter('home');else if(d.owgo==='ow_town'||d.owgo==='ow_city'||d.owgo==='ow_spire'||d.owgo==='ow_spire_s'||(Z&&Z.id==='overworld'))OW.interact(d.owgo);else OW.enter(d.owgo);}return;}
+  if(d.owgo){UI.close();if(typeof OW!=='undefined'){if(d.owgo==='ow_home')OW.enter('home');else if(d.owgo==='ow_town'||d.owgo==='ow_city'||d.owgo==='ow_spire'||d.owgo==='ow_spire_s'||d.owgo==='ow_forest'||d.owgo==='ow_mine'||(Z&&Z.id==='overworld'))OW.interact(d.owgo);else OW.enter(d.owgo);}return;}
   if(d.mapnode){UI.mapSel=UI.mapSel===d.mapnode?null:d.mapnode;SFX.ui('cursor');UI.rerender();return;}
   if(d.mapclose){UI.mapSel=null;SFX.ui('cancel');UI.rerender();return;}
   if(d.mapcur){UI.mapSel=d.mapcur;SFX.ui('cursor');UI.rerender();const el=pn.querySelector(`[data-mapnode="${d.mapcur}"]`);if(el)el.focus();return;}
   if(d.dbg)debugAction(d.dbg);
 });
-pn.addEventListener('change',e=>{const f=e.target.dataset.f;if(f){UI.filt[f]=e.target.value;UI.rerender();}});
-pn.addEventListener('input',e=>{if(e.target.dataset.cw!==undefined){CONFIG.comboWindow=+e.target.value;$('#cwv').textContent=CONFIG.comboWindow;}});
+pn.addEventListener('change',e=>{
+  const f=e.target.dataset.f;if(f){UI.filt[f]=e.target.value;UI.rerender();return;}
+  const sv=e.target.dataset.sndvol;if(sv&&(sv==='vol'||sv==='sfx')){initAudio();if(SND.vol>0&&SND.sfxVol>0)SFX.ui('confirm');}});
+pn.addEventListener('input',e=>{
+  if(e.target.dataset.cw!==undefined){CONFIG.comboWindow=+e.target.value;$('#cwv').textContent=CONFIG.comboWindow;}
+  const sv=e.target.dataset.sndvol;
+  if(sv){const pctV=Math.max(0,Math.min(100,+e.target.value||0)),v=pctV/100;
+    if(sv==='vol')SND.setVol(v);else SND.setChannel(sv,v);
+    const lbl=$('#sv_'+sv);if(lbl)lbl.textContent=Math.round(v*100)+'%';}});
 document.querySelectorAll('#menu [data-open]').forEach(b=>b.onclick=()=>{if(G.mode==='explore')UI.open(b.dataset.open);});
 const saveNow=()=>{if(Z&&Z.bossRoom&&!Z.cleared){toast('🔒 บันทึกไม่ได้ระหว่างอยู่ในห้องบอส');return;}toast(Save.save()?'💾 บันทึกเกมแล้ว (เก็บในเบราว์เซอร์นี้)':'บันทึกไม่ได้ — เบราว์เซอร์ไม่อนุญาตให้เก็บข้อมูล');};
 const loadNow=()=>{if(G.mode!=='explore')return;if(Z&&Z.bossRoom&&!Z.cleared){toast('🔒 โหลดไม่ได้ระหว่างอยู่ในห้องบอส — ชนะหรือตายเท่านั้น');return;}if(Save.load()){toast('📂 โหลดเกมแล้ว');UI.hud();}else toast('ไม่พบเซฟ');};
@@ -907,6 +974,15 @@ function debugAction(a){
   if(a==='fill'){while(G.bag.length<LOOT_CONFIG.inventory.equipSlots)Inv.addItem(newItem('a_cloth','normal',1));}
   if(a==='dropnow'){const r=LootManager.rollForPlayers({tableId:'rat',cls:'elite',level:G.level,kind:'rat'});for(const x of r)LootManager.spawn(Z,P.x+16,P.y,x);}
   if(a==='books')for(const k in MATS)if(MATS[k].skillBook)Inv.add(k,1);
+  if(a==='skills'){   // เรียนทุกสกิลที่ผู้เล่นใช้ได้ แล้วจัดช่องตามเลย์เอาต์ใหม่ (ทดสอบเร็ว)
+    for(const k in SKILLS)if(skillUsable(k,'player')&&!SKILLS[k].bossOnly)G.skills.learned.add(k);
+    G.skills.slots=[null,null,null,null,null];G.skills.slots[3]=G.skills.bound||null;
+    const cr=Object.keys(SKILLS).filter(k=>skillUsable(k,'player')&&['common','rare'].includes(SKILLS[k].tier));
+    [0,1,2].forEach((i,n)=>{if(cr[n])Skills.equip(i,cr[n]);});
+    const ul=Object.keys(SKILLS).find(k=>skillUsable(k,'player')&&SKILLS[k].tier==='ultimate');if(ul)Skills.equip(4,ul);
+    const uq=G.talent&&TALENTS[G.talent]&&TALENTS[G.talent].skill;if(uq&&!G.skills.bound)Skills.bind(uq);
+    toast('เรียนสกิลแล้ว · ช่อง 1–3 ทั่วไป/หายาก · 4 เฉพาะตัว · 5 สุดยอด',2600);}
+  if(a==='skclear'){G.skills.slots=[null,null,null,null,null];G.skills.slots[3]=G.skills.bound||null;}
   if(a==='seal'){Inv.add(SEAL_BREAKER.item,1);for(const k in SKILLS)if(SKILLS[k].tier==='unique')G.skills.learned.add(k);}
   if(a==='heal'){const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;}
   if(a==='lava'){UI.close();enterDungeon(1);return;}
@@ -1148,7 +1224,7 @@ function portrait(f,x,y,w,h,flip){
   const gr=D.createRadialGradient(x+w/2+6,y+h*.45,4,x+w/2+6,y+h*.45,w*.8);
   gr.addColorStop(0,f.isP?'rgba(100,210,255,.45)':f.elite?'rgba(255,215,110,.45)':'rgba(255,110,90,.35)');gr.addColorStop(1,'rgba(4,10,28,0)');
   D.fillStyle=gr;D.fillRect(x,y,w+20,h);
-  if(f.rig){const Pz=poseIdle(0),J=rigPoints(Pz),sc=7,dir=flip?-1:1;drawRig(D,x+w/2+7-J.hd[0]*sc*dir,y+h/2+6-J.hd[1]*sc,sc,dir,Pz,f.look);}
+  if(f.rig){const Pz=poseIdle(0),J=rigPoints(Pz),ck=f.look&&f.look.custom,hm=ck==='skel_overlord'||ck==='blueflame_knight'||ck==='spire_knight'?1.26:ck==='skel_knight'?1.14:ck==='skel_warrior'?1.05:1,sc=hm>1.15?5.8:7,dir=flip?-1:1;drawRig(D,x+w/2+7-J.hd[0]*hm*sc*dir,y+h/2+6-J.hd[1]*hm*sc,sc,dir,Pz,f.look);}
   else{const d=f.def;{const pm=SPR[d.map]||GOLEM,rat=d.h<60;spr(D,pm,PAL[d.pal],x+w/2+8,y+h+(rat?4:d.map==='ANGEL'?70:83),rat?7:d.map==='ANGEL'?6:9,flip&&rat);}}
   D.restore();
   D.strokeStyle=f.isP?'rgba(122,216,255,.92)':f.elite?'rgba(255,217,138,.95)':'rgba(255,150,130,.85)';D.lineWidth=2;para(x,y,w,h,14);D.stroke();
@@ -1157,7 +1233,9 @@ function portrait(f,x,y,w,h,flip){
 function statusIcons(f,x,y,right){
   const good=[],bad=[];
   const sg=(k,fb,fc)=>({gi:(typeof STATUS_GI!=='undefined'&&STATUS_GI[k]&&STATUS_GI[k][0])||null,col:(typeof STATUS_GI!=='undefined'&&STATUS_GI[k]&&STATUS_GI[k][1])||fc,ic:fb});
+  const seenG=new Set();
   for(const m of f.mods||[]){
+    if(m.grp){if(seenG.has(m.grp))continue;seenG.add(m.grp);}   // บัฟชุดเดียวกัน (เช่น Blink ทุกค่า +5%) แสดงป้ายเดียว
     const dk=m.kind==='debuff'?'modDebuff':'modBuff';
     const item=Object.assign(sg(dk,m.kind==='debuff'?'▼':'▲',m.kind==='debuff'?'#ff7a7a':'#5affb0'),{lbl:`${m.n||m.id} ${(m.ttl/60).toFixed(1)}วิ`,pct:clamp(m.ttl/Math.max(1,m.max||m.ttl),0,1)});
     (m.kind==='debuff'?bad:good).push(item);
@@ -1166,7 +1244,7 @@ function statusIcons(f,x,y,right){
   if(f.parryBuffT>0)good.push(Object.assign(sg('parryBuff','⚔','#d8f8ff'),{lbl:`True DMG ${(f.parryBuffT/60).toFixed(1)}วิ`,pct:clamp(f.parryBuffT/180,0,1)}));
   if(f.armorBuff>0)good.push(Object.assign(sg('armorBuff','🛡','#9fd0ff'),{lbl:`เกราะแข็ง ${(f.armorBuff/60).toFixed(1)}วิ`,pct:clamp(f.armorBuff/240,0,1)}));
   const iwDefM=f.mods&&f.mods.find(m=>m.id==='ironwall_def'&&m.ttl>0),iwMdefM=f.mods&&f.mods.find(m=>m.id==='ironwall_mdef'&&m.ttl>0);
-  if(iwDefM)good.push(Object.assign(sg('armorBuff','🛡','#7ad8ff'),{lbl:`+${iwDefM.v} DEF${iwMdefM?'/M.DEF':''} ${(iwDefM.ttl/60).toFixed(1)}วิ`,pct:clamp(iwDefM.ttl/(iwDefM.max||720),0,1)}));
+  if(iwDefM)good.push(Object.assign(sg('armorBuff','🛡','#7ad8ff'),{lbl:`+${iwDefM.v} DEF ${(iwDefM.ttl/60).toFixed(1)}วิ`,pct:clamp(iwDefM.ttl/(iwDefM.max||720),0,1)}));
   if(f.buffT>0)good.push(Object.assign(sg('buff','✨','#a8ffca'),{lbl:`เสริมพลัง ${(f.buffT/60).toFixed(1)}วิ`,pct:clamp(f.buffT/240,0,1)}));
   if(f.vanishT>0)good.push(Object.assign(sg('vanish','💨','#bff0ff'),{lbl:`หายตัว ${(f.vanishT/60).toFixed(1)}วิ`,pct:clamp(f.vanishT/180,0,1)}));
   if(f.fireShieldT>0)good.push(Object.assign(sg('fireShield','🔥','#ff8a3a'),{lbl:`เกราะเพลิง ${(f.fireShieldT/60).toFixed(1)}วิ`,pct:clamp(f.fireShieldT/600,0,1)}));
@@ -1238,11 +1316,11 @@ function hpBarB(f,right){
   outlineText(`${Math.ceil(f.hp)} / ${f.maxHp}`,right?960-118:118,30,13,'#ffffff',right?'right':'left');
   if(f.isP||f.isP2){const dcMax=CONFIG.dashMax||2,dc=clamp(f.dashCharges??dcMax,0,dcMax),cdTxt=dc<dcMax&&f.dashCD>0?' · '+(f.dashCD/60).toFixed(1)+'s':'';
     outlineText(`DASH [Space] ${dc}/${dcMax}${cdTxt}`,right?960-258:258,73,9.5,dc>0?'#e6f8ff':'#ff9a8a');}
-  if(f.isP&&!BT.vs){outlineText(`MP ${Math.floor(f.mp)}/${f.S.maxMP}`,right?0:448,52,10,'#9be0ff','left');outlineText(`STA ${Math.floor(f.sta)}`,448,62,10,'#a8ff8c','left');}
-  outlineText(f.vsName?`Lv.${f.lv} ${f.vsName}${BT.net&&isMe?' (คุณ)':''} · ${WEAPONS[f.wpn].n}`:`Lv.${f.lv} ${f.isP?pname()+' · '+WEAPONS[f.wpn].n:f.name}`,tx,f.vsName?88:(f.isP?90:56),15,f.vsName?(isMe?'#7ad8ff':'#ff9a8a'):f.elite?'#ffd98a':'#eef6ff',right?'right':'left');
+  if(f.isP&&!BT.vs){outlineText(`MP ${Math.floor(f.mp)}/${f.S.maxMP}`,396,52,10,'#9be0ff','right');outlineText(`STA ${Math.floor(f.sta)}`,396,62,10,'#a8ff8c','right');}
+  outlineText(f.vsName?`Lv.${f.lv} ${f.vsName}${BT.net&&isMe?' (คุณ)':''} · ${WEAPONS[f.wpn].n}`:`Lv.${f.lv} ${f.isP?pname()+' · '+WEAPONS[f.wpn].n:f.name}`,tx,f.vsName?88:(f.isP?90:56),15,f.vsName?(isMe?'#7ad8ff':'#ff9a8a'):f.elite?'#ffd98a':'#eef6ff',right?'right':'left',D,undefined,295);
   if(!f.isP&&f.def&&f.def.phases)outlineText(`เฟส ${f.ph+1}/${f.def.phases.length+1}`,tx,76,12,'#ff9a8a','right');
   statusIcons(f,right?950:14,(f.isP||f.isP2)?104:94,right);
-  if((f.isP||f.isP2)&&(!BT.net||isMe)){   // การ์ด: วางเหนือเกจสุดยอดของจอใครจอมัน (โลคัล P2 อยู่มุมขวาล่าง)
+  if((f.isP||f.isP2)&&(!BT.net||isMe)){   // การ์ด: วางเหนือเกจท่าไม้ตายของจอใครจอมัน (โลคัล P2 อยู่มุมขวาล่าง)
     const putRight=BT.net?false:right,al=putRight?'right':'left',lx=putRight?946:14,gy=398;
     if(f.guardBroken>0){outlineText(`การ์ดแตก! ป้องกันไม่ได้ ${(f.guardBroken/60).toFixed(1)} วิ`,lx,gy,12,'#ff6a4a',al);}
     else{outlineText('การ์ด [E]',lx,gy,11,'#9fd8ff',al);const mg=typeof maxGuard==='function'?maxGuard(f):CONFIG.guard.max;for(let i=0;i<mg;i++){const bx=putRight?lx-62-i*16:lx+58+i*16;
@@ -1260,26 +1338,26 @@ function drawBattleFlash(b){
   D.restore();outlineText(b.flash.m.n,lft?620:340,250,36,'#fff');outlineText('ท่าไม้ตายสุดยอด!',lft?620:340,292,18,'#ffd23a');
 }
 function drawBottomHud(b,me){
-  const ultV=Ult.val(me);
+  const ultV=Ult.val(me),slotTier=['common','rare','rare','unique','ultimate'];
   // skill bar — Crystal Materia Deck (ของฝั่งผู้เล่นบนหน้าจอนั้น)
-  for(let i=0;i<4;i++){const id=(me.skillSet||G.skills.slots)[i],x=14+i*62,y=452,s=id&&SKILLS[id];
+  for(let i=0;i<5;i++){const id=(me.skillSet||G.skills.slots)[i],x=14+i*62,y=452,s=id&&SKILLS[id],defTier=slotTier[i]||'common';
     const sg=D.createLinearGradient(x,y,x,y+56);sg.addColorStop(0,'rgba(16,38,94,.88)');sg.addColorStop(1,'rgba(5,13,36,.94)');
     D.fillStyle=sg;rrect(x,y,56,56,6);D.fill();
-    D.strokeStyle={common:'#a8c4e4',rare:'#52b8ff',unique:'#e27aff',ultimate:'#ffd98a'}[s?s.tier:TIERS[i]];D.lineWidth=2;D.stroke();
+    D.strokeStyle={common:'#a8c4e4',rare:'#52b8ff',unique:'#e27aff',ultimate:'#ffd98a'}[s?s.tier:defTier];D.lineWidth=2;D.stroke();
     D.strokeStyle='rgba(255,255,255,.22)';D.lineWidth=1;rrect(x+2,y+2,52,52,4);D.stroke();
     outlineText(String(i+1),x+9,y+10,11,'#ffd98a');
-    if(s){{const im=skImg(id);if(im&&im.complete&&im.naturalWidth)D.drawImage(im,x+16,y+8,24,24);else{D.font='18px sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(s.ic,x+28,y+24);}}outlineText(s.n.length>6?s.n.slice(0,6)+'…':s.n,x+28,y+40,10,'#fff');if(i===2&&G.skills.bound&&!me.skillSet)outlineText('🔒',x+47,y+10,10,'#ffd98a');const cd=cdLeftF(me,id),full=Skills.cdFrames(id,me.S);
+    if(s){{const im=skImg(id);if(im&&im.complete&&im.naturalWidth)D.drawImage(im,x+16,y+8,24,24);else{D.font='18px sans-serif';D.textAlign='center';D.textBaseline='middle';D.fillText(s.ic,x+28,y+24);}}outlineText(s.n.length>6?s.n.slice(0,6)+'…':s.n,x+28,y+40,10,'#fff');if(i===3&&G.skills.bound&&!me.skillSet)outlineText('🔒',x+47,y+10,10,'#ffd98a');const cd=cdLeftF(me,id),full=Skills.cdFrames(id,me.S);
       const ce=skillCastCheck(me,id),lack=ce&&!cd&&s.type!=='passive';if(lack){D.fillStyle='rgba(20,30,85,.58)';rrect(x,y,56,56,6);D.fill();}
       if(cd>0){D.fillStyle='rgba(2,8,24,.68)';D.beginPath();D.moveTo(x+28,y+28);D.arc(x+28,y+28,30,-Math.PI/2,-Math.PI/2+6.283*cd/full);D.closePath();D.fill();outlineText((cd/60).toFixed(1),x+28,y+30,16,'#fff');}
       outlineText(s.tier==='ultimate'?Math.floor(ultV)+'/100':s.type==='passive'?'พาสซีฟ':Mana.cost(id,me.S)+'MP',x+28,y+51,8,s.tier==='ultimate'?'#ffd98a':'#8ee4ff');}
-    else{const tc={common:'#a8c4e4',rare:'#52b8ff',unique:'#e27aff',ultimate:'#ffd98a'}[TIERS[i]];D.save();D.globalAlpha=.34;D.strokeStyle=tc;D.lineWidth=1.5;D.beginPath();D.moveTo(x+28,y+14);D.lineTo(x+40,y+27);D.lineTo(x+28,y+40);D.lineTo(x+16,y+27);D.closePath();D.stroke();D.globalAlpha=.16;D.fillStyle=tc;D.fill();D.globalAlpha=.5;D.beginPath();D.arc(x+28,y+27,2.2,0,6.283);D.fillStyle=tc;D.fill();D.restore();outlineText('ว่าง',x+28,y+49,8,'#6c84ac');}}
+    else{const tc={common:'#a8c4e4',rare:'#52b8ff',unique:'#e27aff',ultimate:'#ffd98a'}[defTier];D.save();D.globalAlpha=.34;D.strokeStyle=tc;D.lineWidth=1.5;D.beginPath();D.moveTo(x+28,y+14);D.lineTo(x+40,y+27);D.lineTo(x+28,y+40);D.lineTo(x+16,y+27);D.closePath();D.stroke();D.globalAlpha=.16;D.fillStyle=tc;D.fill();D.globalAlpha=.5;D.beginPath();D.arc(x+28,y+27,2.2,0,6.283);D.fillStyle=tc;D.fill();D.restore();outlineText('ว่าง',x+28,y+49,8,'#6c84ac');}}
   // ultimate resonance gauge + potions
   {const gx=14,gy=428,gw=240,v=clamp(ultV/CONFIG.ult.max,0,1);D.fillStyle='rgba(5,12,34,.9)';rrect(gx,gy,gw,14,4);D.fill();
    D.strokeStyle=v>=1?'#ffd98a':'rgba(122,216,255,.65)';D.lineWidth=1.3;rrect(gx,gy,gw,14,4);D.stroke();
    const gg=D.createLinearGradient(gx,0,gx+gw,0);gg.addColorStop(0,'#2eb8ff');gg.addColorStop(.55,'#ffe066');gg.addColorStop(1,'#ff942a');D.fillStyle=v>=1&&G.t%20<10?'#fff6b8':gg;rrect(gx+1.5,gy+1.5,(gw-3)*v,11,3);D.fill();
-   outlineText('เกจสุดยอด '+Math.floor(ultV)+'/100'+(v>=1?'  [L] พร้อม!':''),gx+gw/2,gy+7,10.5,'#fff');
+   outlineText('เกจท่าไม้ตาย '+Math.floor(ultV)+'/100'+(v>=1?'  [L] พร้อม!':''),gx+gw/2,gy+7,10.5,'#fff');
    if(!b.vs&&typeof Z!=='undefined'&&Z&&Z.noPotion){
-     outlineText('🚫 โคลอสเซียม Rank '+(Z.colosseum||'G')+': ห้ามใช้ยาฟื้นพลัง / ยามานา',gx+gw*.55,gy-12,11,'#ff8a7a');
+     outlineText('🚫 โคลอสเซียม Rank '+(Z.colosseum||'D')+': ห้ามใช้ยาฟื้นพลัง / ยามานา',gx+gw*.55,gy-12,11,'#ff8a7a');
    }else if(b.vs){
      const f=me.flask||0,mu=me.mana||0,pcd=me.potCD||0;
      outlineText(`❤️ ขวดยา ${'◆'.repeat(f)}${'◇'.repeat(Math.max(0,FLASK.uses-f))} [Q]`,gx+gw*.25,gy-12,11,f?'#8aff9a':'#7888a8');
@@ -1310,7 +1388,7 @@ function drawVSUI(b){
     if(b.comboT>0&&b.comboShow>=2){const left=b.comboWho===p;outlineText(b.comboShow+' HITS',left?110:850,180,36,'#ffd98a');outlineText('COMBO!',left?110:850,210,14,'#7ad8ff');}
     if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd98a');
   }
-  for(const n of b.nums){D.globalAlpha=Math.min(1,n.t/15);const pop=n.t>47?1+(n.t-47)/8*.75:n.t>43?1-(47-n.t)*.02+.08:1;outlineText(n.txt,bsx(n.x)*S,bsy(n.y)*S,Math.round(n.size*pop),n.col);}D.globalAlpha=1;
+  for(const n of b.nums){D.globalAlpha=Math.min(1,n.t/15);const pop=n.t>47?1+(n.t-47)/8*.75:n.t>43?1-(47-n.t)*.02+.08:1;const by=n.bn?-Math.abs(Math.sin((55-n.t)*.3))*12*Math.max(0,n.t/55):0;outlineText(n.txt,bsx(n.x)*S,(bsy(n.y)+by)*S,Math.round(n.size*pop),n.col,'center',D,n.ol);}D.globalAlpha=1;
   drawBottomHud(b,me);
   if(b.flash)drawBattleFlash(b);
   if(b.intro>0){outlineText(b.intro>30?`ROUND ${v.round}`:'FIGHT!',480,250,b.intro>30?52:76,b.intro>30?'#eaf4ff':'#ffd98a');if(b.intro>30)outlineText(`${p.vsName||'P1'}  VS  ${e.vsName||'P2'}`,480,310,22,'#7ad8ff');}
@@ -1329,7 +1407,7 @@ function drawBattleUI(){
   outlineText(String(Math.ceil(b.time/60)),480,30,30,'#fff');outlineText('TIME',480,52,11,'#7ad8ff');
   if(b.vs){drawVSUI(b);return;}
   if(b.comboT>0&&b.comboShow>=2){const left=b.comboWho===p;outlineText(b.comboShow+' HITS',left?110:850,180,36,'#ffd98a');outlineText('COMBO!',left?110:850,210,14,'#7ad8ff');}
-  for(const n of b.nums){D.globalAlpha=Math.min(1,n.t/15);const pop=n.t>47?1+(n.t-47)/8*.75:n.t>43?1-(47-n.t)*.02+.08:1;outlineText(n.txt,bsx(n.x)*S,bsy(n.y)*S,Math.round(n.size*pop),n.col);}D.globalAlpha=1;
+  for(const n of b.nums){D.globalAlpha=Math.min(1,n.t/15);const pop=n.t>47?1+(n.t-47)/8*.75:n.t>43?1-(47-n.t)*.02+.08:1;const by=n.bn?-Math.abs(Math.sin((55-n.t)*.3))*12*Math.max(0,n.t/55):0;outlineText(n.txt,bsx(n.x)*S,(bsy(n.y)+by)*S,Math.round(n.size*pop),n.col,'center',D,n.ol);}D.globalAlpha=1;
   if(e.state==='attack'&&e.phase==='startup'&&!b.flash)outlineText('!',bsx(e.x)*S,bsy(e.y-e.h-14)*S,34,'#ff5a4a');
   if(b.fullCombo)outlineText('✦ FULL COMBO: '+b.fullCombo.n+' ✦',480,150,28,'#ffd23a');
   if(b.phaseMsg)outlineText(b.phaseMsg.t,480,200,30,'#ff6a5a');
@@ -1339,7 +1417,7 @@ function drawBattleUI(){
     const c=b.coach||{},tm=Math.floor((c.t||0)/330)%5;
     const tips=[
       '🎓 ครูฝึกแกรนท์ — การเคลื่อนไหว: [A/D] เดิน · [AA/DD] กลิ้งหลบระยะใกล้ · [Space] Dash 2 ชาร์จ (หลุดคอมโบได้)',
-      '⚔️ คอมโบ: กด [J → J → J] ตามจังหวะแถบเหลืองทอง (HIT) ทำคอมโบครบชุด ฟื้น Stamina + เกจสุดยอด!',
+      '⚔️ คอมโบ: กด [J → J → J] ตามจังหวะแถบเหลืองทอง (HIT) ทำคอมโบครบชุด ฟื้น Stamina + เกจท่าไม้ตาย!',
       '🥊 โจมตี & กัน: [→+J] ฟันหนัก · [K] เตะ · [↓+K] กวาดขาล้ม · [E] ป้องกัน (ถูกจังหวะ = ปัดป้อง True DMG)',
       '✨ สกิล & ยา: [1-3] กดใช้สกิล · เกจเต็ม 100 กด [4/L] ท่าสุดยอด · [Q] ยา HP · [R] ยามานา',
       '🚪 ซ้อมจนคล่องแล้วกดปุ่ม [🚪 ออกฝึก] มุมขวาล่าง เพื่อเรียนรู้เรื่องอุปกรณ์ อาวุธ และระดับเทพต่อ!'

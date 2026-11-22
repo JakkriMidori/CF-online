@@ -81,8 +81,8 @@ const ICO_PATHS={
   book:'<path d="M5 4h11a3 3 0 0 1 3 3v13.5H8a3 3 0 0 1-3-3z"/><path d="M5 17.5a3 3 0 0 1 3-3h11"/><path d="M12 6l.9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3z"/>',
 };
 // ตัวจับคู่ประเภทไอเทม (type) → ไอคอน
-const TYPE_ICO={weapon:'sword',helmet:'helm',armor:'chest',gloves:'glove',pants:'pants',boots:'boot',ring:'ring',ring1:'ring',ring2:'ring',necklace:'amulet'};
-const TALENT_ICO={piercer:'sword',lucky:'clover',endurer:'equip',undying:'skull',hexweaver:'web',archmage:'orb',sololeveling:'star',parryman:'equip',vampire:'skull'};
+const TYPE_ICO={weapon:'sword',helmet:'helm',armor:'chest',gloves:'glove',pants:'pants',boots:'boot',ring:'ring',ring1:'ring',ring2:'ring',necklace:'amulet',belt:'band'};
+const TALENT_ICO={piercer:'sword',lucky:'clover',endurer:'equip',undying:'skull',hexweaver:'web',archmage:'orb',sololeveling:'star',parryman:'equip',vampire:'skull',stormborn:'bolt',phoenix:'tal_phoenix',shadowstalker:'dagger'};
 function ico(name,size=20){
   const gn=typeof GI_MAP!=='undefined'&&GI_MAP[name];   // ไอคอนเงาทึบแบบเกม (game-icons.net) ถ้ามี
   if(gn&&GI[gn])return `<svg class="ico gi" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">${GI[gn]}</svg>`;
@@ -115,7 +115,7 @@ const MAT_ICO={
   wood:['log','#c8925a'],ore:['ore','#b8bfcc'],stoneore:['ore','#8a867e'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['crystal','#eef6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
   potion:['potion','#ff5a6a'],pot_regen:['potion','#7aff9a'],pot_def:['potion','#9fd0ff'],pot_mdef:['potion','#c88aff'],pot_m150:['potion','#ffd23a'],pot_quad:['potion','#ff8ae0'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],
-  sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],aether:['aether','#8af6ff'],reset:['scroll','#e8d8b0']
+  sealbreaker:['key','#ffd23a'],bossfrag:['shard','#ffb03a'],bosstoken:['medal','#ffd23a'],divine:['gem','#9ff0ff'],mercury:['potion','#d8dce8'],philostone:['gem','#ff5a8a'],rerollstone:['orb','#7ad8ff'],pickstone:['crystal','#ffd23a'],tierstone:['star','#c88aff'],runedrill:['rune','#ffb347'],exprock:['ore','#d8c4a0'],evostone:['star','#ffe878'],aether:['aether','#8af6ff'],reset:['scroll','#e8d8b0']
 };
 const _icoc=(name,col,size)=>`<span class="iic" style="color:${col}">${ico(name,size)}</span>`;
 function bIco(id,size=18){const e=BASE_ICO[id]||[TYPE_ICO[(typeof BASES!=='undefined'&&BASES[id]&&BASES[id].type)]||'gem','#d8dde6'];return _icoc(e[0],e[1],size);}

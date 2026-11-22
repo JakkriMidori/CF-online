@@ -41,10 +41,11 @@ const VFX=(()=>{
   const shake=k=>{if(BT)BT.shake=Math.max(BT.shake||0,Math.min(6,k*10));else if(typeof G!=='undefined')G.shake=Math.max(G.shake||0,Math.min(4,k*8));};
   // ---- สร้าง / อัปเดต / วาด ----
   const MAXT={sparkle:1.1,pickup:1.6,impact:1,slash:.8,'muzzle-flash':.6};   /* อายุสูงสุด (วิ) กันเอฟเฟกต์ค้าง */
-  const HEAVY=new Set(['lightning','holy-light','shield','black-hole','ice','power-up','explosion','energy']);
-  function add(space,name,o){if(!on()||typeof SFVFX==='undefined'||!SFVFX[name])return null;const L=SP[space];if(L.length>=24)return null;
+  const HEAVY=new Set(['sword-rain','lightning','holy-light','shield','black-hole','ice','power-up','explosion','energy']);
+  const PX=n=>typeof PXFX!=='undefined'&&PXFX[n];   /* เอฟเฟกต์ pixelfx (js/pxfx.js) ใช้ผ่านสะพานเดียวกัน */
+  function add(space,name,o){const MK=(typeof SFVFX!=='undefined'&&SFVFX[name])||PX(name);if(!on()||!MK)return null;const L=SP[space];if(L.length>=24)return null;
     if(HEAVY.has(name)&&L.filter(f=>HEAVY.has(f._n)).length>=5)return null;   /* งบประสิทธิภาพ: เอฟเฟกต์หนักพร้อมกันไม่เกิน 5 */
-    try{const fx=SFVFX[name](Object.assign({seed:(Math.random()*1e9)|0,shake},o));fx._n=name;fx._t=0;fx._max=o&&o._max||MAXT[name]||4;L.push(fx);return fx;}catch(e){console.warn('VFX',name,e);return null;}}
+    try{const fx=MK(Object.assign({seed:(Math.random()*1e9)|0,shake},o));fx._n=name;fx._t=0;fx._max=o&&o._max||MAXT[name]||4;L.push(fx);return fx;}catch(e){console.warn('VFX',name,e);return null;}}
   function tick(space){const L=SP[space],gt=typeof G!=='undefined'?G.t:0;let n=last[space]<0?1:gt-last[space];last[space]=gt;if(n<=0||!L.length)return;n=Math.min(n,4);
     for(let i=L.length-1;i>=0;i--){const fx=L[i];try{for(let k=0;k<n;k++)fx.update(1/60);fx._t+=n/60;if(fx.done()||fx._kill||fx._t>fx._max){L.splice(i,1);if(fx._owner&&fx._owner._vfx)for(const t in fx._owner._vfx)if(fx._owner._vfx[t]===fx)delete fx._owner._vfx[t];}}catch(e){L.splice(i,1);}}}
   function render(space,layer){const L=SP[space];if(!L.length)return;const B=buf(),LA=space==='e'?.28:.42,CA=space==='e'?.9:.82;B.cv.u.fill(0);B.lt.u.fill(0);
@@ -58,6 +59,20 @@ const VFX=(()=>{
   function attach(f,type,name,o){f._vfx=f._vfx||{};const cur=f._vfx[type];if(cur&&SP.b.includes(cur))return cur;const fx=add('b',name,Object.assign({actor:actorB(f),ground:GND()},o));if(fx){fx._owner=f;f._vfx[type]=fx;}return fx;}
   function onActive(f,m){const o=f===BT.p?BT.e:BT.p,el=m.el&&m.el!=='weapon'?m.el:(f.rig&&WEAPONS[f.wpn]?WEAPONS[f.wpn].el:(f.def&&f.def.el))||'phys';
     const tx=()=>{if(!o)return f.x+f.dir*80;const dx=o.x-f.x;return m.strike&&!(Math.sign(dx)===f.dir&&Math.abs(dx)<=m.strike+o.hw)?f.x+f.dir*m.strike:o.x;};
+    if(m.skillId==='frostfirecataclysm'){
+      const cx=o?(f.x+o.x)*.5:f.x+f.dir*70,bfPal=['#ffffff','#e8ffff','#8ef2ff','#38d8ff','#1884ec','#0e4a9e','#092658','#05122e'],bfRamp=['#ffffff','#e0fcff','#7ff3ff','#28b8ff','#1468d8','#0d388a','#081844'].map(hex);
+      add('b','frostfire-cataclysm',{x:bx(cx),y:by(GY),count:m.multi||6,spread:Math.round(92*BZ),_max:2.3});
+      add('b','ice',{kind:'nova',x:bx(f.x),ground:GND(),charge:.06,hold:.52,size:.52,reach:Math.min(220,(m.reach||220)*BZ*2*.44),palette:bfPal});
+      add('b','ice',{kind:'spikes',x:bx(f.x),dir:f.dir,count:6,spacing:34,size:.48,ground:GND(),palette:bfPal});
+      if(o){add('b','ice',{kind:'crystals',x:bx(o.x),ground:GND(),size:.52,hold:.75,end:'shatter',palette:bfPal});
+        add('b','fire',{box:[bx(o.x)-38,GND()-36,76,36],size:.62,wind:f.dir*18,duration:1.35,ramp:bfRamp});}
+      return;}
+    if(m.skillId==='emeraldhellfire'||(m.greenFlame&&m.rain)){
+      const tx0=o?o.x:f.x+f.dir*80,gfRamp=['#ffffff','#e8ffea','#9effa8','#4aff7a','#16a34a','#0e642c','#062e14'].map(hex);
+      add('b','emerald-firestorm',{x:bx(tx0),y:by(GY),count:m.multi||6,spread:Math.round(90*BZ),_max:2.4});
+      add('b','fire',{box:[bx(tx0)-46,GND()-38,92,38],size:.68,wind:f.dir*38,duration:1.5,ramp:gfRamp});
+      add('b','poison',{kind:'cloud',x:bx(tx0),ground:GND(),size:.54,from:[bx(f.x),by(f.y-60)]});
+      return;}
     if(m.frostnova){add('b','ice',{kind:'nova',x:bx(f.x),ground:GND(),size:.5,reach:Math.min(220,(m.reach||240)*BZ*2*.42)});return;}
     if(m.lightJudge){const X=f._ljX??(o?o.x:f.x+f.dir*80);add('b','holy-light',{x:bx(X),ground:GND(),width:.65,hold:.55});return;}
     if(m.strike){const X=tx();

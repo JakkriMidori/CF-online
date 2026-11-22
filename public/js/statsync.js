@@ -46,12 +46,13 @@ const StatSync={
     S.critRate=clamp(S.critRate,0,CONFIG.critCap);S.critDmg=Math.min(CONFIG.critDmgCap,S.critDmg);
     S.dr=clamp(S.dr||0,0,CONFIG.drCap);S.apenPct=clamp(S.apenPct||0,0,1);S.mpenPct=clamp(S.mpenPct||0,0,1);
     S.pcritRes=clamp(S.pcritRes||0,0,.75);S.evasion=clamp(S.evasion||0,0,CONFIG.derived.evaCap);S.mcritRes=clamp(S.mcritRes||0,0,.75);
-    S.mods=(mods||[]).map(m=>({id:m.id,n:m.n,kind:m.kind,stat:m.stat,op:m.op,v:m.v,left:m.ttl,max:m.max||m.ttl}));
+    const seen=new Set();   /* บัฟหลายค่าที่มาจากสกิลเดียว (grp เดียวกัน) แสดงเป็นป้ายเดียว */
+    S.mods=(mods||[]).filter(m=>!m.grp||(!seen.has(m.grp)&&seen.add(m.grp))).map(m=>({id:m.id,n:m.n,kind:m.kind,stat:m.stat,op:m.op,v:m.v,left:m.ttl,max:m.max||m.ttl,grp:m.grp}));
     return S;},
   /* ลายเซ็นของทุกแหล่งที่มีผลต่อค่าสถานะผู้เล่น — ไม่เปลี่ยน = ไม่ต้องคำนวณใหม่ */
   sig(){
     if(typeof G==='undefined'||!G.talent)return'';
-    const eq=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return it?[it.uid,it.base,it.rar,it.lv||1,it.legLv||1,it.enh,it.sockets.join('|'),it.uniq||''].join(':'):'-';}).join(',');
+    const eq=SLOTS.map(s=>{const it=G.eq[s]&&itemByUid(G.eq[s]);return it?[it.uid,it.base,it.rar,it.ilvl,it.enh,(it.sockets||[]).join('|'),(it.affixes||[]).map(a=>a.k+a.t).join('|'),it.uniq||''].join(':'):'-';}).join(',');
     const sk=G.skills?[G.skills.bound||'',G.skills.bound?Skills.level(G.skills.bound):0].join(':'):'';
     return[G.level,G.talent,JSON.stringify(G.alloc),eq,sk,this.mods.map(m=>m.id+'@'+m.v).join(',')].join('#');},
   recalc(owner,reason){

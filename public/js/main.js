@@ -3,18 +3,23 @@
    MAIN — game modes and loop
    ============================================================ */
 function newGame(talent){
-  Object.assign(G,{diff:CONFIG.diffLock||UI.diffSel||'normal',bloodstain:null,talent,level:1,xp:0,points:0,alloc:{str:0,agi:0,int:0,vit:0,luk:0},bag:[],mats:{potion:2,mp_s:3},gold:30,ult:0,mpAcc:0,potCD:0,known:new Set(),found:new Set(),mastery:{},ency:{},flags:{pendingIntroCS:1},uid:1,visited:{},guildRank:null,guildPromo:{}});
+  Object.assign(G,{diff:CONFIG.diffLock||UI.diffSel||'souls',bloodstain:null,talent,level:1,xp:0,points:0,alloc:{str:0,agi:0,int:0,vit:0,luk:0},bag:[],mats:{potion:2,mp_s:3},gold:30,ult:0,mpAcc:0,potCD:0,known:new Set(),found:new Set(),mastery:{},ency:{},flags:{pendingIntroCS:1},uid:1,visited:{},guildRank:null,guildPromo:{}});
   for(const s of SLOTS)G.eq[s]=null;
-  Skills.init(talent);Quest.init();
+  Skills.init(talent);
+  const tSk=TALENTS[talent]&&TALENTS[talent].skill;if(tSk)Skills.bind(tSk);
+  Quest.init();
   const a=Inv.addItem(newItem('a_cloth','normal',1)),p=Inv.addItem(newItem('p_cloth','normal',1));Equip.equip(a);Equip.equip(p);
   CAVE=makeCave();TOWN=makeTown();loadZone(TOWN,TOWN.southGateSpawn||TOWN.spawn);G.lootLog=[];G.pity={};const S=StatSync.invalidate('new')||Stats.player();G.hp=S.maxHP;G.mp=S.maxMP;
   UI.creating=0;UI.close();G.mode='explore';UI.hud();
-  UI.sk.sel=2;UI.sk.modal=null;UI.open('skills');
-  setTimeout(()=>toast(`${Diff.cur().ic} ${Diff.cur().n} · ${TALENTS[talent].ic} ${TALENTS[talent].n} — ผนึกสกิลเฉพาะตัวของคุณในช่อง 3 ก่อนออกผจญภัย`,3500),300);
+  if(typeof Cutscene!=='undefined'&&G.flags.pendingIntroCS&&!G.flags.introDone){G.flags.pendingIntroCS=0;Cutscene.startIntro();}
+  setTimeout(()=>toast(`${TALENTS[talent].ic} ${TALENTS[talent].n} — ผนึกสกิลเฉพาะตัว ${tSk&&SKILLS[tSk]?SKILLS[tSk].n:''} ในช่อง 4 อัตโนมัติแล้ว!`,3500),300);
 }
 function startFromTitle(cont){
   initAudio();$('#title').classList.add('hidden');StatSync.reset();StatSync.start();   // ตัวจับเวลา 5 วิ ตัวเดียว
-  if(cont&&Save.load()){G.miniOff=true;G.mode='explore';UI.hud();toast('📂 โหลดเกมที่บันทึกไว้');return;}
+  if(cont&&Save.load()){G.miniOff=true;G.mode='explore';
+    if(G.flags.gearWipeNotice){delete G.flags.gearWipeNotice;const S=StatSync.invalidate('gearWipe')||Stats.player();G.hp=S.maxHP;G.mp=S.maxMP;Save.save();UI.hud();
+      toast(`⚒️ อัปเดตระบบอุปกรณ์ใหม่: อุปกรณ์เดิมถูกล้าง · เลเวลรีเซ็ตเป็น ${GEAR_WIPE.level} · ได้รับชดเชย ${GEAR_WIPE.gold.toLocaleString()} ทอง`,8000);return;}
+    UI.hud();toast('📂 โหลดเกมที่บันทึกไว้');return;}
   UI.creating=1;G.look=Object.assign({},DEFLOOK);UI.open('create');
 }
 let newArmed=false;
@@ -25,10 +30,10 @@ function renderTitle(){
   $('#newBtn').textContent=newArmed?'กดอีกครั้งเพื่อเขียนทับเซฟ':(has?'เริ่มเกมใหม่':'เริ่มเกมใหม่');
   if(has){
     const zone=d.world&&d.world.zone==='town'?'เมือง Collawarrie':'ถ้ำชีส';
-    const diff=(DIFFICULTY[d.diff]||{n:'ปกติ'}).n;const tal=(TALENTS[d.talent]||{n:'-'}).n;
+    const tal=(TALENTS[d.talent]||{n:'-'}).n;
     const when=d.savedAt?new Date(d.savedAt).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}):'-';
     const nm=(d.look&&d.look.name)||'ไม่มีชื่อ';
-    $('#saveInfo').innerHTML=`<b>${nm}</b> · Lv.${d.level} · ${tal}<br>ความยาก: ${diff} · ${zone}<br><span class="dim">บันทึกเมื่อ ${when}</span>`;
+    $('#saveInfo').innerHTML=`<b>${nm}</b> · Lv.${d.level} · ${tal} · ${zone}<br><span class="dim">บันทึกเมื่อ ${when}</span>`;
   }
   $('#title').classList.contains('hidden')||$('#contBtn').focus();
 }
@@ -39,6 +44,7 @@ $('#newBtn').onclick=()=>{
 $('#delBtn').onclick=()=>{
   if(!newArmed){newArmed=true;$('#delBtn').textContent='กดอีกครั้งเพื่อลบ';return;}
   try{localStorage.removeItem(SAVE_KEY);}catch(e){}newArmed=false;$('#delBtn').textContent='ลบเซฟ';renderTitle();toast('🗑️ ลบเซฟแล้ว');};
+if($('#optBtn'))$('#optBtn').onclick=()=>UI.open('settings');
 renderTitle();
 ov.addEventListener('click',e=>{if(e.target===ov&&UI.cur!=='talent')UI.close();});
 

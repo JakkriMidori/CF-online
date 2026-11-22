@@ -6,9 +6,9 @@
 const NET_LETTERS='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const VSKN1={get F(){return[KB.flask]},get M(){return[KB.mana]},R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote']};   // โฮสต์ใช้ได้ทั้ง WASD และลูกศร
 const VSKN2={F:['NetF'],M:['NetM'],R:['NetR'],L:['NetL'],U:['NetU'],D:['NetD'],J:['NetJ'],K:['NetK'],X:['NetX'],B:['NetB']};                                                               // ปุ่มเสมือนของเพื่อน (มาจากเครือข่าย)
-const NETBITS=[['R','NetR',1],['L','NetL',2],['U','NetU',4],['D','NetD',8],['J','NetJ',16],['K','NetK',32],['X','NetX',64],['S1','NetS1',128],['S2','NetS2',256],['S3','NetS3',512],['S4','NetS4',1024],['B','NetB',2048],['F','NetF',4096],['M','NetM',8192]];
-const VSKN2_SK=[['NetS1'],['NetS2'],['NetS3'],['NetS4']];   // สกิลช่อง 1-4 ของเพื่อน (ส่งมาทางเครือข่าย)
-const NETIN={R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote'],S1:['Digit1','Numpad1'],S2:['Digit2','Numpad2'],S3:['Digit3','Numpad3'],S4:['Digit4','Numpad4','KeyL'],get F(){return[KB.flask]},get M(){return[KB.mana]}};
+const NETBITS=[['R','NetR',1],['L','NetL',2],['U','NetU',4],['D','NetD',8],['J','NetJ',16],['K','NetK',32],['X','NetX',64],['S1','NetS1',128],['S2','NetS2',256],['S3','NetS3',512],['S4','NetS4',1024],['B','NetB',2048],['F','NetF',4096],['M','NetM',8192],['S5','NetS5',16384]];
+const VSKN2_SK=[['NetS1'],['NetS2'],['NetS3'],['NetS4'],['NetS5']];   // สกิลช่อง 1-5 ของเพื่อน (ส่งมาทางเครือข่าย)
+const NETIN={R:['KeyD','ArrowRight'],L:['KeyA','ArrowLeft'],U:['KeyW','ArrowUp'],D:['KeyS','ArrowDown'],J:['KeyJ','Comma'],K:['KeyK','Period'],X:['Space','Slash'],B:['KeyE','Quote'],S1:['Digit1','Numpad1'],S2:['Digit2','Numpad2'],S3:['Digit3','Numpad3'],S4:['Digit4','Numpad4'],S5:['Digit5','Numpad5','KeyL'],get F(){return[KB.flask]},get M(){return[KB.mana]}};
 const MOVEMAPS={};
 // หาท่าจากชื่อ ตามอาวุธและสกิลของนักสู้คนนั้น (ใช้ฝั่งเพื่อนตอนวาดภาพจาก snapshot)
 function moveByName(n,f){if(!n)return null;const wt=(f&&f.wpn)||CONFIG.arena.weapon,sk=(f&&f.skillSet)||CONFIG.arena.skills,key=wt+'|'+sk.join(',');
@@ -113,7 +113,7 @@ class NetCore{
     if(f.fireShieldT>0)o.fst=f.fireShieldT;if(f.vanishT>0)o.vt=f.vanishT;if(f.parryBuffT>0)o.pbt=f.parryBuffT;if(f.kingAuraT>0)o.kat=f.kingAuraT;if(f.rootT>0)o.rt=f.rootT;
     if(f.st8){const st={};for(const k in f.st8)if(f.st8[k])st[k]=f.st8[k].stacks?{t:f.st8[k].t,stacks:f.st8[k].stacks}:{t:f.st8[k].t};if(Object.keys(st).length)o.st=st;}
     if(f.cd){const cd={};let any=0;for(const k in f.cd)if(f.cd[k]>0){cd[k]=f.cd[k];any=1;}if(any)o.cd=cd;}return o;};
-    for(const n of b.nums)if(!n._s){n._s=1;this.evq.push({e:'n',x:Math.round(n.x),y:Math.round(n.y),t:n.txt,c:n.col,z:n.size});}
+    for(const n of b.nums)if(!n._s){n._s=1;this.evq.push({e:'n',x:Math.round(n.x),y:Math.round(n.y),t:n.txt,c:n.col,z:n.size,o:n.ol,b:n.bn});}
     for(const u of b.bursts)if(!u._s){u._s=1;this.evq.push({e:'b',x:Math.round(u.x),y:Math.round(u.y),c:u.col,g:u.big?1:0,el:u.el||null,ex:u.exp?1:0,st:u.star?1:0,dm:u.dome?1:0,cr:u.crit?1:0});}
     for(const u of b.bolts)if(!u._s){u._s=1;this.evq.push({e:'z',x:Math.round(u.x),t:u.t});}
     for(const pl of b.pillars||[])if(!pl._s){pl._s=1;this.evq.push({e:'pl',x:Math.round(pl.x),mh:pl.maxH,t:pl.t,dl:pl.delay|0,el:pl.el||null,c:pl.col||null,fn:pl.frostnova?1:0});}
@@ -151,7 +151,7 @@ class NetCore{
         if(f.st8){for(const k in f.st8)f.st8[k]=(d.st&&d.st[k])||null;}}
       b.time=s.tm;b.intro=s.it;b.end=s.en;b.msg=s.ms;b.result=s.rs;b.comboT=s.cb.t;b.comboShow=s.cb.n;b.comboWho=s.cb.w?b.e:b.p;if(s.sh>b.shake)b.shake=s.sh;b.hitstop=s.hs;if(s.wh>b.white)b.white=s.wh;if((s.im||0)>0)b.impFrame=s.im;
       b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],wind:!!a[6],m:a[7]?{el:a[7]}:null,life:2,o:null}));
-      for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55});
+      for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55,ol:ev.o,bn:ev.b});
         else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,el:ev.el||null,big:ev.g,exp:!!ev.ex,star:!!ev.st,dome:!!ev.dm,crit:!!ev.cr});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
         else if(ev.e==='pl'){(b.pillars=b.pillars||[]).push({x:ev.x,h:0,maxH:ev.mh,t:ev.t,delay:ev.dl||0,el:ev.el,col:ev.c,frostnova:!!ev.fn});}
         else if(ev.e==='fx'){const tf=ev.w?b.e:b.p;b.moveFx=b.moveFx||[];

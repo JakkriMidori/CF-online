@@ -21,11 +21,11 @@ function makeCave(){
     props:[{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town'},   // v0.2.1: ทางออกเหลือประตูเดียว
       {k:'cheese',...T(16,3,8,15),hw:9},{k:'cheese',...T(17,3,10,15),hw:9},{k:'barrel',...T(2,14,8,12),hw:6},{k:'barrel',...T(17,14,8,12),hw:6},{k:'barrel',...T(18,14,6,12),hw:6},
       {k:'crystal',...T(22,13,8,12),hw:5},{k:'crystal',...T(27,5,8,12),hw:5},{k:'crystal',...T(28,12,4,12),hw:5},
-      {k:'chest',...T(11,7,8,12),hw:7,inter:'chest',content:{base:'a_leather',rar:'normal',mat:'sc_hammer'},hidden:1},
-      {k:'chest',...T(21,14,8,12),hw:7,inter:'chest',content:{base:'b_wind',rar:'rare',mat:'sc_reset'}}],
+      {k:'chest',...T(11,7,8,12),hw:7,inter:'chest',content:{base:'a_leather',rar:'normal',mat:'sc_hammer',mat2:'potion'},hidden:1},
+      {k:'chest',...T(21,14,8,12),hw:7,inter:'chest',content:{base:'b_wind',rar:'rare',mat:'sc_reset',mat2:'mp_s'}}],
     items:[{it:'wood',...T(11,13)},{it:'wood',...T(4,9)},{it:'wood',...T(12,4)},{it:'wood',...T(7,14)},
       {it:'stoneore',...T(15,8)},{it:'stoneore',...T(8,12)},{it:'stoneore',...T(18,6)},{it:'stoneore',...T(6,10)},
-      {it:'fire',...T(17,10)},{it:'cheese',...T(15,4)},{it:'fire',...T(23,7)},{it:'pan',...T(27,14)},{it:'thunder',...T(26,13)}],
+      {it:'fire',...T(17,10)},{it:'cheese',...T(15,4)},{it:'fire',...T(23,7)},{it:'ore',...T(27,14)},{it:'thunder',...T(26,13)}],
     npcs:[],
     foes:[mkFoe('rat',T(10,9),{respawnable:1,bound:19*16-6}),mkFoe('rat',T(14,6),{respawnable:1,bound:19*16-6}),mkFoe('rat',T(6,12),{respawnable:1,bound:19*16-6}),
       mkFoe('mudslime',T(13,13),{respawnable:1,bound:19*16-6}),mkFoe('mudslime',T(9,5),{respawnable:1,bound:19*16-6}),
@@ -120,7 +120,7 @@ function makeDungeon(floor,theme){
   const maxC=Math.min(chestPts.length,rint(1,2));
   for(let i=0;i<maxC;i++){const[tx,ty]=chestPts[i];props.push({k:'chest',...T(tx,ty,8,12),hw:7,inter:'chest',content:{loot:tower?'tower':stone?'stonecave':ice?'icecave':'lavarat',skill:.05}});}
   for(let x=1;x<COLS-1;x++)grid[15][x]='.';
-  if(floor===2&&lava)props.push({k:'chest',...T(2,15,8,12),hw:7,inter:'chest',content:{mat:'sc_god',mat2:'divine'},hidden:1});
+  if(floor===2&&lava)props.push({k:'chest',...T(2,15,8,12),hw:7,inter:'chest',content:{base:'w_flame',rar:'rare',mat:'sc_magma',mat2:'fire'},hidden:1});
   for(let y=3;y<=9;y++)for(let x=1;x<=3;x++)grid[y][x]='.';   // clear path from spawn to the exit door
   for(let i=lavaTiles.length-1;i>=0;i--){const l=lavaTiles[i];if(l.x<64&&l.y<10*16)lavaTiles.splice(i,1);}props.push({k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town'});
   if(floor<3)props.push({k:'stairs',...T(COLS-2,9,8,10),hw:6,inter:'stairs'});
@@ -154,8 +154,8 @@ function bossConfirm(o,kind,go){
   say([['','⚠️ ด้านหน้าคือห้องบอส: '+FOES[kind].n+' — เข้าแล้วจะออกไม่ได้ และหนีไม่ได้ จนกว่าจะชนะหรือตาย'],['','กด E อีกครั้งภายใน 15 วินาทีเพื่อเข้า (ตอนนี้เลเวล '+G.level+')']],()=>{o.confirm=G.t;});
 }
 let CAVE=null;
-const CHEST_SKILLS=['sk_orb','sk_poisondart','sk_rising','sk_slashwave','sk_slashcut','sk_rushkick','sk_thunderclap','sk_frostnova','sk_windblade','sk_windvanish','sk_fireshield','sk_blink'];
-const RARE_COLO_SKILLS=['sk_frostnova','sk_windblade','sk_windvanish','sk_fireshield','sk_blink'];  // dungeon random chests roll from this list
+const CHEST_SKILLS=['sk_poisondart','sk_slashcut','sk_cuttingwind','sk_frostshard','sk_embersweep','sk_voltstep','sk_shadowfang','sk_holyspark','sk_earthspike','sk_fireshield','sk_blink'];
+const RARE_COLO_SKILLS=['sk_fireshield','sk_blink','sk_frostnova','sk_meteorstrike','sk_chainlightning','sk_glacialprison','sk_shadowreap','sk_holyrain','sk_venomfang'];  // dungeon random chests roll from this list
 const CAM={x:0,y:0,rx:0,ry:0,snap:1,zone:null};
 function loadZone(z,spawn){if(typeof Cutscene!=='undefined'&&Cutscene.active&&!Cutscene._internal)Cutscene.abort();Z=z;const sp=spawn||z.spawn;P.x=sp.x;P.y=sp.y;{const bs=G.bloodstain;if(bs&&bs.zone===z.id&&blocked(bs.x,bs.y)){bs.x=z.spawn.x+24;bs.y=z.spawn.y;}}Z.cols=Z.grid[0].length;Z.rows=Z.grid.length;CAM.snap=1;Z.torches=[];if(Z.id!=='overworld'){Z.grid[2].forEach((c,i)=>{if(c==='T')Z.torches.push({x:i*16+8,y:2*16+8});});if(Z.id==='town')for(let i=3;i<Z.cols-2;i+=8)if(i<35||i>38)Z.torches.push({x:i*16+8,y:44});}
   if(!Z.safe&&Z.id!=='overworld'){for(const f of Z.foes)f.hidden=hideFoe(f)?1:0;keepFromDoors(Z);}   // v0.2.0: มอนทั่วไปซ่อนอยู่ (แบบ RPG Maker)
@@ -254,7 +254,7 @@ function enterInterior(kind){
     say([['มาร์คัส (ร้านค้า)','ยินดีต้อนรับสู่ร้านค้าครั้งแรก! รับ "คัมภีร์ทางออก 2 อัน" ไปเลย — นี่เป็นสวัสดิการของกิลด์สำหรับพกติดตัวเวลาลงดันเจี้ยน เผื่อมีเหตุฉุกเฉินจะได้กลับออกมาได้ทันที!']]);
   }
 }
-function makeColosseumZone(rankId='G',retZone,retPos){
+function makeColosseumZone(rankId='D',retZone,retPos){
   const C=30,R=17,gr=Array.from({length:R},(_,y)=>Array.from({length:C},(_,x)=>(x<6||x>23||y<3||y>13)?'#':'.'));
   for(let y=5;y<=11;y++)for(let x=9;x<=20;x++)if((x-15)*(x-15)/36+(y-8)*(y-8)/12<=1)gr[y][x]=':';
   gr[14][14]=':';gr[14][15]=':';gr[12][14]=':';gr[12][15]=':';gr[13][14]=':';gr[13][15]=':';
@@ -264,16 +264,18 @@ function makeColosseumZone(rankId='G',retZone,retPos){
     {k:'pillar',...T(8,4,8,14),hw:6},{k:'pillar',...T(21,4,8,14),hw:6},{k:'pillar',...T(8,12,8,14),hw:6},{k:'pillar',...T(21,12,8,14),hw:6}
   ];
   const torches=[T(7,4),T(22,4),T(7,12),T(22,12)];
-  const foes=rankId==='G'?[
-    mkFoe('egel',T(10,5,8,8),{challenge:1,respawnable:0,elite:false,walkIn:T(11,8,8,8)}),
-    mkFoe('rankg2',T(15,4,8,8),{challenge:1,respawnable:0,elite:false,walkIn:T(15,7,8,8)}),
-    mkFoe('rankg3',T(20,5,8,8),{challenge:1,respawnable:0,elite:false,walkIn:T(19,8,8,8)})
-  ]:[];
+  const tr=(typeof COLOSSEUM_TRIALS!=='undefined'&&COLOSSEUM_TRIALS[rankId])||null;
+  const list=tr?tr.foes:[],n=list.length;
+  const slots=n===2?[[12,5,12,8],[18,5,18,8]]
+    :n===4?[[9,5,10,8],[13,4,13,7],[17,4,17,7],[21,5,20,8]]
+    :[[10,5,11,8],[15,4,15,7],[20,5,19,8]];
+  const foes=list.map((k,i)=>{const s=slots[i]||[15,5,15,8];return mkFoe(k,T(s[0],s[1],8,8),{challenge:1,respawnable:0,elite:false,walkIn:T(s[2],s[3],8,8)});});
+  const zLv=tr?tr.lv:30;
   return{id:'colosseum_'+rankId,title:`🏟️ โคลอสเซียม — ทดสอบเลื่อนขั้น Rank ${rankId}`,interior:1,colosseum:rankId,noPotion:1,carpet:'#8e5a2c',
-    retZone,retPos,grid:gr,cols:C,rows:R,spawn:T(15,13,0,4),safe:0,levelAt:()=>35,regionAt:()=>'colosseum_'+rankId,biomeAt:()=>'interior',
+    retZone,retPos,grid:gr,cols:C,rows:R,spawn:T(15,13,0,4),safe:0,levelAt:()=>zLv,regionAt:()=>'colosseum_'+rankId,biomeAt:()=>'interior',
     props,items:[],npcs:[],folk:[],foes,ground:[],torches};
 }
-function enterColosseum(rankId='G'){
+function enterColosseum(rankId='D'){
   const rz=Z||TOWN,rp={x:P.x,y:P.y+6};
   loadZone(makeColosseumZone(rankId,rz,rp));
   toast(`⚔️ เข้าสู่โคลอสเซียมบททดสอบ Rank ${rankId} (ห้ามใช้ยาฟื้นพลัง/ยามานา — เดินเลือกคู่ต่อสู้ได้เลย!)`,3800);
@@ -313,7 +315,7 @@ const SPIRE_RIDDLES=[
   {seq:[2,0,1],clue:'จารึกชั้น 2: "รากแห่งอเมทิสต์ (ม่วง) → จุดประกายเพลิง (แดง) → สงบด้วยวารี (ฟ้า)"'},
   {seq:[1,2,0],clue:'จารึกชั้น 3: "หยาดน้ำฟ้า (ฟ้า) → หล่อเลี้ยงผลึกม่วง (ม่วง) → ปะทุเป็นเปลวไฟ (แดง)"'},
   {seq:[2,1,0],clue:'จารึกชั้น 4: "ย้อนรอยธาตุทั้งสาม: อเมทิสต์ (ม่วง) → วารี (ฟ้า) → อัคคี (แดง)"'},
-  {seq:[1,0,2],clue:'จารึกชั้น 5 (อาร์คเมจ): "เยือกเย็นดั่งฟ้า (ฟ้า) → ร้อนแรงดั่งแดง (แดง) → เป็นนิรันดร์ดั่งม่วง (ม่วง)"'}
+  {seq:[1,0,2],clue:'จารึกชั้น 5 (อัศวินวิญญาณเพลิงคราม): "เยือกเย็นดั่งฟ้า (ฟ้า) → ร้อนแรงดั่งแดง (แดง) → เป็นนิรันดร์ดั่งม่วง (ม่วง)"'}
 ];
 function makeSpireFloor(floor=1,tower='mage'){
   const C=48,R=17,gr=Array.from({length:R},()=>Array(C).fill('#'));
@@ -350,7 +352,7 @@ function makeSpireFloor(floor=1,tower='mage'){
 }
 function enterSpire(floor=1,tower='mage'){
   if(typeof Guild!=='undefined'&&!Guild.canEnterSpire()){
-    toast('🔒 หอคอยปิดผนึก — ต้องมีแรงค์กิลด์สูงกว่า Rank F (อย่างน้อย Rank G) จึงจะเข้าได้!',3600);
+    toast('🔒 หอคอยปิดผนึก — ต้องมีแรงค์กิลด์ Rank D ขึ้นไป จึงจะเข้าได้!',3600);
     SFX.ui&&SFX.ui('error');return false;
   }
   const f=Math.max(1,Math.min(5,floor|0)),z=makeSpireFloor(f,tower);
@@ -361,6 +363,127 @@ function enterSpire(floor=1,tower='mage'){
   toast(`${nm} ชั้น ${f}/5 (เริ่มต้น Lv.${base}) · แก้ปริศนาผลึก 3/3 เพื่อปลดล็อคห้องบอส`,3400);
   Save.save&&Save.save();
 }
+/* ----- โถงทางเข้าดันเจี้ยนหอคอยทั้ง 2 (มีเสาแสงตรงกลางบันทึกจุดเกิด · ด้านบนเข้าดันหอคอย · ด้านล่างประตูออก Overworld) ----- */
+function makeSpireHall(tower='mage'){
+  const isA=tower==='aether',C=24,R=17,gr=Array.from({length:R},(_,y)=>Array.from({length:C},(_,x)=>(x<4||x>19||y<3||y>14)?'#':'.'));
+  for(let y=3;y<=15;y++){gr[y][11]=':';gr[y][12]=':';}
+  for(let y=7;y<=11;y++)for(let x=9;x<=14;x++)if((x-11.5)*(x-11.5)+(y-9)*(y-9)<=6.5)gr[y][x]=':';
+  gr[2][11]=':';gr[2][12]=':';gr[15][11]=':';gr[15][12]=':';
+  const props=[
+    {k:'spire_gate',tower,...T(12,3,0,12),hw:16,hh:14,inter:'spire_enter_dungeon'},
+    {k:'light_pillar',tower,...T(12,9,0,10),hw:14,hh:12,inter:'light_pillar'},
+    {k:'exitdoor',...T(12,15,0,12),hw:14,inter:'ow_spire_exit'},
+    ...[[7,5],[16,5],[7,8],[16,8],[7,11],[16,11]].map(([px,py])=>({k:'vine_pillar',tower,...T(px,py,8,14),hw:8,hh:12}))
+  ];
+  const torches=[T(6,4),T(17,4),T(6,13),T(17,13)];
+  const zid=isA?'spire_hall_aether':'spire_hall_mage';
+  const title=isA?'🏛️ โถงเสาแสง · ทางเข้าหอคอยอัศวินแสง Aether':'🏛️ โถงเสาแสง · ทางเข้าหอคอยคริสตัลจอมเวท';
+  return{id:zid,theme:'spire_hall',tower,title,grid:gr,cols:C,rows:R,spawn:T(12,13,0,4),topSpawn:T(12,5,0,4),safe:1,
+    levelAt:()=>isA?55:50,regionAt:()=>zid,biomeAt:()=>'sanctum',
+    props,items:[],npcs:[],folk:[],foes:[],ground:[],torches};
+}
+function enterSpireHall(tower='mage',fromDungeon=false){
+  if(typeof Guild!=='undefined'&&!Guild.canEnterSpire()){
+    toast('🔒 หอคอยปิดผนึก — ต้องมีแรงค์กิลด์ Rank D ขึ้นไป จึงจะเข้าได้!',3600);
+    SFX.ui&&SFX.ui('error');return false;
+  }
+  const z=makeSpireHall(tower);
+  loadZone(z,fromDungeon?z.topSpawn:z.spawn);
+  toast(`${z.title} — กด E ที่เสาแสงตรงกลางเพื่อบันทึกจุดเกิด · ด้านบนเข้าดันเจี้ยน · ด้านล่างออกสู่ Overworld`,3600);
+  Save.save&&Save.save();return true;
+}
+/* ----- ป่าไม้คอลลาวาร์รี (เก็บไม้ & หนัง · มีน้ำพุบันทึกจุดเกิด) ----- */
+let FOREST_ZONE=null,MINECAVE_ZONE=null;
+function makeForestZone(){
+  const C=28,R=18,gr=Array.from({length:R},(_,y)=>Array.from({length:C},(_,x)=>(x<2||x>C-3||y<2||y>R-3)?'T':'.'));
+  for(let y=8;y<=R-2;y++){gr[y][13]=':';gr[y][14]=':';}
+  for(let y=6;y<=10;y++)for(let x=11;x<=16;x++)if((x-13.5)*(x-13.5)+(y-8)*(y-8)<=6.5)gr[y][x]=':';
+  gr[R-2][13]=':';gr[R-2][14]=':';gr[R-1][13]=':';gr[R-1][14]=':';
+  const treeCoords=[[5,4],[9,4],[18,4],[22,4],[4,7],[8,6],[19,6],[23,7],[5,10],[9,11],[18,11],[22,10],[6,13],[21,13]];
+  const hideCoords=[[7,5],[20,5],[6,9],[21,9],[10,13],[17,13]];
+  const props=[
+    {k:'fountain',...T(14,8,0,12),hw:16,hh:12,inter:'fountain'},
+    {k:'exitdoor',...T(14,16,0,12),hw:14,inter:'ow_forest_exit'},
+    ...treeCoords.map(([tx,ty])=>({k:'tree',...T(tx,ty,10,14),hw:9,hh:10,inter:'gather_wood'})),
+    ...hideCoords.map(([tx,ty])=>({k:'hide_rack',...T(tx,ty,8,12),hw:9,hh:10,inter:'gather_hide'}))
+  ];
+  const items=[
+    {it:'wood',...T(11,5)},{it:'wood',...T(16,5)},{it:'wood',...T(7,8)},{it:'wood',...T(20,8)},
+    {it:'wood',...T(8,12)},{it:'wood',...T(19,12)},{it:'wood',...T(11,14)},{it:'wood',...T(16,14)},
+    {it:'hide',...T(10,6)},{it:'hide',...T(17,6)},{it:'hide',...T(9,9)},{it:'hide',...T(18,9)},
+    {it:'hide',...T(6,11)},{it:'hide',...T(21,11)},{it:'hide',...T(12,12)},{it:'hide',...T(15,12)}
+  ];
+  return{id:'forest',title:'🌲 ป่าไม้คอลลาวาร์รี (เก็บไม้ & หนัง)',grid:gr,cols:C,rows:R,spawn:T(14,14,0,4),safe:1,
+    levelAt:()=>1,regionAt:()=>'forest',biomeAt:()=>'town',
+    props,items,npcs:[],folk:[],foes:[],ground:[],torches:[]};
+}
+function enterForestZone(){
+  if(!FOREST_ZONE)FOREST_ZONE=makeForestZone();
+  else{for(const it of FOREST_ZONE.items)it.taken=false;}
+  loadZone(FOREST_ZONE,FOREST_ZONE.spawn);
+  toast('🌲 เข้าสู่ป่าไม้คอลลาวาร์รี — กด E ที่ต้นไม้/ราวหนังเพื่อเก็บไม้และหนัง · แวะน้ำพุกลางป่าเพื่อบันทึกจุดเกิด',3600);
+  Save.save&&Save.save();
+}
+/* ----- ถ้ำขุดแร่คอลลาวาร์รี (ขุดหิน · แร่เหล็ก · เก็บไม้ · มีน้ำพุบันทึกจุดเกิด) ----- */
+function makeMineCaveZone(){
+  const C=28,R=18,gr=Array.from({length:R},(_,y)=>Array.from({length:C},(_,x)=>(x<2||x>C-3||y<3||y>R-3)?'#':'.'));
+  for(let x=2;x<C-2;x++)gr[2][x]=x%5===2?'T':'^';
+  for(let y=8;y<=R-2;y++){gr[y][13]=':';gr[y][14]=':';}
+  for(let y=6;y<=10;y++)for(let x=11;x<=16;x++)if((x-13.5)*(x-13.5)+(y-8)*(y-8)<=6.5)gr[y][x]=':';
+  gr[R-2][13]=':';gr[R-2][14]=':';
+  const stoneCoords=[[5,5],[9,4],[18,4],[22,5],[5,9],[22,9],[7,13],[20,13]];
+  const ironCoords=[[7,4],[20,4],[4,7],[23,7],[8,10],[19,10],[5,12],[22,12]];
+  const woodCoords=[[11,4],[16,4],[8,7],[19,7],[10,13],[17,13]];
+  const props=[
+    {k:'fountain',...T(14,8,0,12),hw:16,hh:12,inter:'fountain'},
+    {k:'exitdoor',...T(14,16,0,12),hw:14,inter:'ow_mine_exit'},
+    ...stoneCoords.map(([tx,ty])=>({k:'ore_stone',...T(tx,ty,8,12),hw:9,hh:10,inter:'mine_stone'})),
+    ...ironCoords.map(([tx,ty])=>({k:'ore_iron',...T(tx,ty,8,12),hw:9,hh:10,inter:'mine_iron'})),
+    ...woodCoords.map(([tx,ty])=>({k:'tree',...T(tx,ty,10,14),hw:9,hh:10,inter:'gather_wood'}))
+  ];
+  const items=[
+    {it:'stoneore',...T(6,6)},{it:'stoneore',...T(21,6)},{it:'stoneore',...T(9,8)},{it:'stoneore',...T(18,8)},{it:'stoneore',...T(8,14)},{it:'stoneore',...T(19,14)},
+    {it:'ore',...T(10,5)},{it:'ore',...T(17,5)},{it:'ore',...T(6,10)},{it:'ore',...T(21,10)},{it:'ore',...T(11,12)},{it:'ore',...T(16,12)},
+    {it:'wood',...T(12,5)},{it:'wood',...T(15,5)},{it:'wood',...T(7,11)},{it:'wood',...T(20,11)},{it:'wood',...T(11,14)},{it:'wood',...T(16,14)}
+  ];
+  return{id:'minecave',title:'⛏️ ถ้ำขุดแร่คอลลาวาร์รี (หิน · แร่เหล็ก · ไม้)',grid:gr,cols:C,rows:R,spawn:T(14,14,0,4),safe:1,
+    levelAt:()=>1,regionAt:()=>'minecave',biomeAt:()=>'cave',
+    props,items,npcs:[],folk:[],foes:[],ground:[],torches:[]};
+}
+function enterMineCaveZone(){
+  if(!MINECAVE_ZONE)MINECAVE_ZONE=makeMineCaveZone();
+  else{for(const it of MINECAVE_ZONE.items)it.taken=false;}
+  loadZone(MINECAVE_ZONE,MINECAVE_ZONE.spawn);
+  toast('⛏️ เข้าสู่ถ้ำขุดแร่คอลลาวาร์รี — กด E ขุดแร่หิน แร่เหล็ก เก็บไม้ และบันทึกจุดเกิดที่น้ำพุได้',3600);
+  Save.save&&Save.save();
+}
+function respawnAtSavedPoint(){
+  const rp=G.flags&&G.flags.respawnPoint;
+  if(rp){
+    if(rp.zoneId==='spire_hall_mage'||rp.zoneId==='spire_hall_aether'){
+      const z=makeSpireHall(rp.tower||(rp.zoneId==='spire_hall_aether'?'aether':'mage'));
+      loadZone(z,{x:rp.x||z.spawn.x,y:rp.y||z.spawn.y});
+      return rp.label||z.title;
+    }
+    if(rp.zoneId==='forest'){
+      if(!FOREST_ZONE)FOREST_ZONE=makeForestZone();
+      loadZone(FOREST_ZONE,{x:rp.x||FOREST_ZONE.spawn.x,y:rp.y||FOREST_ZONE.spawn.y});
+      return rp.label||'น้ำพุป่าไม้คอลลาวาร์รี';
+    }
+    if(rp.zoneId==='minecave'){
+      if(!MINECAVE_ZONE)MINECAVE_ZONE=makeMineCaveZone();
+      loadZone(MINECAVE_ZONE,{x:rp.x||MINECAVE_ZONE.spawn.x,y:rp.y||MINECAVE_ZONE.spawn.y});
+      return rp.label||'น้ำพุถ้ำขุดแร่คอลลาวาร์รี';
+    }
+    if(rp.zoneId==='city'&&typeof CITY!=='undefined'&&CITY){
+      loadZone(CITY,{x:rp.x||CITY.spawn.x,y:rp.y||CITY.spawn.y});
+      return rp.label||'น้ำพุเมืองหลวงออเรีย';
+    }
+  }
+  const fo=(TOWN.props||[]).find(p=>p.k==='fountain');
+  loadZone(TOWN,fo?{x:fo.x,y:fo.y+26}:undefined);
+  return (rp&&rp.label)||'น้ำพุเมือง Collawarrie';
+}
 /* debug: วาร์ปเข้าห้องบอสหอคอยชั้น f โดยตรง (ข้ามแรงค์กิลด์ + แก้ปริศนาให้ + ฟื้นเต็ม) */
 function debugSpireBoss(f,tower='mage'){f=Math.max(1,Math.min(5,f|0));const z=makeSpireFloor(f,tower);loadZone(z,z.spawn);
   const pz=Z.puzzle;if(pz){pz.lit=pz.seq.slice();pz.solved=true;if(Z.grid&&Z.grid[8]){Z.grid[8][32]=':';Z.grid[9][32]=':';}Z.props=Z.props.filter(pr=>!pr.spireGate);}
@@ -370,13 +493,16 @@ function debugSpireBoss(f,tower='mage'){f=Math.max(1,Math.min(5,f|0));const z=ma
   buildBg();CAM.snap=1;const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;UI.hud&&UI.hud();
   toast(`🛠 วาร์ปถึงบอสหอคอยชั้น ${f}: ${FOES[b.kind].n} — เดินเข้าไปเพื่อเริ่มสู้`,2800);return true;}
 const World={
-  serialize(){const c=CAVE,inInt=Z&&Z.interior,inSp=Z&&Z.theme==='spire',rz=inInt?(Z.retZone&&Z.retZone.id==='city'?'city':'town'):null,rp=inInt?(Z.retPos||TOWN.spawn):null;
+  serialize(){const c=CAVE,inInt=Z&&Z.interior,inSp=Z&&Z.theme==='spire',inHub=Z&&['forest','minecave','spire_hall_mage','spire_hall_aether'].includes(Z.id),rz=inInt?(Z.retZone&&Z.retZone.id==='city'?'city':'town'):null,rp=inInt?(Z.retPos||TOWN.spawn):null;
     return{rubble:c.rubbleOpen,items:c.items.map(i=>!!i.taken),chests:c.props.map(p=>!!p.opened),
-    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inInt?rz:Z&&(Z.id==='town'||Z.bossRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?(Z.tower==='aether'?T(27,29,8,8):T(9,28,8,8)):inInt?rp:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city')?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
-  restore(d){CAVE=makeCave();TOWN=makeTown();if(typeof OW!=='undefined'){OVERWORLD=OW.make();CITY=OW.makeCity();}if(d){CAVE.rubbleOpen=d.rubble;if(d.rubble){CAVE.grid[8][19]='.';CAVE.grid[9][19]='.';}
+    foes:c.foes.map(f=>({alive:f.alive,elite:f.elite,respawn:f.respawn||0})),zone:inSp?'overworld':inHub?Z.id:inInt?rz:Z&&(Z.id==='town'||Z.bossRoom)?'town':Z&&Z.id==='overworld'?'overworld':Z&&Z.id==='city'?'city':'cave',pos:inSp?(Z.tower==='aether'?T(27,29,8,8):T(9,28,8,8)):inInt?rp:Z&&Z.bossRoom?{x:TOWN.gate.x,y:TOWN.gate.y}:Z&&(Z.id==='cave'||Z.id==='town'||Z.id==='overworld'||Z.id==='city'||inHub)?{x:P.x,y:P.y}:T(23,4,8,14),visited:G.visited||{}};},   // ground items intentionally not saved
+  restore(d){CAVE=makeCave();TOWN=makeTown();FOREST_ZONE=makeForestZone();MINECAVE_ZONE=makeMineCaveZone();if(typeof OW!=='undefined'){OVERWORLD=OW.make();CITY=OW.makeCity();}if(d){CAVE.rubbleOpen=d.rubble;if(d.rubble){CAVE.grid[8][19]='.';CAVE.grid[9][19]='.';}
     d.items.forEach((t,i)=>{if(CAVE.items[i])CAVE.items[i].taken=t;});d.chests.forEach((o,i)=>{if(CAVE.props[i])CAVE.props[i].opened=o;});
     d.foes.forEach((f,i)=>{const e=CAVE.foes[i];if(e){e.alive=f.alive;e.elite=f.elite;e.respawn=f.respawn||0;if(!e.alive&&e.respawnable&&!e.respawn)e.respawn=CONFIG.respawnFrames;}});G.visited=d.visited||{};}
     if(d&&d.zone==='overworld'&&OVERWORLD){loadZone(OVERWORLD,d.pos);if(blocked(P.x,P.y)){P.x=OVERWORLD.spawn.x;P.y=OVERWORLD.spawn.y;}}
+    else if(d&&d.zone==='forest'){loadZone(FOREST_ZONE,d.pos);if(blocked(P.x,P.y)){P.x=FOREST_ZONE.spawn.x;P.y=FOREST_ZONE.spawn.y;}}
+    else if(d&&d.zone==='minecave'){loadZone(MINECAVE_ZONE,d.pos);if(blocked(P.x,P.y)){P.x=MINECAVE_ZONE.spawn.x;P.y=MINECAVE_ZONE.spawn.y;}}
+    else if(d&&(d.zone==='spire_hall_mage'||d.zone==='spire_hall_aether')){const sh=makeSpireHall(d.zone==='spire_hall_aether'?'aether':'mage');loadZone(sh,d.pos);if(blocked(P.x,P.y)){P.x=sh.spawn.x;P.y=sh.spawn.y;}}
     else if(d&&d.zone==='city'&&CITY){loadZone(CITY,d.pos);if(blocked(P.x,P.y)){P.x=CITY.spawn.x;P.y=CITY.spawn.y;}}
     else if(d&&d.zone==='town'){loadZone(TOWN,d.pos);if(blocked(P.x,P.y)||P.x>=TOWN_COLS*16||P.y>=TOWN_ROWS*16){P.x=TOWN.spawn.x;P.y=TOWN.spawn.y;}}else if(d)loadZone(CAVE,d.pos);else loadZone(TOWN);}
 };
@@ -467,8 +593,8 @@ function buildBg(){
 }
 
 /* ----- exploration ----- */
-const hitBox=(o,x,y)=>Math.abs(o.x-x)<(o.hw||6)+4&&y>o.y-(o.hh||(o.k==='colosseum'?26:o.k==='house'?24:o.k==='fountain'?12:o.k==='counter'||o.k==='shelf'||o.k==='table'||o.k==='fireplace'||o.k==='furnace'||o.k==='cauldron'?12:o.k==='tree'||o.k==='board'||o.k==='anvil'||o.k==='rack'?10:8))&&y-3<o.y;
-const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','colosseum','fountain','stall','board','tree','cavegate','icegate','bossdoor','stonegate','duelpost','towergate','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','pillar']);
+const hitBox=(o,x,y)=>Math.abs(o.x-x)<(o.hw||6)+4&&y>o.y-(o.hh||(o.k==='colosseum'?26:o.k==='house'?24:o.k==='fountain'||o.k==='light_pillar'?12:o.k==='spire_gate'?14:o.k==='counter'||o.k==='shelf'||o.k==='table'||o.k==='fireplace'||o.k==='furnace'||o.k==='cauldron'?12:o.k==='tree'||o.k==='board'||o.k==='anvil'||o.k==='rack'||o.k==='ore_stone'||o.k==='ore_iron'||o.k==='hide_rack'?10:8))&&y-3<o.y;
+const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','colosseum','fountain','light_pillar','vine_pillar','spire_gate','ore_stone','ore_iron','hide_rack','stall','board','tree','cavegate','icegate','bossdoor','stonegate','duelpost','towergate','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','pillar']);
 function blocked(x,y,self,tilesOnly){
   for(const[px,py] of [[x-4,y-3],[x+4,y-3],[x-4,y],[x+4,y]]){const tx=Math.floor(px/16),ty=Math.floor(py/16);
     if(ty<0||ty>=Z.rows||tx<0||tx>=Z.cols)return true;if('#^TRLW'.includes(Z.grid[ty][tx]))return true;}
@@ -477,33 +603,35 @@ function blocked(x,y,self,tilesOnly){
   for(const o of Z.npcs)if(o!==self&&hitBox(o,x,y))return true;
   return false;
 }
-const LABEL={ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_w:'🔒 หอคอยคริสตัลตะวันตก (ถูกผนึก · เข้าไม่ได้)',ow_spire_s:'⚔️ เข้าหอคอยอัศวินแสง Aether (5 ชั้น Lv.55–100)',ow_spire_m:'🔒 หอคอยคริสตัลภูเขาไฟ (ถูกผนึก · เข้าไม่ได้)',ow_spire_n:'🔒 หอคอยคริสตัลเหมันต์ (ถูกผนึก · เข้าไม่ได้)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_boss_gate:'🔒 ประตูห้องบอสหอคอย (แก้ปริศนา 3/3 เพื่อเปิด)',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอสประจำชั้น)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',colosseum:'🏟️ เข้าโคลอสเซียม (ดันเจี้ยนทดสอบแรงค์)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เมืองหลวงออเรีย (ถูกผนึก)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'ดื่มน้ำพุ (ฟื้นเต็ม)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจียน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
+const LABEL={ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_w:'🔒 หอคอยคริสตัลตะวันตก (ถูกผนึก · เข้าไม่ได้)',ow_spire_s:'⚔️ เข้าหอคอยอัศวินแสง Aether (5 ชั้น Lv.55–100)',ow_spire_m:'🔒 หอคอยคริสตัลภูเขาไฟ (ถูกผนึก · เข้าไม่ได้)',ow_spire_n:'🔒 หอคอยคริสตัลเหมันต์ (ถูกผนึก · เข้าไม่ได้)',ow_forest:'🌲 เข้าป่าไม้คอลลาวาร์รี (เก็บไม้ & หนัง)',ow_mine:'⛏️ เข้าถ้ำขุดแร่คอลลาวาร์รี (หิน · แร่เหล็ก · ไม้)',ow_forest_exit:'🚪 ออกจากป่า → กลับแผนที่โลก (Overworld)',ow_mine_exit:'🚪 ออกจากถ้ำขุดแร่ → กลับแผนที่โลก (Overworld)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก (Overworld)',spire_enter_dungeon:'⚔️ เข้าสู่ดันเจี้ยนหอคอย ชั้น 1',light_pillar:'✨ อธิษฐานที่เสาแสง (ฟื้นเต็ม + บันทึกจุดเกิดใหม่)',gather_wood:'🪓 เก็บไม้จากต้นไม้',gather_hide:'🦌 เก็บหนังสัตว์',mine_stone:'⛏️ ขุดแร่หิน',mine_iron:'⛏️ ขุดแร่เหล็ก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_boss_gate:'🔒 ประตูห้องบอสหอคอย (แก้ปริศนา 3/3 เพื่อเปิด)',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอสประจำชั้น)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',colosseum:'🏟️ เข้าโคลอสเซียม (ดันเจี้ยนทดสอบแรงค์)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เมืองหลวงออเรีย (ถูกผนึก)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'💧 พักที่น้ำพุ (ฟื้นเต็ม + บันทึก & ตั้งจุดเกิดใหม่)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจียน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
 let NEAR=null;
 function findNear(){
-  let best=null,bd=44;const c=(o,type)=>{const maxD=o&&o.k==='colosseum'?42:o&&o.k==='house'?36:22;const d=Math.hypot(o.x-P.x,(o.y-P.y)*1.2);if(d<maxD&&d<bd){bd=d;best={o,type};}};
+  let best=null,bd=44;const c=(o,type)=>{const maxD=o&&o.k==='colosseum'?42:o&&o.k==='house'?36:o&&(o.k==='fountain'||o.k==='light_pillar'||o.k==='spire_gate')?32:o&&(o.k==='tree'||o.k==='ore_stone'||o.k==='ore_iron'||o.k==='hide_rack')?28:22;const d=Math.hypot(o.x-P.x,(o.y-P.y)*1.2);if(d<maxD&&d<bd){bd=d;best={o,type};}};
   for(const o of Z.props)if(o.inter&&!o.opened)c(o,o.inter);for(const o of Z.npcs)c(o,'npc');for(const o of Z.folk||[])c(o,'folk');for(const o of Z.items)if(!o.taken)c(o,'item');
   for(const o of Z.ground||[])if(!o.picked&&o.owner==='P1')c(o,'ground');   // only the owner can interact
   const bs=G.bloodstain;if(bs&&bs.zone===Z.id)c(bs,'bloodstain');
   if(Z.id==='cave'&&!Z.rubbleOpen&&G.q.main1.step>=1)c({x:19*16+8,y:9*16+2},'rubble');return best;
 }
 function grantChest(o){
-  const ct=o.content,got=[];
+  const ct=o.content,got=[],inSpire=!!(Z&&Z.theme==='spire')||!!(ct&&ct.loot&&/^a?spire/.test(ct.loot));
+  const maxChestRar=inSpire?'epic':'rare';
   const safeChestItem=(base,rar,lv)=>{
-    let r=rar==='legendary'||rar==='god'?'epic':rar;
-    let b=base&&(!BASES[base].fixRar||!['legendary','god'].includes(BASES[base].fixRar))?base:pick(BASE_BY_TYPE(pick(ALLTYPES)));
+    let r=RARS.indexOf(rar)>RARS.indexOf(maxChestRar)?maxChestRar:rar;
+    let b=base&&(!BASES[base].fixRar||RARS.indexOf(BASES[base].fixRar)<=RARS.indexOf(maxChestRar))?base:pick(rarPool(BASE_BY_TYPE(pick(ALLTYPES)),r));
     const it=newItem(b,r,lv);
-    if(it.rar==='legendary'||it.rar==='god')return newItem(pick(BASE_BY_TYPE(pick(ALLTYPES))),'epic',lv);
+    if(RARS.indexOf(it.rar)>RARS.indexOf(maxChestRar))return newItem(pick(rarPool(BASE_BY_TYPE(pick(ALLTYPES)),maxChestRar)),maxChestRar,lv);
     return it;
   };
   if(ct.base){const it=Inv.addItem(safeChestItem(ct.base,ct.rar,Z.levelAt(Math.floor(o.x/16))));got.push(`<span style="color:${RARC[it.rar]}">${bIco(it.base,14)} ${itemName(it)}</span>`);}
-  for(const k of [ct.mat,ct.mat2])if(k){Inv.add(k,1);got.push(mIco(k,14)+' '+MATS[k].n);}
+  for(const k of [ct.mat,ct.mat2])if(k&&MATS[k]){Inv.add(k,1);got.push(mIco(k,14)+' '+MATS[k].n);}
   if(ct.loot){
     const out=Loot.roll(ct.loot,Z.levelAt(0),false);
-    // กล่องสมบัติจะไม่ดรอปอุปกรณ์ระดับตำนานหรือเทพเด็ดขาด
-    out.items=(out.items||[]).filter(it=>it&&it.rar!=='legendary'&&it.rar!=='god');
-    if(ct.skill&&rand()<ct.skill){const k=pick(CHEST_SKILLS);out.mats[k]=(out.mats[k]||0)+1;}
+    // กล่องในดันเจี้ยนต้นเกม 5 แห่งออกเฉพาะ ทั่วไป (normal) / หายาก (rare) · กล่องในหอคอยออกได้ถึง มหากาพย์ (epic)
+    out.items=(out.items||[]).filter(it=>it&&RARS.indexOf(it.rar)<=RARS.indexOf(maxChestRar));
+    if(ct.skill&&rand()<ct.skill){const k=pick(inSpire?RARE_COLO_SKILLS:CHEST_SKILLS);out.mats[k]=(out.mats[k]||0)+1;}
     else if(!ct.skill&&rand()<.052){const k=pick(RARE_COLO_SKILLS);out.mats[k]=(out.mats[k]||0)+1;}
-    out.items.length||out.items.push(safeChestItem(pick(rarPool(BASE_BY_TYPE(pick(ALLTYPES)),'rare')),'rare',Z.levelAt(0)));
+    const defRar=inSpire?(rand()<.45?'epic':'rare'):(rand()<.5?'rare':'normal');
+    out.items.length||out.items.push(safeChestItem(pick(rarPool(BASE_BY_TYPE(pick(ALLTYPES)),defRar)),defRar,Z.levelAt(0)));
     Loot.grant(out);
     for(const it of out.items)got.push(`<span style="color:${RARC[it.rar]}">${bIco(it.base,14)} ${itemName(it)}</span>`);
     for(const k in out.mats){const q=out.mats[k];got.push(mIco(k,14)+' '+MATS[k].n+(q>1?' ×'+q:''));}
@@ -515,7 +643,6 @@ function interact(n){
   const o=n.o;
   if(o&&o.locked&&o.need){toast(o.need);return;}
   if(n.type==='item'){o.taken=true;Inv.add(o.it);SFX.pick();toast(`ได้รับ ${mIco(o.it,14)} ${MATS[o.it].n}`);
-    if(o.it==='pan'){Quest.activate('pan');Quest.advance('pan',1);}
     for(let i=0;i<8;i++)EP.push({x:o.x,y:o.y-4,vx:rnd(-1,1),vy:rnd(-1.5,-.3),l:30,c:'#fff3b0'});}
   else if(n.type==='chest'){o.opened=true;SFX.craft();grantChest(o);for(let i=0;i<16;i++)EP.push({x:o.x,y:o.y-8,vx:rnd(-1.2,1.2),vy:rnd(-2,-.5),l:40,c:'#ffe27a'});}
   else if(n.type==='npc'){if(o.id==='reitem')UI.open('reitem');else talk(o.id);}
@@ -532,12 +659,33 @@ function interact(n){
   }
   else if(n.type==='reitem'){UI.open('reitem');}
   else if(n.type==='guildmaster'){talk('guildmaster');}
-  else if(n.type==='tf_enter'){enterTowerFloor1(o.tower);}
-  else if(n.type==='tf_pillar'){lightPillar(o);}
-  else if(n.type==='tf_exit'){const tw=Z.tower;if(tw==='alch'){loadZone(TOWN,TOWN.gate);toast('⬆️ กลับเมือง Collawarrie');}else if(typeof OW!=='undefined')OW.enter(tw==='aether'?'spire_aether':'spire');Save.save&&Save.save();}
-  else if(n.type==='tf_back'){enterTowerFront(Z.tower||'alch');}
-  else if(n.type==='ow_spire_exit'&&Z&&Z.theme==='spire'&&Z.tower){enterTowerFront(Z.tower);}
-  else if(n.type==='ow_spire_exit'){if(typeof OW!=='undefined')OW.enter(Z&&Z.tower==='aether'?'spire_aether':'spire');else loadZone(TOWN,TOWN.spawn);}
+  else if(n.type==='ow_forest_exit'){if(typeof OW!=='undefined')OW.enter('forest');else loadZone(TOWN,TOWN.spawn);}
+  else if(n.type==='ow_mine_exit'){if(typeof OW!=='undefined')OW.enter('minecave');else loadZone(TOWN,TOWN.spawn);}
+  else if(n.type==='spire_enter_dungeon'){enterSpire(1,(o&&o.tower)||(Z&&Z.tower)||'mage');}
+  else if(n.type==='ow_spire_exit'){
+    if(Z&&Z.theme==='spire'&&o&&o.k==='exitdoor'&&typeof enterSpireHall==='function'){enterSpireHall(Z.tower||'mage',true);}
+    else if(typeof OW!=='undefined')OW.enter(Z&&Z.tower==='aether'?'spire_aether':'spire');
+    else loadZone(TOWN,TOWN.spawn);
+  }
+  else if(n.type==='light_pillar'){
+    const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;SFX.level();
+    const tw=(Z&&Z.tower)||(o&&o.tower)||'mage',zid=tw==='aether'?'spire_hall_aether':'spire_hall_mage';
+    const lbl=tw==='aether'?'เสาแสงทางเข้าหอคอยอัศวินแสง Aether':'เสาแสงทางเข้าหอคอยคริสตัลจอมเวท';
+    G.flags=G.flags||{};G.flags.respawnTower=tw;G.flags.respawnTown=0;
+    G.flags.respawnPoint={kind:'light_pillar',zoneId:zid,tower:tw,x:(o&&o.x)||12*16,y:((o&&o.y)||9*16+10)+20,label:lbl};
+    for(let i=0;i<24;i++)EP.push({x:((o&&o.x)||P.x)+rnd(-14,14),y:((o&&o.y)||P.y)-rnd(4,36),vx:rnd(-.45,.45),vy:-rnd(.5,1.4),l:38,c:i%2?'#ffe878':'#9ff4ff'});
+    Save.save&&Save.save();
+    toast(`✨ ${lbl} — HP และ MP ฟื้นเต็ม · บันทึกเกมและตั้งเป็นจุดเกิดใหม่แล้ว (ตายแล้วจะเกิดที่เสาแสงนี้)`,4000);
+  }
+  else if(n.type==='gather_wood'||n.type==='gather_hide'||n.type==='mine_stone'||n.type==='mine_iron'){
+    const mat=n.type==='gather_wood'?'wood':n.type==='gather_hide'?'hide':n.type==='mine_stone'?'stoneore':'ore';
+    const isMine=n.type==='mine_stone'||n.type==='mine_iron';
+    Inv.add(mat,1);if(isMine)SFX.smash&&SFX.smash();else SFX.pick&&SFX.pick();
+    const col=mat==='wood'?'#8fd06a':mat==='hide'?'#d89a5a':mat==='stoneore'?'#b8b0a4':'#9fd8ff';
+    for(let i=0;i<12;i++)EP.push({x:((o&&o.x)||P.x)+rnd(-8,8),y:((o&&o.y)||P.y)-rnd(4,18),vx:rnd(-1.4,1.4),vy:rnd(-1.8,-.3),l:28,c:col,grav:isMine?1:0});
+    toast(`${isMine?'⛏️ ขุดแร่สำเร็จ':'🪵 เก็บทรัพยากร'}: ได้รับ ${mIco(mat,14)} ${MATS[mat].n} ×1`,1800);
+    Save.save&&Save.save();
+  }
   else if(n.type==='puzzle_clue'&&Z.puzzle){say([['📜 ศิลาจารึกปริศนาหอคอย',Z.puzzle.clue],['คำแนะนำ','ไปที่ห้องบอส (ห้อง 3) แล้วจุดเสาผลึก 3 สีตามลำดับที่ระบุในคำใบ้ให้ถูกต้อง']]);}
   else if(n.type==='puzzle_rune'&&Z.puzzle){
     const pz=Z.puzzle,ri=o.ri;
@@ -571,7 +719,7 @@ function interact(n){
     if(Z.puzzle&&!Z.puzzle.solved){toast('🔮 ผนึกปริศนายังไม่คลาย — จุดเสาผลึก 3 สีในห้องบอสตามลำดับก่อน!',3200);SFX.ui&&SFX.ui('error');return;}
     if(n.type==='spire_clear'){
       const isA=Z&&Z.tower==='aether',fk=isA?'aetherSpireCleared':'spireCleared',first=!G.flags[fk];G.flags[fk]=1;G.gold+=first?2500:700;Inv.add('divine',first?2:1);Inv.add('evostone',first?2:1);SFX.level();
-      const speaker=isA?'☀️ ราชาอัศวินแสง ผู้ครอบครอง Aether':'👑 อาร์คเมจแห่งหอคอยคริสตัล';
+      const speaker=isA?'☀️ ราชาอัศวินแสง ผู้ครอบครอง Aether':'🔥 อัศวินวิญญาณเพลิงคราม (บอสชั้น 5)';
       const line=isA?'พลังและความมุ่งมั่นของเจ้าช่างน่าชื่นชม... แสงแห่ง Aether จะจดจำชื่อของเจ้าตลอดไป!':'ยอดเยี่ยมมาก... เจ้าพิชิตหอคอยคริสตัลครบทั้ง 5 ชั้นและผ่านทุกบททดสอบแล้ว!';
       say([[speaker,line]],undefined,()=>{toast(`🏆 พิชิต${isA?'หอคอยอัศวินแสง Aether':'หอคอยคริสตัล'}ครบ 5 ชั้น! ได้รับรางวัลใหญ่ + กลับสู่แผนที่โลก`,4200);if(typeof OW!=='undefined')OW.enter(isA?'spire_aether':'spire');});
       return;
@@ -599,12 +747,14 @@ function interact(n){
   else if(n.type==='fountain'){const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;SFX.level();let extra='';
     if(Diff.cur().restRespawn&&CAVE){let k=0;for(const e of CAVE.foes)if(!e.alive&&!FOES[e.kind].boss&&!FOES[e.kind].miniboss){e.alive=true;e.x=e.home.x;e.y=e.home.y;e.respawn=0;e.cool=120;k++;}if(k)extra+=` · 🔥 ศัตรูในถ้ำฟื้นคืน ${k} ตัว`;}
     {const panDone=G.q&&G.q.pan&&(G.q.pan.step>0||G.q.pan.done);let rc=0;
-      for(const zl of[CAVE,Z])if(zl&&Array.isArray(zl.items))for(const it of zl.items){if(it.taken&&(it.it!=='pan'||!panDone)){it.taken=false;rc++;}}
+      for(const zl of[CAVE,FOREST_ZONE,MINECAVE_ZONE,Z])if(zl&&Array.isArray(zl.items))for(const it of zl.items){if(it.taken&&(it.it!=='pan'||!panDone)){it.taken=false;rc++;}}
       if(rc)extra+=` · ✨ ทรัพยากรตามฉากเกิดใหม่ ${rc} ชิ้น`;}
-    const wasT=G.flags.respawnTower;G.flags.respawnTower=null;G.flags.respawnTown=1;   /* น้ำพุ = จุดเกิดใหม่ในเมือง (แทนเสาแสงหอที่จุดไว้) */
-    for(let i=0;i<20;i++)EP.push({x:o.x+rnd(-12,12),y:o.y-rnd(4,30),vx:rnd(-.4,.4),vy:-rnd(.4,1.2),l:36,c:i%2?'#9fe8ff':'#ffffff'});
+    const zid=(Z&&Z.id)||'town',lbl=zid==='forest'?'น้ำพุป่าไม้คอลลาวาร์รี':zid==='minecave'?'น้ำพุถ้ำขุดแร่คอลลาวาร์รี':zid==='city'?'น้ำพุเมืองหลวงออเรีย':'น้ำพุเมือง Collawarrie';
+    G.flags=G.flags||{};G.flags.respawnTower=null;G.flags.respawnTown=1;
+    G.flags.respawnPoint={kind:'fountain',zoneId:zid,x:(o&&o.x)||P.x,y:((o&&o.y)||P.y)+22,label:lbl};
+    for(let i=0;i<20;i++)EP.push({x:((o&&o.x)||P.x)+rnd(-12,12),y:((o&&o.y)||P.y)-rnd(4,30),vx:rnd(-.4,.4),vy:-rnd(.4,1.2),l:36,c:i%2?'#9fe8ff':'#ffffff'});
     Save.save&&Save.save();
-    toast('💧 น้ำพุศักดิ์สิทธิ์ — HP และ MP ฟื้นเต็ม · ตั้งเป็นจุดเกิดใหม่แล้ว (ตายแล้วจะเกิดที่น้ำพุนี้)'+(wasT?' · ยกเลิกเสาแสงหอเดิม':'')+extra,3800);}
+    toast(`💧 ${lbl} — HP และ MP ฟื้นเต็ม · บันทึกเกมและตั้งเป็นจุดเกิดใหม่แล้ว (ตายแล้วจะเกิดที่น้ำพุนี้)`+extra,3800);}
   else if(n.type==='arena'){UI.open('arena');}
   else if(n.type==='bloodstain'){const r=Diff.recover();if(r){SFX.level();toast(`🩸 เก็บคราบเลือดคืน — ทอง +${r.gold} · EXP +${r.xp}`,3000);if(r.ups)UI.levelUp(r.ups);UI.hud();Save.save();}}
   else if(n.type==='shop'||n.type==='store')UI.open('shop');
@@ -616,7 +766,6 @@ function interact(n){
   else if(n.type==='stonedungeon'||n.type==='lavadungeon'||n.type==='icedungeon'||n.type==='towerdungeon'){
     if(!hasLavaKey()){toast('🔒 ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีสก่อน');return;}
     const th=n.type==='stonedungeon'?'stone':n.type==='lavadungeon'?'lava':n.type==='icedungeon'?'ice':'tower';
-    if(th==='tower'){enterTowerFront('alch');return;}   /* หอนักแปรธาตุ: เข้าลานหน้าหอก่อน */
     enterDungeon(1,th);Save.save();
   }
   else if(n.type==='dungeon'){loadZone(CAVE,T(3,11));G.shake=3;toast('⬇️ ลงสู่ถ้ำชีส (ดันเจี้ยน Lv.1-5)');Save.save();}
@@ -749,6 +898,9 @@ function updExplore(){
   if(Z.id==='town'&&G.mode==='explore'&&Math.abs(P.x-(23*16+16))<18&&P.y>(TOWN_ROWS-2)*16-2){P.y=(TOWN_ROWS-2)*16-10;UI.open('southgate');return;}   // เดินออกทางประตูใต้ -> ทหารยามถามจะเดินทางไปไหน -> Overworld
   if(Z.id==='city'&&G.mode==='explore'&&Math.abs(P.x-(17*16+16))<18&&P.y<3*16+6){P.y=3*16+14;UI.open('citygate');return;}   // ประตูเหนือเมืองหลวง -> เข้าดันเจี้ยน
   if(Z.id==='city'&&G.mode==='explore'&&Math.abs(P.x-(17*16+16))<18&&P.y>(Z.rows-2)*16-2){P.y=(Z.rows-2)*16-10;UI.open('cityexit');return;}   // ออกจากเมืองหลวงกลับ Overworld
+  if(Z.theme==='spire_hall'&&G.mode==='explore'&&Math.abs(P.x-12*16)<20&&P.y>(Z.rows-2)*16-2){interact({type:'ow_spire_exit',o:{}});return;}
+  if(Z.id==='forest'&&G.mode==='explore'&&Math.abs(P.x-14*16)<20&&P.y>(Z.rows-2)*16-2){interact({type:'ow_forest_exit',o:{}});return;}
+  if(Z.id==='minecave'&&G.mode==='explore'&&Math.abs(P.x-14*16)<20&&P.y>(Z.rows-2)*16-2){interact({type:'ow_mine_exit',o:{}});return;}
   if(tap(KB.interact,'Enter','PadA')&&NEAR)interact(NEAR);
 }
 function drawProp(o){
@@ -756,7 +908,91 @@ function drawProp(o){
   if(AS.prop(g,o))return;   // มีภาพจาก AI → ใช้ภาพ
   if(HDP[o.k]){HDP[o.k](o);return;}   // ฉากประกอบรายละเอียดสูง (HD-2D)
   if(['house','colosseum','fountain','stall','board','tree','lamp','citygate','southgate','cavegate','icegate','stonegate','towergate','duelpost','exitup','exitdoor','arena','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','banner','pillar'].includes(o.k))return drawTownProp(o);
-  const x=o.x|0,y=o.y|0;if(o.k!=='stairs'&&o.k!=='portal')shadow(g,x,y,o.hw+2);
+  const x=o.x|0,y=o.y|0;if(o.k!=='stairs'&&o.k!=='portal'&&o.k!=='light_pillar')shadow(g,x,y,o.hw+2);
+  if(o.k==='light_pillar'){
+    const p=.5+Math.sin(G.t*.06)*.3;
+    // วงเวทหินโบราณและตะไคร่น้ำรอบแท่นเสาแสง (ตามภาพต้นแบบ)
+    g.fillStyle='rgba(255,245,180,.14)';g.beginPath();g.ellipse(x,y-2,28,11,0,0,7);g.fill();
+    g.strokeStyle='#8e9278';g.lineWidth=1.6;g.beginPath();g.ellipse(x,y-2,24,9,0,0,7);g.stroke();
+    g.strokeStyle='#b8c094';g.lineWidth=1;g.beginPath();g.ellipse(x,y-2,18,6.8,0,0,7);g.stroke();
+    // ฐานอ่างศิลาโบราณ + ตรารูนสีฟ้าทองด้านหน้า
+    g.fillStyle='#3e423c';g.beginPath();g.ellipse(x,y-2,14,5.5,0,0,7);g.fill();
+    g.fillStyle='#5c6054';g.fillRect(x-13,y-11,26,9);
+    g.fillStyle='#787e6c';g.fillRect(x-10,y-11,7,9);
+    g.fillStyle='#2a302c';g.fillRect(x-4,y-9,8,6);
+    g.fillStyle=`rgba(66,232,255,${.7+p*.3})`;g.fillRect(x-2.5,y-8,5,4);
+    g.fillStyle='#ffe88a';g.fillRect(x-1,y-7,2,2);
+    // ขอบอ่างหินด้านบนติดมอสเรืองแสง
+    g.fillStyle='#8c9474';g.beginPath();g.ellipse(x,y-11,15,5.5,0,0,7);g.fill();
+    g.fillStyle='#c8dc7a';g.beginPath();g.ellipse(x,y-11.5,13,4.4,0,0,7);g.fill();
+    g.fillStyle=`rgba(255,252,210,${.75+p*.25})`;g.beginPath();g.ellipse(x,y-11.5,9.5,3,0,0,7);g.fill();
+    // ลำแสงศักดิ์สิทธิ์ส่องลงมาจากเพดานด้านบน (เสาแสง)
+    const lg=g.createLinearGradient(x,y-135,x,y);
+    lg.addColorStop(0,'rgba(255,248,200,.05)');
+    lg.addColorStop(.35,`rgba(255,244,185,${.18+p*.08})`);
+    lg.addColorStop(1,`rgba(255,250,210,${.36+p*.14})`);
+    g.fillStyle=lg;
+    g.beginPath();g.moveTo(x-9,y-135);g.lineTo(x+9,y-135);g.lineTo(x+15,y-2);g.lineTo(x-15,y-2);g.closePath();g.fill();
+    g.fillStyle=`rgba(255,255,235,${.22+p*.12})`;g.fillRect(x-4,y-135,8,124);
+    if(G.t%7===0)EP.push({x:x+rnd(-11,11),y:y-rnd(10,75),vx:rnd(-.06,.06),vy:-rnd(.2,.45),l:34,c:G.t%14===0?'#7af0ff':'#fff6b8'});
+    return;
+  }
+  if(o.k==='vine_pillar'){
+    // เสาหินโบราณพันเถาวัลย์และดอกไม้ + พืชผลึกเรืองแสงที่โคนเสา
+    g.fillStyle='#4a4c46';g.fillRect(x-8,y-4,16,4);
+    g.fillStyle='#686a62';g.fillRect(x-6,y-38,12,34);
+    g.fillStyle='#86887e';g.fillRect(x-5,y-38,4,34);
+    g.fillStyle='#3c3e38';g.fillRect(x+2,y-38,3,34);
+    g.fillStyle='#565850';g.fillRect(x-8,y-42,16,4);
+    // เถาวัลย์สีเขียวพันรอบเสา
+    g.fillStyle='#32682c';
+    for(const[vx,vy,vw,vh]of[[-6,-34,7,5],[-3,-28,9,4],[-6,-21,8,5],[-2,-14,8,4],[-7,-6,14,4]])g.fillRect(x+vx,y+vy,vw,vh);
+    g.fillStyle='#58a448';
+    for(const[vx,vy]of[[-5,-33],[1,-27],[-4,-20],[2,-13],[-5,-5],[3,-5]])g.fillRect(x+vx,y+vy,3,2);
+    // ดอกไม้เล็กสีชมพูและผลึกฟ้า/ม่วงที่โคนเสา
+    g.fillStyle='#ff6fae';g.fillRect(x-3,y-32,1.5,1.5);g.fillRect(x+2,y-19,1.5,1.5);
+    g.fillStyle='#42e8ff';g.fillRect(x-8,y-3,2,3);g.fillRect(x+7,y-4,2,4);
+    g.fillStyle='#c864ff';g.fillRect(x+5,y-2,2,2);
+    return;
+  }
+  if(o.k==='spire_gate'){
+    const isA=o.tower==='aether',p=.5+Math.sin(G.t*.07)*.3;
+    // บันไดหิน + ซุ้มประตูโค้งทางเข้าดันเจี้ยนหอคอย + รูปปั้นผู้พิทักษ์ด้านใน
+    for(let i=0;i<4;i++){
+      g.fillStyle=i%2?'#5c5e56':'#74766c';
+      g.fillRect(x-16+i*1.5,y-3-i*3,32-i*3,3);
+    }
+    g.fillStyle='#444640';g.fillRect(x-16,y-38,32,26);
+    g.fillStyle='#686a60';g.fillRect(x-18,y-40,36,4);g.fillRect(x-16,y-38,4,26);g.fillRect(x+12,y-38,4,26);
+    g.fillStyle='#18161c';g.beginPath();g.moveTo(x-11,y-12);g.lineTo(x-11,y-27);g.arc(x,y-27,11,Math.PI,0);g.lineTo(x+11,y-12);g.closePath();g.fill();
+    // เงารูปปั้นโบราณและออร่าทางเข้าดันเจี้ยน
+    g.fillStyle='#565850';g.fillRect(x-3,y-28,6,13);g.beginPath();g.arc(x,y-31,2.6,0,7);g.fill();
+    g.fillStyle=isA?`rgba(255,224,102,${.35+p*.35})`:`rgba(180,110,255,${.35+p*.35})`;
+    g.beginPath();g.ellipse(x,y-22,8,10,0,0,7);g.fill();
+    return;
+  }
+  if(o.k==='ore_stone'){
+    // ก้อนสายแร่หินสำหรับขุด
+    g.fillStyle='#5c564e';g.beginPath();g.moveTo(x-10,y);g.lineTo(x-8,y-11);g.lineTo(x-1,y-15);g.lineTo(x+7,y-10);g.lineTo(x+10,y);g.closePath();g.fill();
+    g.fillStyle='#8a8278';g.beginPath();g.moveTo(x-9,y);g.lineTo(x-7,y-10);g.lineTo(x-1,y-14);g.lineTo(x+1,y);g.closePath();g.fill();
+    g.fillStyle='#b8b0a2';g.fillRect(x-5,y-9,4,3);g.fillRect(x+2,y-7,3,3);
+    return;
+  }
+  if(o.k==='ore_iron'){
+    // สายแร่เหล็กประกายเงินฟ้าสำหรับขุด
+    g.fillStyle='#3c424c';g.beginPath();g.moveTo(x-10,y);g.lineTo(x-7,y-12);g.lineTo(x+1,y-16);g.lineTo(x+8,y-11);g.lineTo(x+10,y);g.closePath();g.fill();
+    g.fillStyle='#626c7a';g.beginPath();g.moveTo(x-9,y);g.lineTo(x-6,y-11);g.lineTo(x+1,y-15);g.lineTo(x,y);g.closePath();g.fill();
+    g.fillStyle='#9fc8e8';g.fillRect(x-5,y-10,3,3);g.fillRect(x+2,y-8,4,3);g.fillRect(x-2,y-5,3,2);
+    if((G.t+x)%50<8){g.fillStyle='#ffffff';g.fillRect(x+3,y-12,1.5,3);g.fillRect(x+2,y-11,3.5,1.5);}
+    return;
+  }
+  if(o.k==='hide_rack'){
+    // ราวไม้ตากหนังสัตว์ในป่า
+    g.fillStyle='#5a381e';g.fillRect(x-9,y-16,2,16);g.fillRect(x+7,y-16,2,16);g.fillRect(x-10,y-15,20,2);
+    g.fillStyle='#b87840';g.beginPath();g.moveTo(x-6,y-13);g.lineTo(x+6,y-13);g.lineTo(x+7,y-4);g.lineTo(x,y-2);g.lineTo(x-7,y-4);g.closePath();g.fill();
+    g.fillStyle='#d89c60';g.fillRect(x-4,y-11,8,6);
+    return;
+  }
   if(o.k==='anvil'){g.fillStyle='#3a3036';g.fillRect(x-13,y-11,10,11);g.fillStyle='#ff7a1a';g.fillRect(x-12,y-13,8,3);
     g.fillStyle=G.t%12<6?'#ffd27a':'#ff9a3a';g.fillRect(x-11+((G.t>>3)%5),y-14,2,2);
     g.fillStyle='#2b2b33';g.fillRect(x-1,y-8,13,3);g.fillRect(x+2,y-5,7,4);g.fillRect(x,y-1,11,1);g.fillStyle='#6a6a7a';g.fillRect(x-1,y-9,13,1);g.fillRect(x-4,y-8,3,2);}
@@ -1326,7 +1562,7 @@ function talk(id){
       return;
     }
     const rankLine=nxt
-      ?`แรงค์ปัจจุบันของคุณคือ [Rank ${cur.id} — ${cur.n}] ค่ะ (กิลด์มี 7 ขั้น: F → G → D → C → B → A → S) · ขั้นถัดไป Rank ${nxt.id}: ${pr.reason}`
+      ?`แรงค์ปัจจุบันของคุณคือ [Rank ${cur.id} — ${cur.n}] ค่ะ (กิลด์มี 7 ขั้น: F → E → D → C → B → A → S) · ขั้นถัดไป Rank ${nxt.id}: ${pr.reason}`
       :`สุดยอดมากค่ะ! คุณขึ้นถึงจุดสูงสุดของกิลด์ [Rank S — ${cur.n}] แล้ว!`;
     const extraHint=!G.flags.boroGaveWood
       ?'ดูเหมือนคุณยังต้องการอาวุธอยู่นะคะ! รีบไปหา "โบโร" ที่โรงตีเหล็กในเมืองก่อนเลย เขาจะช่วยเตรียมอาวุธให้คุณเองค่ะ'
@@ -1376,75 +1612,3 @@ function talk(id){
       'ศัตรูที่มีดาว ★ คือผู้พิทักษ์ที่ถูกแสงหินบิดเบือน จนจำศัตรูและมิตรไม่ได้แล้ว','คอมโบที่ทำครบชุดจะแรงขึ้น 20% หมั่นฝึกในหน้าสกิล (K) เพื่อพิสูจน์ว่าคนธรรมดาก็เป็นผู้กล้าได้'];say([[l,tips[(G.flags.tip=(G.flags.tip||0)+1)%tips.length]]]);}
   }
 }
-/* =====================================================================
-   ลานหน้าหอ (ทุกหอ) + เสาแสงจุดเกิดใหม่
-   • เดินจากแผนที่โลก/ประตูเมือง → ลานหน้าหอ → ประตูหอ → ชั้น 1 · ออกจากชั้นในหอจะกลับมาที่ลานนี้
-   • เสาแสง: กด E เพื่อจุดไฟ → ฟื้น HP/MP เต็ม และตั้งเป็นจุดเกิดใหม่ (ตายในการต่อสู้ → เกิดที่เสานี้แทนเมือง)
-   ===================================================================== */
-const TOWER_FRONTS={
-  mage:{n:'🔮 ลานหน้าหอคอยคริสตัลจอมเวท',short:'หอคอยคริสตัล',theme:'spire',biome:'crystal',stone:'#5c5470',stone2:'#857c9a',col:'#c858ff',col2:'#7af0ff'},
-  aether:{n:'⚔️ ลานหน้าหอคอยอัศวินแสง Aether',short:'หอคอยอัศวินแสง Aether',theme:'spire',biome:'sanctum',stone:'#6a6252',stone2:'#a8987a',col:'#ffd858',col2:'#fff2a8'},
-  alch:{n:'🧪 ลานหน้าหอคอยนักแปรธาตุ',short:'หอคอยนักแปรธาตุ',theme:'tower',biome:'tower',stone:'#4a5a52',stone2:'#71867a',col:'#7af0c0',col2:'#c8ffe8'}};
-function makeTowerFront(tower){
-  const D=TOWER_FRONTS[tower]||TOWER_FRONTS.mage,C=30,R=24,gr=Array.from({length:R},()=>Array(C).fill('#'));
-  for(let x=1;x<C-1;x++)gr[2][x]=x%6===3?'T':'^';
-  for(let y=3;y<R-1;y++)for(let x=1;x<C-1;x++)gr[y][x]='.';
-  const props=[
-    {k:'towerfacade',...T(15,11,8,0),hw:6,inter:'tf_enter',tower},
-    {k:'lightpillar',...T(15,16,8,8),hw:7,inter:'tf_pillar',tower},
-    {k:'exitdoor',...T(2,3,8,14),hw:7,inter:'tf_exit'},
-    {k:'crystal',...T(5,11,8,8),hw:5},{k:'crystal',...T(25,11,8,8),hw:5},{k:'crystal',...T(7,20,8,8),hw:5},{k:'crystal',...T(23,20,8,8),hw:5},{k:'crystal',...T(4,5,8,8),hw:5},{k:'crystal',...T(26,5,8,8),hw:5},
-    {k:'lamp',...T(10,15,8,8),hw:4},{k:'lamp',...T(20,15,8,8),hw:4},{k:'lamp',...T(10,19,8,8),hw:4},{k:'lamp',...T(20,19,8,8),hw:4}];
-  for(const dx of[-36,-28,-20,-12,12,20,28,36])props.push({k:'tfwall',x:T(15,11).x+dx,y:T(15,11).y-6,hw:6});   // ฐานหอ (ทึบ มองไม่เห็น) เว้นช่องประตูตรงกลาง
-  return{id:'tfront_'+tower,theme:D.theme,tower,towerFront:1,safe:1,title:D.n,grid:gr,traps:[],spawn:T(15,22),pillarSpawn:T(15,18),
-    levelAt:()=>1,regionAt:()=>'tfront_'+tower,biomeAt:()=>D.biome,props,items:[],npcs:[],foes:[],lavaTiles:[],puddles:{},floor:1};}
-function enterTowerFront(tower,atPillar){const z=makeTowerFront(tower);loadZone(z,atPillar?z.pillarSpawn:z.spawn);CAM.snap=1;G.shake=2;
-  if(!atPillar)toast(`${TOWER_FRONTS[tower].n} — เดินเข้าประตูหอด้านบน · จุดเสาแสงเพื่อตั้งจุดเกิดใหม่`,3400);Save.save&&Save.save();return true;}
-function enterTowerFloor1(tower){
-  if(tower==='alch'){if(typeof hasLavaKey==='function'&&!hasLavaKey()){toast('🔒 ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีสก่อน');return;}enterDungeon(1,'tower');
-    for(const o of Z.props||[])if(o.k==='exitdoor'&&o.inter==='town'){o.inter='tf_back';}Z.tower='alch';Save.save&&Save.save();return;}
-  enterSpire(1,tower);}
-function lightPillar(o){const D=TOWER_FRONTS[o.tower]||TOWER_FRONTS.mage,was=G.flags.respawnTower===o.tower;G.flags.respawnTower=o.tower;
-  const S=StatSync.get();G.hp=S.maxHP;G.mp=S.maxMP;SFX.level&&SFX.level();G.shake=3;
-  for(let i=0;i<26;i++)EP.push({x:o.x+rnd(-8,8),y:o.y-rnd(4,70),vx:rnd(-.5,.5),vy:-rnd(.4,1.6),l:40,c:i%2?D.col:D.col2});
-  if(typeof VFX!=='undefined'){const q=PJ.pt(o.x,o.y);VFX.add('e','holy-light',{x:q.x*2,ground:q.y*2,width:.5,hold:.4});}
-  toast(was?`✨ เสาแสงสว่างอยู่แล้ว — ฟื้น HP/MP เต็ม`:`✨ จุดเสาแสงแล้ว! ถ้าตาย จะเกิดใหม่ที่${D.short}นี้ · ฟื้น HP/MP เต็ม`,3600);UI.hud&&UI.hud();Save.save&&Save.save();}
-SOLID_PROP.add('towerfacade');SOLID_PROP.add('lightpillar');SOLID_PROP.add('tfwall');HDP.tfwall=function(){};
-LABEL.fountain='💧 พักที่น้ำพุ (ฟื้นเต็ม + ตั้งจุดเกิดใหม่)';
-Object.assign(LABEL,{tf_enter:'🚪 เข้าสู่หอคอย (ชั้น 1)',tf_pillar:'✨ จุดเสาแสง (ตั้งจุดเกิดใหม่ + ฟื้นเต็ม)',tf_exit:'⬅️ ออกจากลานหน้าหอ',tf_back:'⬅️ กลับลานหน้าหอ'});
-/* ---- ภาพ: หน้าหอ + เสาแสง ---- */
-HDP.towerfacade=function(o){const D=TOWER_FRONTS[o.tower]||TOWER_FRONTS.mage,x=o.x|0,y=o.y|0,t=G.t,p=.5+Math.sin(t*.07)*.35;
-  const shd=(h,m)=>{const n=parseInt(h.slice(1),16);return`rgb(${Math.min(255,(n>>16&255)*m)|0},${Math.min(255,(n>>8&255)*m)|0},${Math.min(255,(n&255)*m)|0})`;};
-  shadow(g,x,y,40);
-  // ตัวหอ 2 ช่วง (ฐานกว้าง + ช่วงบนเรียว) ไล่แสงซ้ายสว่าง ขวามืด
-  for(const [w,h,by] of [[84,46,y],[60,40,y-46]]){const gr=g.createLinearGradient(x-w/2,0,x+w/2,0);gr.addColorStop(0,D.stone2);gr.addColorStop(.45,D.stone);gr.addColorStop(1,shd(D.stone,.55));
-    g.fillStyle=gr;g.fillRect(x-w/2,by-h,w,h);g.fillStyle='rgba(0,0,0,.16)';for(let ry=by-h+6;ry<by;ry+=6){g.fillRect(x-w/2,ry,w,1);for(let rx=x-w/2+((ry>>1)%2?4:9);rx<x+w/2;rx+=10)g.fillRect(rx,ry-5,1,5);}
-    g.fillStyle=shd(D.stone,.45);g.fillRect(x-w/2-3,by-h-3,w+6,4);g.fillStyle=D.stone2;g.fillRect(x-w/2-3,by-h-3,w+6,1);}
-  // ยอดแหลม + ผลึกลอย
-  g.fillStyle=shd(D.stone,.5);g.beginPath();g.moveTo(x-32,y-86);g.lineTo(x,y-118);g.lineTo(x+32,y-86);g.closePath();g.fill();
-  const cy=y-128+Math.sin(t*.05)*2;const rg=g.createRadialGradient(x,cy,1,x,cy,20);rg.addColorStop(0,`rgba(255,255,255,${.45+p*.3})`);rg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=rg;g.beginPath();g.arc(x,cy,20,0,7);g.fill();
-  g.fillStyle=D.col2;g.beginPath();g.moveTo(x,cy-11);g.lineTo(x+5,cy);g.lineTo(x,cy+8);g.closePath();g.fill();g.fillStyle=D.col;g.beginPath();g.moveTo(x,cy-11);g.lineTo(x-5,cy);g.lineTo(x,cy+8);g.closePath();g.fill();
-  // แถบรูนเรืองแสง 2 แถบ + หน้าต่าง
-  for(const [ry,w] of [[y-30,84],[y-70,60]]){g.globalAlpha=.4+.5*Math.max(0,Math.sin(t*.08+ry));g.fillStyle=D.col2;g.fillRect(x-w/2+2,ry,w-4,1);for(let rx=x-w/2+5;rx<x+w/2-3;rx+=6)g.fillRect(rx,ry-1,1,3);g.globalAlpha=1;}
-  for(const wx of [-18,18]){g.fillStyle='#120c1c';g.fillRect(x+wx-3,y-64,6,10);g.fillStyle=`rgba(${D.col===TOWER_FRONTS.aether.col?'255,220,120':'200,150,255'},${.5+p*.4})`;g.fillRect(x+wx-2,y-63,4,8);}
-  // ประตูโค้งใหญ่ + แสงจากภายใน + บันได
-  g.fillStyle=shd(D.stone,.4);g.beginPath();g.moveTo(x-14,y);g.lineTo(x-14,y-24);g.arc(x,y-24,14,Math.PI,0);g.lineTo(x+14,y);g.closePath();g.fill();
-  g.fillStyle='#0e0816';g.beginPath();g.moveTo(x-11,y);g.lineTo(x-11,y-24);g.arc(x,y-24,11,Math.PI,0);g.lineTo(x+11,y);g.closePath();g.fill();
-  const dg=g.createLinearGradient(0,y-34,0,y);dg.addColorStop(0,'rgba(0,0,0,0)');dg.addColorStop(1,D.col2);g.globalAlpha=.35+p*.35;g.fillStyle=dg;g.fillRect(x-10,y-34,20,34);g.globalAlpha=1;
-  g.fillStyle=D.stone2;g.fillRect(x-20,y,40,3);g.fillStyle=shd(D.stone,.7);g.fillRect(x-24,y+3,48,3);
-  // ธงสองข้างประตู
-  for(const bx of[-30,30]){g.fillStyle=shd(D.stone,.4);g.fillRect(x+bx-1,y-44,2,40);const sw=Math.sin(t*.06+bx)*1.5;g.fillStyle=D.col;g.beginPath();g.moveTo(x+bx,y-42);g.lineTo(x+bx+(bx<0?-8:8)+sw,y-40);g.lineTo(x+bx+(bx<0?-7:7)+sw,y-24);g.lineTo(x+bx,y-28);g.closePath();g.fill();}
-  if(t%8===0)EP.push({x:x+rnd(-10,10),y:y-rnd(2,30),vx:rnd(-.1,.1),vy:-.35,l:30,c:D.col2});};
-HDP.lightpillar=function(o){const D=TOWER_FRONTS[o.tower]||TOWER_FRONTS.mage,x=o.x|0,y=o.y|0,t=G.t,lit=G.flags&&G.flags.respawnTower===o.tower,p=.5+Math.sin(t*.1)*.5;
-  shadow(g,x,y,12);
-  // ฐานหิน 3 ขั้น + วงเวท
-  g.fillStyle='#3a3446';g.fillRect(x-11,y-4,22,4);g.fillStyle='#5a5268';g.fillRect(x-8,y-8,16,4);g.fillStyle='#7a7090';g.fillRect(x-5,y-14,10,6);
-  g.strokeStyle=lit?D.col2:'rgba(160,150,190,.45)';g.lineWidth=1;g.globalAlpha=lit?.5+p*.4:.4;g.beginPath();g.ellipse(x,y-1,16+(lit?p*2:0),5,0,0,7);g.stroke();g.globalAlpha=1;
-  if(lit){// ลำแสงสว่างพุ่งขึ้นฟ้า + แกนขาว + ประกาย
-    const h=86,lg=g.createLinearGradient(0,y-14-h,0,y-14);lg.addColorStop(0,'rgba(255,255,255,0)');lg.addColorStop(.35,D.col2);lg.addColorStop(1,D.col);
-    g.globalAlpha=.32+p*.18;g.fillStyle=lg;g.fillRect(x-7,y-14-h,14,h);g.globalAlpha=.75;g.fillStyle='#ffffff';g.fillRect(x-1,y-14-h*.8,2,h*.8);g.globalAlpha=1;
-    const rg=g.createRadialGradient(x,y-16,1,x,y-16,18);rg.addColorStop(0,'rgba(255,255,255,.8)');rg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=rg;g.beginPath();g.arc(x,y-16,18,0,7);g.fill();
-    if(t%5===0)EP.push({x:x+rnd(-5,5),y:y-rnd(14,40),vx:rnd(-.1,.1),vy:-rnd(.5,1.1),l:44,c:t%10?D.col2:'#ffffff'});
-  }else{// ยังไม่จุด: เปลวเล็กริบหรี่บนยอด
-    g.fillStyle=D.col;g.globalAlpha=.5+p*.3;g.fillRect(x-1,y-18-((t>>3)%2),2,3);g.globalAlpha=1;
-    if(t%24===0)EP.push({x:x,y:y-18,vx:rnd(-.05,.05),vy:-.25,l:24,c:D.col});}};
