@@ -592,7 +592,7 @@ const UI={
   scr_arena(){
     const lo=vsLoadout();
     return`<h2>🏟️ ลานประลอง Collawarrie</h2>
-    <p class="dim">สู้กันแบบนักสู้ต่อนักสู้ ชนะ 2 ใน 3 ยก · <b>ใช้เลเวล แรงค์กิลด์ ค่าพลัง อุปกรณ์ รูน พรสวรรค์ และสกิล 5 ช่องของตัวเอง</b> (ช่อง 1–3 ทั่วไป/หายาก · ช่อง 4 เฉพาะตัวที่ผนึกพร้อมเลเวลอัปเกรด · ช่อง 5 ท่าสุดยอด [L]) · มีขวดยาฟื้นพลัง 3 ครั้ง [Q] และยามานา 3 ครั้ง [R] ต่อยกโดยไม่เสียยาในกระเป๋า · พุ่งหลบ 2 ชาร์จ [Space] · ชนะได้รางวัลสุ่ม 1 ชิ้น (อัตราเดียวกับร้านรีไอเทม ตามเพดานแรงค์กิลด์ปัจจุบัน) · ไม่เสียอะไรเมื่อแพ้</p>
+    <p class="dim">สู้กันแบบนักสู้ต่อนักสู้ ชนะ 2 ใน 3 ยก · <b>ใช้เลเวล แรงค์กิลด์ ค่าพลัง อุปกรณ์ รูน พรสวรรค์ ท่าพิเศษอาวุธ และสกิล 5 ช่องของตัวเอง</b> (ช่อง 1–3 ทั่วไป/หายาก · ช่อง 4 เฉพาะตัวที่ผนึกพร้อมเลเวลอัปเกรด · ช่อง 5 ท่าสุดยอด [L]) · มีขวดยาฟื้นพลัง 3 ครั้ง [Q] และยามานา 3 ครั้ง [R] ต่อยกโดยไม่เสียยาในกระเป๋า · พุ่งหลบ 2 ชาร์จ [Space] (CD 2.5 วิ) · ชนะได้รางวัลสุ่ม 1 ชิ้น (อัตราเดียวกับร้านรีไอเทม ตามเพดานแรงค์กิลด์ปัจจุบัน) · ไม่เสียอะไรเมื่อแพ้</p>
     ${this.vsCardHtml(lo,'⚔️ ชุดประลองปัจจุบันของคุณ')}
     <div class="tal" style="grid-template-columns:1fr">
       <button class="talc" data-open="room"><div class="ti">🌐</div><b>ห้องออนไลน์ (เชิญเพื่อน)</b><p>สร้างห้อง ส่งรหัส 4 ตัวให้เพื่อน แล้วสู้กันคนละเครื่อง (หรือทดสอบข้ามแท็บในเบราว์เซอร์เดียวกัน)</p>
@@ -1411,7 +1411,7 @@ function hpBarB(f,right){
   if(f.isP||f.isP2){const bars=[[f.mp/f.S.maxMP,'#2062d8','#8ee4ff'],[f.sta/f.S.maxSTA,'#249c48','#a8ff7c']];bars.forEach(([v,c1,c2],i)=>{const py=y+h+7+i*10;
     para(x+14,py,280,7,5);D.fillStyle='rgba(5,12,34,.92)';D.fill();D.strokeStyle='rgba(122,216,255,.35)';D.lineWidth=1;D.stroke();
     D.save();para(x+14,py,280,7,5);D.clip();const g2=D.createLinearGradient(x,0,x+300,0);g2.addColorStop(0,c1);g2.addColorStop(1,c2);D.fillStyle=g2;D.fillRect(x+14,py,290*clamp(v,0,1),7);D.restore();});
-    const dcMax=CONFIG.dashMax||2,dc=clamp(f.dashCharges??dcMax,0,dcMax),cdTot=CONFIG.dashCD||120,dy=y+h+27,gap=6,sw=(280-gap*(dcMax-1))/dcMax;
+    const dcMax=CONFIG.dashMax||2,dc=clamp(f.dashCharges??dcMax,0,dcMax),cdTot=CONFIG.dashCD||150,dy=y+h+27,gap=6,sw=(280-gap*(dcMax-1))/dcMax;
     for(let i=0;i<dcMax;i++){const sx=x+14+i*(sw+gap),ready=i<dc,sf=ready?1:(i===dc&&f.dashCD>0?clamp(1-f.dashCD/cdTot,0,1):0);
       para(sx,dy,sw,8,5);D.fillStyle='rgba(5,12,34,.92)';D.fill();D.strokeStyle=ready?'rgba(142,242,255,.88)':'rgba(122,216,255,.32)';D.lineWidth=1;D.stroke();
       if(sf>0){D.save();para(sx,dy,sw,8,5);D.clip();const g3=D.createLinearGradient(sx,0,sx+sw,0);g3.addColorStop(0,ready?'#0ea5e9':'#0c4a6e');g3.addColorStop(1,ready?'#8ef2ff':'#38bdf8');D.fillStyle=g3;D.fillRect(sx,dy,(sw+6)*sf,8);D.restore();}}}

@@ -110,7 +110,7 @@ class NetCore{
   hookSfx(){if(this.sfxOrig)return;this.sfxOrig={};for(const n of SFX_HOOKS){const o=SFX[n];if(typeof o!=='function')continue;this.sfxOrig[n]=o;SFX[n]=(...a)=>{o(...a);this.evq.push({e:'s',n,a});};}}
   unhookSfx(){if(!this.sfxOrig)return;for(const n in this.sfxOrig)SFX[n]=this.sfxOrig[n];this.sfxOrig=null;}
   snap(){const b=BT,F=f=>{const o={x:+f.x.toFixed(1),y:+f.y.toFixed(1),vy:+f.vy.toFixed(2),d:f.dir,s:f.state,ph:f.phase,pt:f.pt,h:Math.round(f.hp*10)/10,sta:Math.round(f.sta),mp:Math.round(f.mp||0),fk:f.flask|0,mn:f.mana|0,iv:f.invuln,fl:f.flash,og:f.onGround?1:0,w:f.walkT,gc:f.gc?1:0,dh:f.didHit?1:0,mv:f.move?f.move.n:null,ms:f.moveSeq,ul:Math.round(f.ult||0),gl:f.guardLeft|0,gb:f.guardBroken|0,pcd:f.potCD|0,dc:f.dashCharges??(CONFIG.dashMax||2),dcd:f.dashCD|0,lm:f.lastMove?f.lastMove.n:null,lt:f.lastT|0,cs:f.comboShow|0,ct:f.comboT|0};
-    if(f.fireShieldT>0)o.fst=f.fireShieldT;if(f.vanishT>0)o.vt=f.vanishT;if(f.parryBuffT>0)o.pbt=f.parryBuffT;if(f.kingAuraT>0)o.kat=f.kingAuraT;if(f.rootT>0)o.rt=f.rootT;
+    if(f.fireShieldT>0)o.fst=f.fireShieldT;if(f.vanishT>0)o.vt=f.vanishT;if(f.parryBuffT>0)o.pbt=f.parryBuffT;if(f.kingAuraT>0)o.kat=f.kingAuraT;if(f.rootT>0)o.rt=f.rootT;if(f.ssHide)o.ssh=1;
     if(f.st8){const st={};for(const k in f.st8)if(f.st8[k])st[k]=f.st8[k].stacks?{t:f.st8[k].t,stacks:f.st8[k].stacks}:{t:f.st8[k].t};if(Object.keys(st).length)o.st=st;}
     if(f.S&&f.S.mods&&f.S.mods.length)o.md=f.S.mods.map(m=>({id:m.id,n:m.n,kind:m.kind,left:m.left,max:m.max}));
     if(f.cd){const cd={};let any=0;for(const k in f.cd)if(f.cd[k]>0){cd[k]=f.cd[k];any=1;}if(any)o.cd=cd;}return o;};
@@ -123,6 +123,7 @@ class NetCore{
       else if(fx.kind==='heal')this.evq.push({e:'fx',kd:'heal',w,sub:fx.sub||'heal'});
       else if(fx.kind==='shield')this.evq.push({e:'fx',kd:'shield',w,c:fx.col});
       else if(fx.kind==='aether')this.evq.push({e:'fx',kd:'aether',w});
+      else if(fx.kind==='ssart')this.evq.push({e:'fx',kd:'ssart',w,ak:fx.artKind});
       else if(fx.kind==='dash'||fx.kind==='blink')this.evq.push({e:'fx',kd:fx.kind,w,x0:Math.round(fx.x0),x1:Math.round(fx.x1),y:Math.round(fx.y),d:fx.dir});}
     for(const f of[b.p,b.e]){const w=f===b.e?1:0;
       if(f.fullCombo&&!f.fullCombo._s){f.fullCombo._s=1;this.evq.push({e:'fc',n:f.fullCombo.n,w});}
@@ -151,7 +152,7 @@ class NetCore{
         if(d.dc!==undefined){f.dashCharges=d.dc;f.dashCD=d.dcd||0;}
         if(f.S)f.S.mods=d.md||[];
         f.cd=Object.assign({},d.cd||{});f.lastMove=d.lm?moveByName(d.lm,f):null;f.lastT=d.lt||0;if(d.cs!==undefined){f.comboShow=d.cs;f.comboT=d.ct||0;}
-        f.fireShieldT=d.fst||0;f.vanishT=d.vt||0;f.parryBuffT=d.pbt||0;f.kingAuraT=d.kat||0;f.rootT=d.rt||0;
+        f.fireShieldT=d.fst||0;f.vanishT=d.vt||0;f.parryBuffT=d.pbt||0;f.kingAuraT=d.kat||0;f.rootT=d.rt||0;f.ssHide=d.ssh||0;
         if(f.st8){for(const k in f.st8)f.st8[k]=(d.st&&d.st[k])||null;}
         if(f.move&&d.ms!==prevSeq&&typeof VFX!=='undefined'){
           const o=f===b.p?b.e:b.p;
@@ -162,12 +163,13 @@ class NetCore{
       b.proj=(s.pj||[]).map(a=>({x:a[0],y:a[1],r:a[2],col:a[3],vx:a[4],rock:a[5],wind:!!a[6],m:a[7]?{el:a[7]}:null,blueflame:!!a[8],greenflame:!!a[9],life:2,o:null}));
       for(const ev of s.ev){if(ev.k&&ev.k<=this.lastEv)continue;if(ev.k)this.lastEv=ev.k;if(ev.e==='z')b.bolts.push({x:ev.x,t:ev.t||14});else if(ev.e==='n')b.nums.push({x:ev.x,y:ev.y,txt:ev.t,col:ev.c,size:ev.z,t:55,ol:ev.o,bn:ev.b});
         else if(ev.e==='b'){b.bursts.push({x:ev.x,y:ev.y,t:0,col:ev.c,el:ev.el||null,big:ev.g,exp:!!ev.ex,star:!!ev.st,dome:!!ev.dm,crit:!!ev.cr});sparks(ev.x,ev.y,ev.c,ev.g?20:10);}
-        else if(ev.e==='pl'){(b.pillars=b.pillars||[]).push({x:ev.x,h:0,maxH:ev.mh,t:ev.t,delay:ev.dl||0,el:ev.el,col:ev.c,frostnova:!!ev.fn,blueFlame:!!ev.bf,greenFlame:!!ev.gf,skyJudge:!!ev.sj,telegraph:ev.tg||0});}
+        else if(ev.e==='pl'){(b.pillars=b.pillars||[]).push({x:ev.x,h:0,maxH:ev.mh,t:ev.t,delay:ev.dl||0,el:ev.el,col:ev.c,frostnova:!!ev.fn,blueFlame:!!ev.bf,greenFlame:!!ev.gf,skyJudge:!!ev.sj,telegraph:!!ev.tg?ev.tg:0});}
         else if(ev.e==='fx'){const tf=ev.w?b.e:b.p;b.moveFx=b.moveFx||[];
           if(ev.kd==='slash')b.moveFx.push(slashFx({actor:tf,x:ev.x,y:ev.y,dir:ev.d,variant:ev.v||0}));
           else if(ev.kd==='heal')b.moveFx.push(healFx({kind:ev.sub||'heal',actor:tf,x:tf.x,y:tf.y}));
           else if(ev.kd==='shield')b.moveFx.push(shieldFx({actor:tf,x:tf.x,y:tf.y,col:ev.c}));
           else if(ev.kd==='aether'&&typeof aetherVfx==='function')b.moveFx.push(aetherVfx({actor:tf}));
+          else if(ev.kd==='ssart'&&typeof SSArt!=='undefined'&&SSArt.guestFx)SSArt.guestFx(tf,tf===b.p?b.e:b.p,ev.ak);
           else if(ev.kd==='dash'||ev.kd==='blink')b.moveFx.push(movementFx({kind:ev.kd,actor:tf,x0:ev.x0,x1:ev.x1,y:ev.y,dir:ev.d}));}
         else if(ev.e==='fc'){const tf=ev.w?b.e:b.p;tf.fullCombo={n:ev.n,t:90};b.fullCombo={n:ev.n,t:90,who:tf};}
         else if(ev.e==='sm'){const tf=ev.w?b.e:b.p;tf.small={t:ev.t,l:ev.l||60};}

@@ -21,8 +21,8 @@ const CONFIG={
   comboWindow:14,           // frames after hit-confirm (into recovery) that accept the next combo step
   comboFailPenalty:14,      // extra recovery frames on a mistimed combo input
   fullComboBonus:.20,
-  dashCD:120,dashMax:2,enemyDashCD:300,dashFrames:16,dashSpeed:7,   // พุ่ง 16 เฟรม × 7 = ~110 พิกเซล ทะลุตัวศัตรูได้
-    // พุ่งหลบผู้เล่น (Space): 2 ชาร์จ · คูลดาวน์ชาร์จละ 2 วิ (120 เฟรม) | มอนและบอส: คูลดาวน์ 5 วิ (300 เฟรม, ยกเว้นสไลม์/โกเลม/หมา/หนู; ราชันย์ลาวา & เซราฟอยู่กับที่เพื่อหลุดคอมโบ)
+  dashCD:150,dashMax:2,enemyDashCD:300,dashFrames:16,dashSpeed:7,   // พุ่ง 16 เฟรม × 7 = ~110 พิกเซล ทะลุตัวศัตรูได้
+    // พุ่งหลบผู้เล่น (Space): 2 ชาร์จ · คูลดาวน์ชาร์จละ 2.5 วิ (150 เฟรม) | มอนและบอส: คูลดาวน์ 5 วิ (300 เฟรม, ยกเว้นสไลม์/โกเลม/หมา/หนู; ราชันย์ลาวา & เซราฟอยู่กับที่เพื่อหลุดคอมโบ)
   levelPoints:2,             // แต้มค่าพลังต่อเลเวล
   enemyStartupMul:.58,       // มอนสเตอร์ทั่วไป/หัวหน้า (ยกเว้น bbqy): ออกท่าและฟื้นตัวเร็วขึ้น 42%
   levelCap:150,             // เลเวลสูงสุด 200 (เมืองแรกจบที่ราว Lv.28-30 หลังจากนั้นเลเวลขึ้นช้าลงเรื่อย ๆ)
@@ -179,9 +179,9 @@ const SKILLS={
   slashwave:{ic:'🌊',n:'คลื่นดาบ',tier:'common',type:'phys',el:'weapon',coef:1.2,cd:4,mp:35,range:'ไกล',anim:'heavyslash',proj:{spd:5.5,r:12,hits:1},combo:1,desc:'ฟันส่งคลื่นพุ่งตรง'},
   emberbolt:{ic:'🔥',n:'ลูกไฟถ่าน',tier:'common',type:'magic',el:'fire',coef:1.1,cd:4,mp:35,range:'ไกล (กระสุน)',anim:'cast',proj:{spd:4.2,r:9,hits:1},status:{burn:1},combo:1,desc:'ลูกไฟเล็ก ทำให้เผาไหม้'},
   sparkfist:{ic:'✨',n:'หมัดประกายไฟ',tier:'common',type:'phys',el:'lightning',coef:1.3,cd:4,mp:35,range:'ใกล้ (44)',anim:'straight',reach:44,status:{shock:1},combo:1,desc:'หมัดธาตุสายฟ้า ทำให้ช็อก'},
-  venomslash:{ic:'🐍',n:'ฟันอสรพิษ',tier:'common',type:'phys',el:'poison',coef:1.2,cd:5,mp:40,range:'ใกล้ (54)',anim:'heavyslash',reach:54,status:{poison:1},combo:1,desc:'ฟันหนัก ติดพิษ 1 สแตก'},
+  venomslash:{ic:'🐍',n:'ฟันอสรพิษ',tier:'common',type:'phys',el:'weapon',coef:1.2,cd:5,mp:40,range:'ใกล้ (54)',anim:'heavyslash',reach:54,status:{poison:1},combo:1,desc:'ฟันหนัก ติดพิษ 1 สแตก'},
   cuttingwind:{ic:'🍃',n:'สายลมคมกริบ',tier:'common',type:'phys',el:'phys',coef:1.5,multi:3,cd:6,mp:35,range:'กลาง (96) 3 ฮิต',anim:'thrust',reach:96,status:{bleed:1},combo:1,desc:'ปล่อยใบมีดลม 3 ใบพุ่งไปตัดกันเป็นกากบาท รวม 150% ATK + เลือดออก 1 สแตก (CD 6 วิ · 35 MP)'},
-  slashcut:{ic:'⚔️',n:'Slash',tier:'common',type:'phys',el:'phys',coef:1.6,multi:4,cd:7,mp:30,range:'ใกล้ (72) 4 ฮิต',anim:'rush',reach:72,lunge:1.1,slashFx:1,combo:1,desc:'ฟันเสี้ยวแสงต่อเนื่อง 4 ครั้ง รวม 160% ATK (CD 7 วิ · 30 MP)'},
+  slashcut:{ic:'⚔️',n:'Slash',tier:'common',type:'phys',el:'weapon',coef:1.6,multi:4,cd:7,mp:30,range:'ใกล้ (72) 4 ฮิต',anim:'rush',reach:72,lunge:1.1,slashFx:1,combo:1,desc:'ฟันเสี้ยวแสงต่อเนื่อง 4 ครั้ง รวม 160% ATK (CD 7 วิ · 30 MP)'},
   // ---- Rare (MP 60-100) ----
   rising:{ic:'🐉',n:'หมัดมังกรฟ้า',tier:'rare',type:'phys',el:'phys',coef:1.8,cd:6,mp:60,range:'ใกล้ (36)',anim:'rising',reach:36,hy:72,hh:96,launch:1,rise:6.6,inv:1,combo:1,desc:'อัปเปอร์คัตกระโดด อมตะช่วงเริ่ม ตีลอย'},
   thunderclap:{ic:'⚡',n:'สายฟ้าฟาด',tier:'rare',type:'magic',el:'lightning',coef:1.6,cd:10,mp:80,range:'กลาง (100)',anim:'cast',strike:100,status:{shock:1},combo:1,desc:'สายฟ้าผ่าเป้าหมายด้านหน้า ทำให้ช็อก + มึน 3 วินาที'},

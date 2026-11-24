@@ -43,10 +43,11 @@ const VFX=(()=>{
   const MAXT={sparkle:1.1,pickup:1.6,impact:1,slash:.8,'muzzle-flash':.6};   /* อายุสูงสุด (วิ) กันเอฟเฟกต์ค้าง */
   const HEAVY=new Set(['sword-rain','lightning','holy-light','shield','black-hole','ice','power-up','explosion','energy']);
   const PX=n=>typeof PXFX!=='undefined'&&PXFX[n];   /* เอฟเฟกต์ pixelfx (js/pxfx.js) ใช้ผ่านสะพานเดียวกัน */
-  function add(space,name,o){const MK=(typeof SFVFX!=='undefined'&&SFVFX[name])||PX(name);if(!on()||!MK)return null;const L=SP[space];if(L.length>=24)return null;
-    if(HEAVY.has(name)&&L.filter(f=>HEAVY.has(f._n)).length>=5)return null;   /* งบประสิทธิภาพ: เอฟเฟกต์หนักพร้อมกันไม่เกิน 5 */
+  function add(space,name,o){const MK=(typeof SFVFX!=='undefined'&&SFVFX[name])||PX(name);if(!on()||!MK)return null;const L=SP[space];if(L.length>=(space==='b'?38:24))return null;
+    if(HEAVY.has(name)&&L.filter(f=>HEAVY.has(f._n)).length>=8)return null;   /* งบประสิทธิภาพ: เอฟเฟกต์หนักพร้อมกันไม่เกิน 8 */
     try{const fx=MK(Object.assign({seed:(Math.random()*1e9)|0,shake},o));fx._n=name;fx._t=0;fx._max=o&&o._max||MAXT[name]||4;L.push(fx);return fx;}catch(e){console.warn('VFX',name,e);return null;}}
-  function tick(space){const L=SP[space],gt=typeof G!=='undefined'?G.t:0;let n=last[space]<0?1:gt-last[space];last[space]=gt;if(n<=0||!L.length)return;n=Math.min(n,4);
+  function tick(space){const L=SP[space],gt=typeof G!=='undefined'?G.t:0;if(space==='b'&&typeof BT!=='undefined'&&BT&&BT.hitstop>0){last.b=gt;return;}
+    let n=last[space]<0?1:gt-last[space];last[space]=gt;if(n<=0||!L.length)return;n=Math.min(n,4);
     for(let i=L.length-1;i>=0;i--){const fx=L[i];try{for(let k=0;k<n;k++)fx.update(1/60);fx._t+=n/60;if(fx.done()||fx._kill||fx._t>fx._max){L.splice(i,1);if(fx._owner&&fx._owner._vfx)for(const t in fx._owner._vfx)if(fx._owner._vfx[t]===fx)delete fx._owner._vfx[t];}}catch(e){L.splice(i,1);}}}
   function render(space,layer){const L=SP[space];if(!L.length)return;const B=buf(),LA=space==='e'?.28:.42,CA=space==='e'?.9:.82;B.cv.u.fill(0);B.lt.u.fill(0);
     for(const fx of L){try{if(layer)fx.draw(B.frame,layer);else{fx.draw(B.frame,'back');fx.draw(B.frame,'front');}}catch(e){fx._kill=1;}}
@@ -132,6 +133,7 @@ const VFX=(()=>{
   if(typeof drawBattle==='function'){const _db=drawBattle;drawBattle=function(){const r=_db.apply(this,arguments);try{VFX.frameBattleBack();VFX.frameBattleFront();}catch(e){}return r;};}
   if(typeof drawExplore==='function'){const _de=drawExplore;drawExplore=function(){const r=_de.apply(this,arguments);try{VFX.frameExplore();}catch(e){}return r;};}
   if(typeof startBattle==='function'){const _sb=startBattle;startBattle=function(){VFX.clear('b');return _sb.apply(this,arguments);};}
+  if(typeof setupBattle==='function'){const _stb=setupBattle;setupBattle=function(){VFX.clear('b');return _stb.apply(this,arguments);};}
   if(typeof LootManager!=='undefined'&&LootManager.pickup){const _pk=LootManager.pickup;LootManager.pickup=function(zone,gi){const r=_pk.apply(this,arguments);
     try{if(r&&r.ok&&gi&&!BT){const q=PJ.pt(gi.x,gi.y),rar=gi.drop&&gi.drop.rar,it=gi.drop&&gi.drop.kind==='gold'?'coin':(rar==='epic'||rar==='legendary'||rar==='god')?'orb':'gem';
       VFX.add('e','pickup',{x:q.x*2,y:q.y*2-8,item:it,actor:VFX.actorE(),magnet:true,wait:.05,palette:rar&&typeof RARC!=='undefined'&&RARC[rar]?['#ffffff',RARC[rar],'#1a1020']:undefined});}}catch(e){}return r;};}

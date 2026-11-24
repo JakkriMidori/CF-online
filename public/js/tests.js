@@ -74,9 +74,9 @@ function runTests(){
     const kinds=new Set([...a.foes,...b.foes].map(f=>f.kind));return{ok:!!g&&a.id==='tower1'&&b.id==='tower2'&&[...kinds].every(k=>['mslime','homunc','gargoyle'].includes(k))&&Object.keys(a.puddles).length>0&&r.foes[0].kind==='homunculus'&&FOES.homunculus.fixedLv===38&&THEME_BOSS.tower==='homunculus'&&!!LOOT_TABLES.tower&&!!LOOT_TABLES.homunculus&&!LootManager.validateAll().some(x=>/tower|homunc/.test(x)),info:[...kinds].join(',')};});
   T('TW2) ชุดนักแปรธาตุ (พิษ): 4 ชิ้นหายาก = ต้านพิษ 25% + ติดพิษ · DoT ไม่มีโบนัส · มีตราล็อก (ศิลานักแปรธาตุ)',()=>{const L=[...['h_alch','a_alch','g_alch','b_alch'].map(k=>newItem(k,'normal',1))],sb=activeSetBonuses(L);const f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);Status.apply(f,'burn',1,{S:{dotPct:.3}});
     return{ok:sb.length===1&&sb[0].n===4&&sb[0].b.res_poison===.25&&sb[0].b.passive==='toxicTouch'&&Status.dps(f)===Math.round(Status.stdATK(1)*CONFIG.dot2.burn.pct)&&!!MATS.philostone,info:'DoT '+Status.dps(f)};});
-  T('HX1) Hexweaver ติดซ้ำ = เวลาต่อท้ายไม่มีเพดาน (สายอื่นรีเฟรช) · พุ่งหลบคูลดาวน์ 2 วิ · บอสไม่ล้ม',()=>{const H=Stats.derive(Object.assign({},BASE_ATTR),{},1,'hexweaver',new Set()),N=Stats.derive(Object.assign({},BASE_ATTR),{},1,'lucky',new Set());
+  T('HX1) Hexweaver ติดซ้ำ = เวลาต่อท้ายไม่มีเพดาน (สายอื่นรีเฟรช) · พุ่งหลบคูลดาวน์ 2.5 วิ · บอสไม่ล้ม',()=>{const H=Stats.derive(Object.assign({},BASE_ATTR),{},1,'hexweaver',new Set()),N=Stats.derive(Object.assign({},BASE_ATTR),{},1,'lucky',new Set());
     const mk=()=>{const f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);return f;},a=mk(),b=mk();for(let i=0;i<12;i++){Status.apply(a,'burn',1,{S:H});Status.apply(b,'burn',1,{S:N});}
-    return{ok:a.st8.burn.t>b.st8.burn.t*10&&b.st8.burn.t===CONFIG.statusDur&&CONFIG.dashCD===120,info:(a.st8.burn.t/60).toFixed(1)+' วิ vs '+(b.st8.burn.t/60).toFixed(1)+' วิ'};});
+    return{ok:a.st8.burn.t>b.st8.burn.t*10&&b.st8.burn.t===CONFIG.statusDur&&CONFIG.dashCD===150,info:(a.st8.burn.t/60).toFixed(1)+' วิ vs '+(b.st8.burn.t/60).toFixed(1)+' วิ'};});
   T('BQ1) bbqy: ATK 2700 และทุกการโจมตีเป็นเวท (ใช้ M.DEF หัก)',()=>{const d=FOES.duelist,E=Stats.enemy(d,100,false);G.mode='explore';BT=null;const sv=Z;
     setupBattle(mkFoe('duelist',{x:300,y:150}));const b=BT;b.intro=0;let typ=null;const o=G.dmgLog.length;for(let i=0;i<8&&G.dmgLog.length===o;i++){b.p.state='idle';b.p.invuln=0;b.p.guardLeft=0;applyHit(b.e,b.p,WEAPONS.sword.light[0],1);}typ=G.dmgLog[0]&&G.dmgLog[0].type;BT=null;G.mode='explore';
     return{ok:d.base.atk===2700&&E.ap===2700&&E.mpow===2700&&d.allMagic&&typ==='magic',info:'ATK '+E.ap+' · '+typ};});
@@ -619,6 +619,30 @@ function runTests(){
     p.ssq=[{k:'G',t:t0-60},{k:'G',t:t0-40},{k:'A',t:t0-10}];const r1=SSArt.ready(p);p.ssq=[{k:'G',t:t0-60},{k:'A',t:t0-40},{k:'A',t:t0-10}];const r2=SSArt.ready(p);
     p.ssq=[{k:'G',t:t0-300},{k:'G',t:t0-280},{k:'A',t:t0-250}];const r3=SSArt.ready(p);
     return{ok:ok1&&r1&&!r2&&!r3&&SS_MOVE.launch.launch&&SS_MOVE.fin.kd,info:[r1,r2,r3].join()};});
+  T('SS2) ท่าพิเศษครบทุกอาวุธ 9 ฮิตทั้งหมด (รวมดาบใหญ่ 9 ฮิต · ค้อนสตัน 2 วิ · ไม้เท้าดาเมจเวท · รองรับมอนปกติและบอส · จบกลับมายืนปกติ + มี PXFX ครบ)',()=>{
+    const wts=['sword','gsword','spear','hammer','ghammer','frostaxe','scythe','fist','mstaff'],bad=[];
+    const pxfxOk=typeof PXFX!=='undefined'&&['sword','gsword','spear','hammer','axe','scythe','fist','staff'].every(k=>typeof PXFX['art-'+k]==='function');
+    const prevVfx=typeof VFX!=='undefined'?VFX.on:false;if(typeof VFX!=='undefined')VFX.on=false;
+    try{
+      for(const foeK of['rat','dragonking']){
+        for(const wt of wts){
+          loadZone(makeDungeon(1,'stone'));const f=mkFoe(foeK,{x:P.x+48,y:P.y});Z.foes.push(f);
+          setupBattle(f);G.mode='battle';BT.intro=0;
+          const p=BT.p,e=BT.e;p.wpn=wt;p.sta=100;p.ssCD=0;p.onGround=false;p.y=GY-24;
+          p.x=180;e.x=236;e.hp=e.maxHp=999999;e.S.evasion=0;e.st8={};
+          const t0=G.t;p.ssq=[{k:'G',t:t0-30},{k:'G',t:t0-18},{k:'A',t:t0-6}];
+          const h0=p.hits||0,started=SSArt.tryStart(p,{air:1});
+          if(!started){bad.push(`${wt}@${foeK}:nostart`);continue;}
+          for(let i=0;i<130&&BT.ssArt;i++)SSArt.step();
+          const dh=(p.hits||0)-h0;
+          if(dh!==9)bad.push(`${wt}@${foeK}:hits=${dh}`);
+          if(BT.ssArt||p.ssLock||p.ssHide||p.state!=='idle'||!p.onGround||p.y!==GY)bad.push(`${wt}@${foeK}:end=${p.state}/${p.y}`);
+          if((wt==='hammer'||wt==='ghammer')&&foeK==='rat'&&!(e.st8&&e.st8.stun&&e.st8.stun.t>=110))bad.push(`${wt}:nostun`);
+          if(wt==='mstaff'&&(!G.dmgLog[0]||G.dmgLog[0].type!=='magic'))bad.push('staff:notmagic');
+        }
+      }
+    }finally{if(typeof VFX!=='undefined')VFX.on=prevVfx;BT=null;G.mode='explore';}
+    return{ok:pxfxOk&&!bad.length&&ARTS.gsword.mid===7,info:bad.length?bad.join(', '):'9 อาวุธ × มอน/บอส = 9 ฮิตครบ + PXFX 8 ชุด'};});
   T('V26-1) bbqy: สะท้อน 20% · ดาบ bbqy ตำนาน +ทุกสเตต 10 · โอกาสโกลาหล 20% · โกลาหล 4 วิ ติดซ้ำไม่ได้',()=>{
     const it=newItem('w_bbqy','legendary',5),st=itemStats(it),f={st8:{},S:{statusRes:0},statusRes:{}};Status.init(f);
     const r1=Status.apply(f,'chaos',1,null,4),t0=f.st8.chaos.t,r2=Status.apply(f,'chaos',1,null,4);
@@ -662,22 +686,49 @@ function runTests(){
     p.onGround=true;p.y=GY;p.state='attack';p.move={kind:'light',dmg:5,s:4,a:6,r:8};p.cmb={c:[COMBOS[0]],prog:1};p.dashCD=0;p.dashCharges=2;hitSpace();escAtk=p.state==='dash'&&!p.move&&!p.cmb;
     BT=null;G.mode='explore';
     return{ok:noPran&&noPit&&escHurt&&escAir&&escAtk,info:`noPran=${noPran} noPit=${noPit} escHurt=${escHurt} escAir=${escAir} escAtk=${escAtk}`};});
-  T('V28-2) Dash มี 2 ชาร์จ CD 2 วิ · กด AA/DD กลิ้งหลบระยะใกล้ได้ปกติโดยไม่กินชาร์จ Dash',()=>{
+  T('V28-2) Dash มี 2 ชาร์จ CD 2.5 วิ · กด AA/DD กลิ้งหลบระยะใกล้ได้ปกติโดยไม่กินชาร์จ Dash',()=>{
     loadZone(makeDungeon(1,'stone'));const e=mkFoe('rat',{x:P.x+80,y:P.y});Z.foes.push(e);setupBattle(e);G.mode='battle';BT.intro=0;const p=BT.p,gt0=G.t;
     const tapK=k=>{pressed[k]=true;keys[k]=true;try{control(p,BT.e);}finally{keys[k]=false;pressed[k]=false;}};
     p.dashCharges=2;p.dashCD=0;
     tapK('Space');const c1=p.dashCharges,cd1=p.dashCD,spDist=Math.abs(p.dashV)*CONFIG.dashFrames;
     p.state='idle';p.st=0;tapK('Space');const c2=p.dashCharges,cd2=p.dashCD;
     p.state='idle';p.st=0;tapK('Space');const blocked=p.dashCharges===0&&p.state!=='dash';
-    p.state='idle';p.st=0;p.dashCD=120;for(let i=0;i<120;i++)control(p,BT.e);const r1=p.dashCharges,rcd=p.dashCD;
-    for(let i=0;i<120;i++)control(p,BT.e);const r2=p.dashCharges,rcd2=p.dashCD;
+    p.state='idle';p.st=0;p.dashCD=150;for(let i=0;i<150;i++)control(p,BT.e);const r1=p.dashCharges,rcd=p.dashCD;
+    for(let i=0;i<150;i++)control(p,BT.e);const r2=p.dashCharges,rcd2=p.dashCD;
     p.state='idle';p.st=0;p.sta=100;p.dashCharges=2;G.t=100;tapK('KeyD');p.state='idle';G.t=106;tapK('KeyD');
     const ddOk=p.state==='dodge'&&p.dashV>0&&p.invuln>=10&&p.dashCharges===2&&Math.abs(p.dashV)*p.st<spDist;
     p.state='idle';p.st=0;p.dashV=0;G.t=130;tapK('KeyA');p.state='idle';G.t=136;tapK('KeyA');
     const aaOk=p.state==='dodge'&&p.dashV<0&&p.invuln>=10&&p.dashCharges===2&&Math.abs(p.dashV)*p.st<spDist;
     G.t=gt0;BT=null;G.mode='explore';
-    return{ok:CONFIG.dashMax===2&&CONFIG.dashCD===120&&c1===1&&cd1===120&&c2===0&&cd2>0&&blocked&&r1===1&&rcd===120&&r2===2&&rcd2===0&&ddOk&&aaOk,
+    return{ok:CONFIG.dashMax===2&&CONFIG.dashCD===150&&c1===1&&cd1===150&&c2===0&&cd2>0&&blocked&&r1===1&&rcd===150&&r2===2&&rcd2===0&&ddOk&&aaOk,
       info:`c=${c1}→${c2},cd=${cd1},blocked=${blocked},regen=${r1}→${r2},dd=${ddOk},aa=${aaOk}`};});
+  T('SS3) ท่าพิเศษไม่ทิ้งเอฟเฟกต์ค้างหลังจบท่า + ใช้ใน Arena (VS ทั้ง P1 และ P2) ได้ครบ 9 ฮิต',()=>{
+    const wts=['sword','gsword','spear','hammer','frostaxe','scythe','fist','mstaff'],bad=[];
+    for(const wt of wts){
+      loadZone(makeDungeon(1,'stone'));const dm=mkFoe('dummy',{x:P.x+48,y:P.y});Z.foes.push(dm);
+      setupBattle(dm);G.mode='battle';BT.intro=0;
+      const p=BT.p,e=BT.e;p.wpn=wt;p.sta=100;p.ssCD=0;p.x=200;p.y=GY-20;p.onGround=false;e.x=260;e.hp=e.maxHp=999999;
+      const t0=G.t;p.ssq=[{k:'G',t:t0-24},{k:'G',t:t0-14},{k:'A',t:t0-4}];
+      if(!SSArt.tryStart(p,{air:1})){bad.push(wt+':nostart');continue;}
+      for(let i=0;i<240;i++){G.t++;updBattleCore();}
+      if(BT.ssArt||(BT.moveFx&&BT.moveFx.some(fx=>fx.kind==='ssart')))bad.push(wt+':lingeringMoveFx');
+    }
+    // ทดสอบ Arena (BT.vs): ทั้ง P1 และ P2 ออกท่าพิเศษใส่กันได้ครบ 9 ฮิตและไม่ค้าง
+    G.vsNet=null;setupVS([0,0],1);BT.intro=0;
+    const p1=BT.p,p2=BT.e;p1.wpn='gsword';p2.wpn='scythe';p1.hp=p1.maxHp=99999;p2.hp=p2.maxHp=99999;p1.S.evasion=0;p2.S.evasion=0;
+    p1.x=200;p2.x=270;p1.sta=100;p1.ssCD=0;p1.y=GY-20;p1.onGround=false;
+    let t0=G.t;p1.ssq=[{k:'G',t:t0-24},{k:'G',t:t0-14},{k:'A',t:t0-4}];
+    const h1=p1.hits||0,okP1=SSArt.tryStart(p1,{air:1});
+    for(let i=0;i<220;i++){G.t++;updBattleCore();}
+    const d1=(p1.hits||0)-h1,clean1=!BT.ssArt&&!(BT.moveFx&&BT.moveFx.some(fx=>fx.kind==='ssart'));
+    p2.x=270;p1.x=200;p2.sta=100;p2.ssCD=0;p2.y=GY-20;p2.onGround=false;
+    t0=G.t;p2.ssq=[{k:'G',t:t0-24},{k:'G',t:t0-14},{k:'A',t:t0-4}];
+    const h2=p2.hits||0,okP2=SSArt.tryStart(p2,{air:1});
+    for(let i=0;i<220;i++){G.t++;updBattleCore();}
+    const d2=(p2.hits||0)-h2,clean2=!BT.ssArt&&!(BT.moveFx&&BT.moveFx.some(fx=>fx.kind==='ssart'));
+    wrap.classList.remove('battle','vs');BT=null;G.mode='explore';
+    return{ok:!bad.length&&okP1&&d1===9&&clean1&&okP2&&d2===9&&clean2,
+      info:bad.length?bad.join(','):`clean=8/8 arenaP1=${d1}hits arenaP2=${d2}hits`};});
   T('V28-3) มอนสเตอร์/บอสที่พุ่งได้ใช้ Dash (คูลดาวน์ 5 วิ = 300 เฟรม) ยกเว้นหุ่นซ้อมและกลุ่มสไลม์/โกเลม/หมา/หนู',()=>{
     loadZone(makeDungeon(1,'stone'));const m=mkFoe('kage',{x:P.x+160,y:P.y});Z.foes.push(m);setupBattle(m);G.mode='battle';BT.intro=0;
     const e1=BT.e,mDash=enemyDash(e1,e1.dir),mCd=e1.dashCD,mBlocked=!enemyDash(e1,e1.dir);
