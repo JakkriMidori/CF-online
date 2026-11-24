@@ -4,7 +4,7 @@
    ============================================================ */
 const $=s=>document.querySelector(s);
 const wrap=$('#wrap'),cv=$('#c'),D=cv.getContext('2d');
-const W=480,H=270,S=2,GY=236,GRAV=.34,FPS=60;
+let W=480,H=270;const W0=480,H0=270,S=2,GY=236,GRAV=.34,FPS=60;   /* W/H เปลี่ยนชั่วคราวตอนวาดดันเจียนแบบซูมออก (ดู drawExplore) */
 const BZ=.56,BW=Math.round(W/BZ);   // กล้องฉากต่อสู้: ซูมออก (สเกล 0.56) → พื้นที่ต่อสู้กว้างขึ้นเป็น ~857
 const bsx=x=>x*BZ,bsy=y=>GY+(y-GY)*BZ;   // แปลงพิกัดโลกการต่อสู้ → พิกัดจอ
 const mk=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c;};
@@ -158,9 +158,17 @@ const SLIME=["....oooooo....", "..oohhllllo...", ".ohhllllllloo.", ".ohlllllllll
 const WOLF=["..............o.o.", ".............owow.", "............owwwwo", "o..........owwwewo", "wo.oooooooowwwwwnn", ".owwwwwwwwwwwwwwo.", ".owwwwwwwwwwwwdo..", ".odwwwwwwwwwwwdo..", "..odddddddddddo...", "..ow.ow....ow.ow..", "..ow.ow....ow.ow..", "..oo.oo....oo.oo.."];
 const DUMMY=["......oooo......",".....ohhhho.....",".....ohssho.....","......oooo......","..oooowttwoooo..",".ohhhhtrrthhhho.",".ohssstrwtsssho.","..oooowttwoooo..","......owwo......","......owwo......","......owwo......","....oowwwwoo...."];
 PAL.dummy={o:'#2a1c12',h:'#e8c878',s:'#c89a42',w:'#8a5628',t:'#f2f2f2',r:'#e03a3a'};
-const SPR={RAT,GOLEM,ANGEL,SLIME,WOLF,DUMMY};
+const DRAGON=["......................h...h...",".....................ohh.hho..","..ooo...............obbbbbbo..",".owWWo.............obbbbbebbo.","owwwWWo............obbbbbbbbtt","owwwwWWo..........obbbbddoott.",".owwwwWWo........obbbbdo......","..owwwwWWooooo..obbbbbdo......","...owwwwbbbbbbbbbbbbbbdo......",".ooobbbbbbbbbbbbbbbbbdo.......","obbbbbbbbbbbbbbbbbbbbdo.......",".oo.obbdddddddddddddo.........","....obbo.obbo...obbo.obbo.....","...obbo..obo....obo..obo......","...ooo...oo.....oo...oo......."];
+/* ดินแดนมังกร: o เส้นขอบ · b ตัว · d ท้อง · w/W ปีก · e ตา · h เขา · t ไฟ/เขี้ยว */
+PAL.drake={o:'#2a0a06',b:'#c8401e',d:'#f0a050',w:'#e86a2a',W:'#8a2010',e:'#ffe23a',h:'#f3d08a',t:'#ffb03a'};
+PAL.thornwyrm={o:'#141c0c',b:'#4a6a2a',d:'#a8b860',w:'#6a8a3a',W:'#2e4218',e:'#ff4a3a',h:'#e8e0a0',t:'#e8e0a0'};
+PAL.wyvern={o:'#0c1424',b:'#3a5a9a',d:'#9ac8ff',w:'#5a8ad8',W:'#24407a',e:'#e8fbff',h:'#cfe8ff',t:'#7ad8ff'};
+PAL.dragonking={o:'#1a0404',b:'#8a1a14',d:'#e8a040',w:'#b0281a',W:'#4a0a08',e:'#ffee5a',h:'#ffd23a',t:'#ff7a1a'};
+PAL.dragonbandit={h:'#3a4a2a',s:'#d8a878',e:'#ffb03a',c:'#3a4a2a',b:'#c8d070',p:'#2e3c22',f:'#2a3a1c'};
+const SPR={RAT,GOLEM,ANGEL,SLIME,WOLF,DUMMY,DRAGON};
 function spr(ctx,map,pal,x,y,sc,flip,tint,f){
   if(map===GOLEM&&typeof RIG_HD!=='undefined'&&RIG_HD.on)return drawGolemHD(ctx,pal,x,y,sc,flip,tint,f);
+  if(map===DRAGON&&typeof RIG_HD!=='undefined'&&RIG_HD.on)return drawDragonHD(ctx,pal,x,y,sc,flip,tint,f);
   const h=map.length,w=map[0].length,ox=Math.round(x-w*sc/2),oy=Math.round(y-h*sc);
   for(let r=0;r<h;r++){const row=map[r];for(let c=0;c<w;c++){const ch=row[c];if(ch==='.')continue;
     ctx.fillStyle=tint||pal[ch]||'#f0f';ctx.fillRect(ox+(flip?w-1-c:c)*sc,oy+r*sc,sc,sc);}}
@@ -1361,6 +1369,198 @@ function drawGolemHD(ctx,pal,x,y,sc,flip,tint,f){
   ctx.restore();
   if(key){if(RCACHE.size>700)RCACHE.clear();const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(RIGC,cx0,cy0,cw,ch,0,0,cw,ch);RCACHE.set(key,{c,dx:cx0-ox,dy:cy0-oy});}
 }
+/* ===== โมเดลมังกร HD-2D ใหม่ (ราชามังกร · มังกรเพลิงวัยเยาว์ · มังกรหนาม · ไวเวิร์นอสนี) =====
+   ท่าทางทรงพลังอกตั้ง · ปีกค้างคาว 2 ชั้นกางสง่า · เกล็ดท้องเป็นปล้อง · เขาวงราชันย์ · กรามอ้าพ่นไฟ · หางหนามใบมีด
+   ผ่าน rigShade ให้เส้นขอบและแรเงาพิกเซลอาร์ต HD-2D คมชัด */
+function drawDragonChibi(ctx,ox,oy,px,dir,pal,P,tint){
+  pal=pal||{};ctx.setTransform(px*dir,0,0,px,ox,oy);ctx.lineJoin='round';
+  const T=!!tint,C=c=>tint||c,Dk=(c,m)=>tint||shade(c,m),lw=1/px;
+  const b0=pal.b||'#8a1a14',d0=pal.d||'#e8a040',w0=pal.w||'#b0281a',W0=pal.W||'#4a0a08';
+  const cMid=C(b0),cLt=Dk(b0,1.22),cHi=Dk(b0,1.42),cDk=C(W0),cOut=C(pal.o||'#1a0404');
+  const cBel=C(d0),cBelD=Dk(d0,.72),cWing=C(w0),cWingD=Dk(w0,.68);
+  const cHorn=C(pal.h||'#ffd23a'),cHornD=Dk(pal.h||'#ffd23a',.68);
+  const cEye=C(pal.e||'#ffee5a'),cFire=C(pal.t||'#ff7a1a'),cCore=T?tint:'#fff6d6';
+  const isKing=b0==='#8a1a14',isWyvern=!!P.hover||pal.t==='#7ad8ff',isThorn=b0==='#4a6a2a';
+  const fill=(col,edge)=>{ctx.fillStyle=col;ctx.fill();if(edge&&!T){ctx.strokeStyle=edge;ctx.lineWidth=lw;ctx.stroke();}};
+  const poly=(pts,col,edge)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);ctx.closePath();fill(col,edge);};
+  const ell=(cx,cy,rx,ry,col,edge,rot=0)=>{ctx.beginPath();ctx.ellipse(cx,cy,Math.max(.1,rx),Math.max(.1,ry),rot,0,7);fill(col,edge);};
+  const cap=(a,b,ra,rb,col,edge)=>{const dx=b[0]-a[0],dy=b[1]-a[1],an=Math.atan2(dy,dx),H=Math.PI/2;ctx.beginPath();ctx.arc(a[0],a[1],ra,an+H,an+3*H);ctx.arc(b[0],b[1],rb,an-H,an+H);ctx.closePath();fill(col,edge);};
+
+  const br=P.br||0,wk=P.wk||0,atk=P.atk||0,beam=P.beam||0,wg=P.wg||0,tl=P.tl||0,weak=P.weak||0;
+  const bodyY=br*.25+(atk===1?-.45:atk===2?.4:0)+(isWyvern?br*.45:0);
+  const hX=(atk===1?-1.1:atk===2?1.8:0)+(beam?.8:0),hY=bodyY+(atk===1?-.8:atk===2?.7:0);
+  const jaw=beam?1.85:atk===1?1.05:atk===2?1.35:.2+(br+1)*.12;
+  const fLift=Math.max(0,wk)*.9,bLift=Math.max(0,-wk)*.9;
+
+  // 1) ปีกหลัง (สีเข้มกว่าเพื่อสร้างมิติลึก + เว้าโค้งแบบปีกมังกร)
+  const fwUp=-17.2-wg*.85,fwTipY=-12.8-wg*1.15;
+  poly([[-1.6,-10.2+bodyY],[-5.8,fwUp],[-14.6,fwTipY],[-12.4,-9.8-wg*.6],[-11.4,-7.8+bodyY-wg*.3],[-8.8,-9.2+bodyY],[-7.8,-7.4+bodyY],[-4.8,-8.8+bodyY]],cWingD,cOut);
+  cap([-1.6,-10.2+bodyY],[-5.8,fwUp],.75,.55,cDk,cOut);
+  cap([-5.8,fwUp],[-14.6,fwTipY],.55,.35,cDk,cOut);
+  if(!T){ctx.strokeStyle=cDk;ctx.lineWidth=lw*.95;ctx.beginPath();ctx.moveTo(-5.8,fwUp);ctx.lineTo(-11.4,-7.8+bodyY-wg*.3);ctx.moveTo(-5.8,fwUp);ctx.lineTo(-7.8,-7.4+bodyY);ctx.stroke();}
+
+  // 2) หางมังกรมีปล้อง + หนามสันหลัง + ปลายหางใบมีด
+  const t1=[-4.5,-5.0+bodyY],t2=[-9.5,-3.2+bodyY+tl*.35],t3=[-13.6,-6.2+tl*.85],t4=[-15.8,-8.8+tl*1.1];
+  cap(t1,t2,1.95,1.25,cMid,cOut);cap(t2,t3,1.25,.8,cMid,cOut);cap(t3,t4,.78,.42,cDk,cOut);
+  poly([[t1[0]-.2,t1[1]+1.5],[t2[0],t2[1]+1.05],[t3[0],t3[1]+.65],[t2[0],t2[1]+.2],[t1[0],t1[1]+.4]],cBelD);
+  const spH=isThorn?1.75:1.15;
+  for(const[sx,sy]of[[-6.8,-4.5+bodyY*.7],[-9.4,-3.9+tl*.3],[-11.8,-5.2+tl*.6],[-13.8,-7.1+tl*.9]]){
+    poly([[sx-.7,sy],[sx-.2,sy-spH],[sx+.7,sy]],cHornD,cOut);
+  }
+  // ปลายหางใบมีดแฉก
+  poly([[t4[0]+.6,t4[1]+.3],[t4[0]-1.4,t4[1]-1.2],[t4[0]-1.1,t4[1]+.2],[t4[0]-.2,t4[1]+1.3]],cHorn,cOut);
+
+  // 3) ขาฝั่งไกล (เงามืด)
+  const bHip=[-3.2,-4.6+bodyY],bFootX=-3.2-wk*1.4,bFootY=isWyvern?-1.0+bodyY:-bLift;
+  const bKnee=[bHip[0]-.9,bHip[1]+2.3];
+  cap(bHip,bKnee,1.55,1.1,cDk,cOut);cap(bKnee,[bFootX,bFootY-.6],1.05,.85,cDk,cOut);
+  poly([[bFootX-1.1,bFootY-.8],[bFootX+1.7,bFootY-.8],[bFootX+2.0,bFootY],[bFootX-1.2,bFootY]],cDk,cOut);
+  for(const cx0 of[.6,1.5,2.2])poly([[bFootX+cx0-.2,bFootY-.4],[bFootX+cx0+.6,bFootY],[bFootX+cx0-.1,bFootY]],cHornD);
+  if(!isWyvern){
+    const bfSh=[1.8,-7.6+bodyY],bfHd=atk===1?[4.2,-10.0+bodyY]:atk===2?[6.8,-6.2+bodyY]:[2.8+wk*.9,-1.0];
+    cap(bfSh,bfHd,1.05,.8,cDk,cOut);
+    poly([[bfHd[0]-.6,bfHd[1]-.4],[bfHd[0]+1.6,bfHd[1]],[bfHd[0]+.8,bfHd[1]+.7]],cHornD,cOut);
+  }
+
+  // 4) ลำตัวมังกรอกตั้ง + เกราะท้องปล้อง + แกนเพลิงกลางอก + หนามหลัง
+  poly([[-5.4,-5.0+bodyY],[-4.2,-8.6+bodyY],[.4,-11.2+bodyY],[4.4,-10.2+bodyY],[4.8,-5.2+bodyY],[1.2,-2.9+bodyY],[-3.6,-3.2+bodyY]],cMid,cOut);
+  poly([[-4.0,-8.3+bodyY],[.3,-10.8+bodyY],[3.6,-9.9+bodyY],[1.0,-8.0+bodyY],[-2.8,-6.8+bodyY]],cLt);
+  // แผ่นเกราะท้องสีทอง/สว่างเป็นปล้อง
+  poly([[4.6,-6.2+bodyY],[4.4,-9.4+bodyY],[2.4,-9.6+bodyY],[1.4,-4.4+bodyY],[-2.6,-3.4+bodyY],[1.2,-2.9+bodyY],[4.2,-4.4+bodyY]],cBel,cOut);
+  if(!T){
+    ctx.strokeStyle=cBelD;ctx.lineWidth=lw*.95;
+    for(const[ax,ay,bx0,by0]of[[2.6,-8.2,4.4,-8.0],[2.1,-6.7,4.5,-6.4],[1.4,-5.1,4.3,-4.8],[-.2,-3.8,2.5,-3.6]]){
+      ctx.beginPath();ctx.moveTo(ax,ay+bodyY);ctx.lineTo(bx0,by0+bodyY);ctx.stroke();
+    }
+    // ช่องแกนเพลิงเรืองแสงที่อก (สว่างจ้าเมื่อชาร์จลมหายใจ / เปิดจุดอ่อน / ราชามังกร)
+    if(isKing||beam||weak){
+      const glCol=weak?'#7af0c0':beam?cCore:cFire;
+      ell(2.6,-7.9+bodyY,1.2,1.5,glCol);
+      ell(2.8,-7.9+bodyY,.55,.85,cCore);
+    }
+  }
+  // หนามสันหลังใหญ่
+  for(const[bx0,by0,ang,h]of[[-3.8,-8.4, -.55,2.2],[-1.8,-9.8,-.4,2.5],[.4,-11.0,-.2,2.6]]){
+    const tx0=bx0+Math.sin(ang)*h*(isThorn?1.45:1),ty0=by0+bodyY-Math.cos(ang)*h*(isThorn?1.45:1);
+    poly([[bx0-.9,by0+bodyY+.4],[tx0,ty0],[bx0+.9,by0+bodyY+.4]],cHorn,cOut);
+  }
+
+  // 5) ลำคอโค้งรูปตัว S + เกล็ดคอ + แผงหนามคอ
+  const nB=[3.0,-9.6+bodyY],nM=[5.2,-12.2+bodyY*.7],nT=[7.2+hX,-14.4+hY];
+  cap(nB,nM,2.5,2.15,cMid,cOut);cap(nM,nT,2.15,1.85,cMid,cOut);
+  // เกราะคอหน้า
+  poly([[3.8,-8.8+bodyY],[6.1,-11.6+bodyY*.7],[8.2+hX,-13.0+hY],[7.2+hX,-12.0+hY],[4.8,-9.0+bodyY],[4.0,-6.2+bodyY]],cBel,cBelD);
+  if(!T){
+    ctx.strokeStyle=cBelD;ctx.lineWidth=lw*.9;
+    for(const u of[.25,.52,.78]){const sx=3.8+u*3.6+hX*u,sy=-8.8-u*3.8+bodyY*(1-u)+hY*u;ctx.beginPath();ctx.moveTo(sx-.8,sy);ctx.lineTo(sx+.9,sy+.3);ctx.stroke();}
+  }
+  for(const[nx,ny]of[[3.2,-11.4+bodyY],[4.6,-13.2+bodyY*.7],[5.8+hX*.6,-14.8+hY*.8]]){
+    poly([[nx-.6,ny+.5],[nx-1.5,ny-1.5*(isThorn?1.35:1)],[nx+.6,ny-.2]],cHorn,cOut);
+  }
+
+  // 6) ขาฝั่งใกล้ + กรงเล็บใหญ่ดุดัน
+  const hip=[-1.6,-4.4+bodyY],fFootX=-1.4+wk*1.4,fFootY=isWyvern?-.5+bodyY:-fLift;
+  const knee=[hip[0]+1.1,hip[1]+2.2];
+  cap(hip,knee,1.8,1.25,cMid,cOut);cap(knee,[fFootX,fFootY-.6],1.2,.95,cLt,cOut);
+  poly([[fFootX-1.2,fFootY-.9],[fFootX+1.9,fFootY-.9],[fFootX+2.3,fFootY],[fFootX-1.3,fFootY]],cLt,cOut);
+  for(const cx0 of[.7,1.7,2.6])poly([[fFootX+cx0-.25,fFootY-.55],[fFootX+cx0+.85,fFootY+.05],[fFootX+cx0-.1,fFootY+.05]],cHorn,cOut);
+  if(!isWyvern){
+    const fSh=[3.4,-7.5+bodyY];
+    const fEl=atk===1?[5.0,-10.4+bodyY]:atk===2?[7.2,-6.8+bodyY]:[4.6,-4.2+bodyY*.5];
+    const fHd=atk===1?[7.0,-12.2+bodyY]:atk===2?[10.4,-6.3+bodyY]:[4.6-wk*.8,-.7];
+    ell(fSh[0],fSh[1],1.6,1.45,cLt,cOut);
+    cap(fSh,fEl,1.25,1.0,cMid,cOut);cap(fEl,fHd,1.05,.95,cLt,cOut);
+    // กรงเล็บ 3 นิ้วพุ่งแยกคมชัด
+    for(const[oy0,dy0]of[[-.65,-.45],[0,.0],[.65,.45]]){
+      const cx0=fHd[0]+.6,cy0=fHd[1]+oy0;
+      poly([[cx0-.3,cy0-.3],[cx0+1.9,cy0+dy0+(atk===1?-.4:.2)],[cx0-.2,cy0+.35]],cHorn,cOut);
+    }
+  }
+
+  // 7) ปีกหน้าขนาดใหญ่ (กางสง่างาม เว้าปีกค้างคาว + เส้นเอ็นกระดูก + เงาไฮไลต์)
+  const wRoot=[1.0,-10.5+bodyY],wApex=[-2.6,-19.8-wg],wTip=[-14.4,-14.4-wg*1.35];
+  const wF1=[-11.0,-7.9+bodyY-wg*.5],wF2=[-6.8,-7.2+bodyY-wg*.25],wF3=[-2.8,-8.2+bodyY];
+  const wC1=[-11.8,-10.8-wg*.8],wC2=[-8.5,-9.4-wg*.35],wC3=[-4.6,-9.3+bodyY];
+  poly([wRoot,wApex,wTip,wC1,wF1,wC2,wF2,wC3,wF3],cWing,cOut);
+  poly([wApex,[-7.4,-17.8-wg*1.15],wTip,[-8.4,-11.0-wg*.6]],cLt);
+  poly([wRoot,[-3.8,-13.0-wg*.4],wC2,wF2,wC3,wF3],cDk);
+  // โครงกระดูกปีก + กรงเล็บยอดปีก
+  cap(wRoot,wApex,.9,.7,cLt,cOut);cap(wApex,wTip,.68,.38,cMid,cOut);
+  poly([[wApex[0]-.3,wApex[1]-.2],[wApex[0]+.9,wApex[1]-1.7],[wApex[0]+.7,wApex[1]+.2]],cHorn,cOut);
+  if(!T){
+    ctx.strokeStyle=cDk;ctx.lineWidth=lw*1.15;
+    ctx.beginPath();ctx.moveTo(wApex[0],wApex[1]);ctx.lineTo(wF1[0],wF1[1]);ctx.moveTo(wApex[0],wApex[1]);ctx.lineTo(wF2[0],wF2[1]);ctx.stroke();
+    ctx.strokeStyle=cHi;ctx.lineWidth=lw*.9;
+    ctx.beginPath();ctx.moveTo(wRoot[0]+.2,wRoot[1]-.3);ctx.lineTo(wApex[0]+.1,wApex[1]-.2);ctx.lineTo(wTip[0]+.5,wTip[1]-.2);ctx.stroke();
+  }
+
+  // 8) หัวมังกร + เขาคู่เรียวยาวแยกแฉก + หงอนมงกุฎ + กรามอ้า + ตาเฉียงดุดัน
+  const hx=7.6+hX,hy=-14.6+hY;
+  // เขาหลัง (โค้งต่ำด้านหลัง) และเขาหน้า (โค้งสูงเรียวแหลม) แยกแฉกชัดเจน
+  poly([[hx-1.6,hy-1.2],[hx-4.8,hy-3.0],[hx-7.6,hy-2.6],[hx-5.0,hy-1.8],[hx-2.2,hy-.3]],cHornD,cOut);
+  poly([[hx-.4,hy-1.9],[hx-3.4,hy-5.2],[hx-6.8,hy-5.9],[hx-4.4,hy-3.8],[hx-1.8,hy-1.2]],cHorn,cOut);
+  if(isKing){
+    // หงอนมงกุฎทองแหลมกลางศีรษะราชามังกร
+    poly([[hx+.2,hy-2.2],[hx-1.2,hy-5.2],[hx-2.6,hy-3.6],[hx-1.2,hy-1.6]],cHorn,cOut);
+  }
+  // ช่องปาก + เปลวไฟในลำคอเมื่ออ้าปาก/พ่นลมหายใจ
+  if(jaw>.35){
+    poly([[hx-.4,hy+.4],[hx+6.4,hy+.6],[hx+5.2,hy+jaw+1.1],[hx-.2,hy+jaw+1.2]],'#220508',cOut);
+    if(!T&&(beam||atk===1||jaw>.6))ell(hx+2.4,hy+.8+jaw*.45,2.2,Math.max(.4,jaw*.55),cFire);
+  }
+  // กรามล่าง + เขี้ยวล่าง
+  poly([[hx-.8,hy+.8+jaw],[hx+5.4,hy+.9+jaw],[hx+6.3,hy+1.7+jaw],[hx+2.2,hy+2.5+jaw],[hx-1.2,hy+2.0+jaw]],cBel,cOut);
+  for(const fx of[2.0,3.8,5.3])poly([[hx+fx-.3,hy+.9+jaw],[hx+fx,hy+.1+jaw],[hx+fx+.35,hy+.9+jaw]],cCore,cOut);
+  // กรามบน + กะโหลกทรงดุ + นอจมูก + แผงหนามแก้ม
+  poly([[hx-2.4,hy+1.2],[hx-2.2,hy-1.8],[hx+.6,hy-2.8],[hx+3.4,hy-2.2],[hx+7.2,hy-1.0],[hx+7.4,hy+.6],[hx+3.4,hy+1.0],[hx-.8,hy+1.1]],cMid,cOut);
+  poly([[hx-1.2,hy-1.6],[hx+.6,hy-2.6],[hx+3.0,hy-2.0],[hx+6.6,hy-.9],[hx+2.8,hy-.8]],cLt);
+  // นอจมูก & จุดจมูก
+  poly([[hx+5.6,hy-1.2],[hx+6.9,hy-2.6],[hx+6.8,hy-.8]],cHorn,cOut);
+  if(!T){ctx.fillStyle=cOut;ctx.fillRect(hx+6.3,hy-.5,.55,.55);}
+  // หนามแก้มด้านข้างกราม
+  poly([[hx-1.8,hy+.4],[hx-4.4,hy+1.6],[hx-1.4,hy+1.8]],cHorn,cOut);
+  // เขี้ยวบน
+  for(const fx of[1.6,3.4,5.0,6.4])poly([[hx+fx-.35,hy+.75],[hx+fx,hy+1.75],[hx+fx+.35,hy+.75]],cCore,cOut);
+  // ดวงตาเฉียงดุดัน & สันคิ้วกดเฉียงลงด้านหน้า + รูม่านตาขีดแนวตั้ง
+  poly([[hx-.2,hy-1.15],[hx+2.2,hy-.5],[hx+1.5,hy+.25],[hx+.1,hy+.15]],cEye,cOut);
+  poly([[hx-.6,hy-1.75],[hx+2.7,hy-.7],[hx+2.4,hy-.3],[hx-.5,hy-1.0]],cDk,cOut);
+  if(!T){
+    ctx.fillStyle=cOut;ctx.fillRect(hx+1.05,hy-.78,.36,.88);
+    ctx.fillStyle='#ffffff';ctx.fillRect(hx+.4,hy-.65,.38,.38);
+    if(beam||atk===1)ell(hx+1.0,hy-.45,1.5,1.1,'rgba(255,230,120,.35)');
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+}
+function drawDragonHD(ctx,pal,x,y,sc,flip,tint,f){
+  pal=pal||PAL.drake||{};
+  const px=sc>=4?4:3,ox=135,oy=205,k=(sc/px)*(sc>=6?.92:1.12),dir=flip?-1:1;
+  const t=(typeof G!=='undefined'&&G.t)||0,hv=!!(f&&f.def&&f.def.hover)||pal.t==='#7ad8ff';
+  const P={
+    br:Math.round(Math.sin(t*.09)*3)/3,
+    wk:f&&f.state==='walk'?Math.round(Math.sin(t*.25)*3)/3:0,
+    atk:f&&f.state==='attack'?(f.phase==='startup'?1:f.phase==='active'?2:3):0,
+    beam:f&&f.state==='attack'&&f.move&&f.move.beam?1:0,
+    wg:Math.round(Math.sin(t*(hv?.24:.1))*(hv?5:3))/3,
+    tl:Math.round(Math.sin(t*.12)*3)/3,
+    weak:f&&f.weakT>0?1:0,
+    hover:hv?1:0
+  };
+  let key=null;
+  if(!tint){
+    key='DRG|'+(pal.b||'')+(pal.t||'')+'|'+dir+'|'+P.br+','+P.wk+','+P.atk+','+P.beam+','+P.wg+','+P.tl+','+P.weak+','+P.hover+'|'+px;
+    const hit=RCACHE.get(key);
+    if(hit){ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(hit.c,Math.round(x+hit.dx*k),Math.round(y+hit.dy*k),Math.round(hit.c.width*k),Math.round(hit.c.height*k));ctx.restore();return;}
+  }
+  const bx=ox-17*px,by=oy-22*px,bw=34*px,bh=Math.min(230-by,24*px);
+  RX.setTransform(1,0,0,1,0,0);RX.clearRect(bx,by,bw,bh);
+  drawDragonChibi(RX,ox,oy,px,dir,pal,P,tint);
+  const bb=rigShade(bx,by,bw,bh,dir,!!tint);if(!bb)return;
+  const cx0=bx+bb[0],cy0=by+bb[1],cw=bb[2]-bb[0]+1,ch=bb[3]-bb[1]+1;
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(RIGC,cx0,cy0,cw,ch,Math.round(x+(cx0-ox)*k),Math.round(y+(cy0-oy)*k),Math.round(cw*k),Math.round(ch*k));
+  ctx.restore();
+  if(key){if(RCACHE.size>700)RCACHE.clear();const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(RIGC,cx0,cy0,cw,ch,0,0,cw,ch);RCACHE.set(key,{c,dx:cx0-ox,dy:cy0-oy});}
+}
 
 /* ===== โมเดลเซราฟตาเดียว HD-2D ใหม่ (Seraph · บอสวิหารศักดิ์สิทธิ์) =====
    ปีกเทวทูตซ้อน 2 คู่ (6 แฉกขนนกไล่ระดับ) · อาภรณ์วิหารขลิบทอง · วงรัศมีศักดิ์สิทธิ์ · ดวงตาเทวทูตกลางศีรษะ */
@@ -1471,6 +1671,198 @@ function drawSeraphHD(ctx,pal,x,y,sc,flip,tint,f){
   ctx.restore();
   if(key){if(RCACHE.size>700)RCACHE.clear();const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(RIGC,cx0,cy0,cw,ch,0,0,cw,ch);RCACHE.set(key,{c,dx:cx0-ox,dy:cy0-oy});}
 }
+/* ===== โมเดลมังกร HD-2D ใหม่ (ราชามังกร · มังกรเพลิงวัยเยาว์ · มังกรหนาม · ไวเวิร์นอสนี) =====
+   ท่าทางทรงพลังอกตั้ง · ปีกค้างคาว 2 ชั้นกางสง่า · เกล็ดท้องเป็นปล้อง · เขาวงราชันย์ · กรามอ้าพ่นไฟ · หางหนามใบมีด
+   ผ่าน rigShade ให้เส้นขอบและแรเงาพิกเซลอาร์ต HD-2D คมชัด */
+function drawDragonChibi(ctx,ox,oy,px,dir,pal,P,tint){
+  pal=pal||{};ctx.setTransform(px*dir,0,0,px,ox,oy);ctx.lineJoin='round';
+  const T=!!tint,C=c=>tint||c,Dk=(c,m)=>tint||shade(c,m),lw=1/px;
+  const b0=pal.b||'#8a1a14',d0=pal.d||'#e8a040',w0=pal.w||'#b0281a',W0=pal.W||'#4a0a08';
+  const cMid=C(b0),cLt=Dk(b0,1.22),cHi=Dk(b0,1.42),cDk=C(W0),cOut=C(pal.o||'#1a0404');
+  const cBel=C(d0),cBelD=Dk(d0,.72),cWing=C(w0),cWingD=Dk(w0,.68);
+  const cHorn=C(pal.h||'#ffd23a'),cHornD=Dk(pal.h||'#ffd23a',.68);
+  const cEye=C(pal.e||'#ffee5a'),cFire=C(pal.t||'#ff7a1a'),cCore=T?tint:'#fff6d6';
+  const isKing=b0==='#8a1a14',isWyvern=!!P.hover||pal.t==='#7ad8ff',isThorn=b0==='#4a6a2a';
+  const fill=(col,edge)=>{ctx.fillStyle=col;ctx.fill();if(edge&&!T){ctx.strokeStyle=edge;ctx.lineWidth=lw;ctx.stroke();}};
+  const poly=(pts,col,edge)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);ctx.closePath();fill(col,edge);};
+  const ell=(cx,cy,rx,ry,col,edge,rot=0)=>{ctx.beginPath();ctx.ellipse(cx,cy,Math.max(.1,rx),Math.max(.1,ry),rot,0,7);fill(col,edge);};
+  const cap=(a,b,ra,rb,col,edge)=>{const dx=b[0]-a[0],dy=b[1]-a[1],an=Math.atan2(dy,dx),H=Math.PI/2;ctx.beginPath();ctx.arc(a[0],a[1],ra,an+H,an+3*H);ctx.arc(b[0],b[1],rb,an-H,an+H);ctx.closePath();fill(col,edge);};
+
+  const br=P.br||0,wk=P.wk||0,atk=P.atk||0,beam=P.beam||0,wg=P.wg||0,tl=P.tl||0,weak=P.weak||0;
+  const bodyY=br*.25+(atk===1?-.45:atk===2?.4:0)+(isWyvern?br*.45:0);
+  const hX=(atk===1?-1.1:atk===2?1.8:0)+(beam?.8:0),hY=bodyY+(atk===1?-.8:atk===2?.7:0);
+  const jaw=beam?1.85:atk===1?1.05:atk===2?1.35:.2+(br+1)*.12;
+  const fLift=Math.max(0,wk)*.9,bLift=Math.max(0,-wk)*.9;
+
+  // 1) ปีกหลัง (สีเข้มกว่าเพื่อสร้างมิติลึก + เว้าโค้งแบบปีกมังกร)
+  const fwUp=-17.2-wg*.85,fwTipY=-12.8-wg*1.15;
+  poly([[-1.6,-10.2+bodyY],[-5.8,fwUp],[-14.6,fwTipY],[-12.4,-9.8-wg*.6],[-11.4,-7.8+bodyY-wg*.3],[-8.8,-9.2+bodyY],[-7.8,-7.4+bodyY],[-4.8,-8.8+bodyY]],cWingD,cOut);
+  cap([-1.6,-10.2+bodyY],[-5.8,fwUp],.75,.55,cDk,cOut);
+  cap([-5.8,fwUp],[-14.6,fwTipY],.55,.35,cDk,cOut);
+  if(!T){ctx.strokeStyle=cDk;ctx.lineWidth=lw*.95;ctx.beginPath();ctx.moveTo(-5.8,fwUp);ctx.lineTo(-11.4,-7.8+bodyY-wg*.3);ctx.moveTo(-5.8,fwUp);ctx.lineTo(-7.8,-7.4+bodyY);ctx.stroke();}
+
+  // 2) หางมังกรมีปล้อง + หนามสันหลัง + ปลายหางใบมีด
+  const t1=[-4.5,-5.0+bodyY],t2=[-9.5,-3.2+bodyY+tl*.35],t3=[-13.6,-6.2+tl*.85],t4=[-15.8,-8.8+tl*1.1];
+  cap(t1,t2,1.95,1.25,cMid,cOut);cap(t2,t3,1.25,.8,cMid,cOut);cap(t3,t4,.78,.42,cDk,cOut);
+  poly([[t1[0]-.2,t1[1]+1.5],[t2[0],t2[1]+1.05],[t3[0],t3[1]+.65],[t2[0],t2[1]+.2],[t1[0],t1[1]+.4]],cBelD);
+  const spH=isThorn?1.75:1.15;
+  for(const[sx,sy]of[[-6.8,-4.5+bodyY*.7],[-9.4,-3.9+tl*.3],[-11.8,-5.2+tl*.6],[-13.8,-7.1+tl*.9]]){
+    poly([[sx-.7,sy],[sx-.2,sy-spH],[sx+.7,sy]],cHornD,cOut);
+  }
+  // ปลายหางใบมีดแฉก
+  poly([[t4[0]+.6,t4[1]+.3],[t4[0]-1.4,t4[1]-1.2],[t4[0]-1.1,t4[1]+.2],[t4[0]-.2,t4[1]+1.3]],cHorn,cOut);
+
+  // 3) ขาฝั่งไกล (เงามืด)
+  const bHip=[-3.2,-4.6+bodyY],bFootX=-3.2-wk*1.4,bFootY=isWyvern?-1.0+bodyY:-bLift;
+  const bKnee=[bHip[0]-.9,bHip[1]+2.3];
+  cap(bHip,bKnee,1.55,1.1,cDk,cOut);cap(bKnee,[bFootX,bFootY-.6],1.05,.85,cDk,cOut);
+  poly([[bFootX-1.1,bFootY-.8],[bFootX+1.7,bFootY-.8],[bFootX+2.0,bFootY],[bFootX-1.2,bFootY]],cDk,cOut);
+  for(const cx0 of[.6,1.5,2.2])poly([[bFootX+cx0-.2,bFootY-.4],[bFootX+cx0+.6,bFootY],[bFootX+cx0-.1,bFootY]],cHornD);
+  if(!isWyvern){
+    const bfSh=[1.8,-7.6+bodyY],bfHd=atk===1?[4.2,-10.0+bodyY]:atk===2?[6.8,-6.2+bodyY]:[2.8+wk*.9,-1.0];
+    cap(bfSh,bfHd,1.05,.8,cDk,cOut);
+    poly([[bfHd[0]-.6,bfHd[1]-.4],[bfHd[0]+1.6,bfHd[1]],[bfHd[0]+.8,bfHd[1]+.7]],cHornD,cOut);
+  }
+
+  // 4) ลำตัวมังกรอกตั้ง + เกราะท้องปล้อง + แกนเพลิงกลางอก + หนามหลัง
+  poly([[-5.4,-5.0+bodyY],[-4.2,-8.6+bodyY],[.4,-11.2+bodyY],[4.4,-10.2+bodyY],[4.8,-5.2+bodyY],[1.2,-2.9+bodyY],[-3.6,-3.2+bodyY]],cMid,cOut);
+  poly([[-4.0,-8.3+bodyY],[.3,-10.8+bodyY],[3.6,-9.9+bodyY],[1.0,-8.0+bodyY],[-2.8,-6.8+bodyY]],cLt);
+  // แผ่นเกราะท้องสีทอง/สว่างเป็นปล้อง
+  poly([[4.6,-6.2+bodyY],[4.4,-9.4+bodyY],[2.4,-9.6+bodyY],[1.4,-4.4+bodyY],[-2.6,-3.4+bodyY],[1.2,-2.9+bodyY],[4.2,-4.4+bodyY]],cBel,cOut);
+  if(!T){
+    ctx.strokeStyle=cBelD;ctx.lineWidth=lw*.95;
+    for(const[ax,ay,bx0,by0]of[[2.6,-8.2,4.4,-8.0],[2.1,-6.7,4.5,-6.4],[1.4,-5.1,4.3,-4.8],[-.2,-3.8,2.5,-3.6]]){
+      ctx.beginPath();ctx.moveTo(ax,ay+bodyY);ctx.lineTo(bx0,by0+bodyY);ctx.stroke();
+    }
+    // ช่องแกนเพลิงเรืองแสงที่อก (สว่างจ้าเมื่อชาร์จลมหายใจ / เปิดจุดอ่อน / ราชามังกร)
+    if(isKing||beam||weak){
+      const glCol=weak?'#7af0c0':beam?cCore:cFire;
+      ell(2.6,-7.9+bodyY,1.2,1.5,glCol);
+      ell(2.8,-7.9+bodyY,.55,.85,cCore);
+    }
+  }
+  // หนามสันหลังใหญ่
+  for(const[bx0,by0,ang,h]of[[-3.8,-8.4, -.55,2.2],[-1.8,-9.8,-.4,2.5],[.4,-11.0,-.2,2.6]]){
+    const tx0=bx0+Math.sin(ang)*h*(isThorn?1.45:1),ty0=by0+bodyY-Math.cos(ang)*h*(isThorn?1.45:1);
+    poly([[bx0-.9,by0+bodyY+.4],[tx0,ty0],[bx0+.9,by0+bodyY+.4]],cHorn,cOut);
+  }
+
+  // 5) ลำคอโค้งรูปตัว S + เกล็ดคอ + แผงหนามคอ
+  const nB=[3.0,-9.6+bodyY],nM=[5.2,-12.2+bodyY*.7],nT=[7.2+hX,-14.4+hY];
+  cap(nB,nM,2.5,2.15,cMid,cOut);cap(nM,nT,2.15,1.85,cMid,cOut);
+  // เกราะคอหน้า
+  poly([[3.8,-8.8+bodyY],[6.1,-11.6+bodyY*.7],[8.2+hX,-13.0+hY],[7.2+hX,-12.0+hY],[4.8,-9.0+bodyY],[4.0,-6.2+bodyY]],cBel,cBelD);
+  if(!T){
+    ctx.strokeStyle=cBelD;ctx.lineWidth=lw*.9;
+    for(const u of[.25,.52,.78]){const sx=3.8+u*3.6+hX*u,sy=-8.8-u*3.8+bodyY*(1-u)+hY*u;ctx.beginPath();ctx.moveTo(sx-.8,sy);ctx.lineTo(sx+.9,sy+.3);ctx.stroke();}
+  }
+  for(const[nx,ny]of[[3.2,-11.4+bodyY],[4.6,-13.2+bodyY*.7],[5.8+hX*.6,-14.8+hY*.8]]){
+    poly([[nx-.6,ny+.5],[nx-1.5,ny-1.5*(isThorn?1.35:1)],[nx+.6,ny-.2]],cHorn,cOut);
+  }
+
+  // 6) ขาฝั่งใกล้ + กรงเล็บใหญ่ดุดัน
+  const hip=[-1.6,-4.4+bodyY],fFootX=-1.4+wk*1.4,fFootY=isWyvern?-.5+bodyY:-fLift;
+  const knee=[hip[0]+1.1,hip[1]+2.2];
+  cap(hip,knee,1.8,1.25,cMid,cOut);cap(knee,[fFootX,fFootY-.6],1.2,.95,cLt,cOut);
+  poly([[fFootX-1.2,fFootY-.9],[fFootX+1.9,fFootY-.9],[fFootX+2.3,fFootY],[fFootX-1.3,fFootY]],cLt,cOut);
+  for(const cx0 of[.7,1.7,2.6])poly([[fFootX+cx0-.25,fFootY-.55],[fFootX+cx0+.85,fFootY+.05],[fFootX+cx0-.1,fFootY+.05]],cHorn,cOut);
+  if(!isWyvern){
+    const fSh=[3.4,-7.5+bodyY];
+    const fEl=atk===1?[5.0,-10.4+bodyY]:atk===2?[7.2,-6.8+bodyY]:[4.6,-4.2+bodyY*.5];
+    const fHd=atk===1?[7.0,-12.2+bodyY]:atk===2?[10.4,-6.3+bodyY]:[4.6-wk*.8,-.7];
+    ell(fSh[0],fSh[1],1.6,1.45,cLt,cOut);
+    cap(fSh,fEl,1.25,1.0,cMid,cOut);cap(fEl,fHd,1.05,.95,cLt,cOut);
+    // กรงเล็บ 3 นิ้วพุ่งแยกคมชัด
+    for(const[oy0,dy0]of[[-.65,-.45],[0,.0],[.65,.45]]){
+      const cx0=fHd[0]+.6,cy0=fHd[1]+oy0;
+      poly([[cx0-.3,cy0-.3],[cx0+1.9,cy0+dy0+(atk===1?-.4:.2)],[cx0-.2,cy0+.35]],cHorn,cOut);
+    }
+  }
+
+  // 7) ปีกหน้าขนาดใหญ่ (กางสง่างาม เว้าปีกค้างคาว + เส้นเอ็นกระดูก + เงาไฮไลต์)
+  const wRoot=[1.0,-10.5+bodyY],wApex=[-2.6,-19.8-wg],wTip=[-14.4,-14.4-wg*1.35];
+  const wF1=[-11.0,-7.9+bodyY-wg*.5],wF2=[-6.8,-7.2+bodyY-wg*.25],wF3=[-2.8,-8.2+bodyY];
+  const wC1=[-11.8,-10.8-wg*.8],wC2=[-8.5,-9.4-wg*.35],wC3=[-4.6,-9.3+bodyY];
+  poly([wRoot,wApex,wTip,wC1,wF1,wC2,wF2,wC3,wF3],cWing,cOut);
+  poly([wApex,[-7.4,-17.8-wg*1.15],wTip,[-8.4,-11.0-wg*.6]],cLt);
+  poly([wRoot,[-3.8,-13.0-wg*.4],wC2,wF2,wC3,wF3],cDk);
+  // โครงกระดูกปีก + กรงเล็บยอดปีก
+  cap(wRoot,wApex,.9,.7,cLt,cOut);cap(wApex,wTip,.68,.38,cMid,cOut);
+  poly([[wApex[0]-.3,wApex[1]-.2],[wApex[0]+.9,wApex[1]-1.7],[wApex[0]+.7,wApex[1]+.2]],cHorn,cOut);
+  if(!T){
+    ctx.strokeStyle=cDk;ctx.lineWidth=lw*1.15;
+    ctx.beginPath();ctx.moveTo(wApex[0],wApex[1]);ctx.lineTo(wF1[0],wF1[1]);ctx.moveTo(wApex[0],wApex[1]);ctx.lineTo(wF2[0],wF2[1]);ctx.stroke();
+    ctx.strokeStyle=cHi;ctx.lineWidth=lw*.9;
+    ctx.beginPath();ctx.moveTo(wRoot[0]+.2,wRoot[1]-.3);ctx.lineTo(wApex[0]+.1,wApex[1]-.2);ctx.lineTo(wTip[0]+.5,wTip[1]-.2);ctx.stroke();
+  }
+
+  // 8) หัวมังกร + เขาคู่เรียวยาวแยกแฉก + หงอนมงกุฎ + กรามอ้า + ตาเฉียงดุดัน
+  const hx=7.6+hX,hy=-14.6+hY;
+  // เขาหลัง (โค้งต่ำด้านหลัง) และเขาหน้า (โค้งสูงเรียวแหลม) แยกแฉกชัดเจน
+  poly([[hx-1.6,hy-1.2],[hx-4.8,hy-3.0],[hx-7.6,hy-2.6],[hx-5.0,hy-1.8],[hx-2.2,hy-.3]],cHornD,cOut);
+  poly([[hx-.4,hy-1.9],[hx-3.4,hy-5.2],[hx-6.8,hy-5.9],[hx-4.4,hy-3.8],[hx-1.8,hy-1.2]],cHorn,cOut);
+  if(isKing){
+    // หงอนมงกุฎทองแหลมกลางศีรษะราชามังกร
+    poly([[hx+.2,hy-2.2],[hx-1.2,hy-5.2],[hx-2.6,hy-3.6],[hx-1.2,hy-1.6]],cHorn,cOut);
+  }
+  // ช่องปาก + เปลวไฟในลำคอเมื่ออ้าปาก/พ่นลมหายใจ
+  if(jaw>.35){
+    poly([[hx-.4,hy+.4],[hx+6.4,hy+.6],[hx+5.2,hy+jaw+1.1],[hx-.2,hy+jaw+1.2]],'#220508',cOut);
+    if(!T&&(beam||atk===1||jaw>.6))ell(hx+2.4,hy+.8+jaw*.45,2.2,Math.max(.4,jaw*.55),cFire);
+  }
+  // กรามล่าง + เขี้ยวล่าง
+  poly([[hx-.8,hy+.8+jaw],[hx+5.4,hy+.9+jaw],[hx+6.3,hy+1.7+jaw],[hx+2.2,hy+2.5+jaw],[hx-1.2,hy+2.0+jaw]],cBel,cOut);
+  for(const fx of[2.0,3.8,5.3])poly([[hx+fx-.3,hy+.9+jaw],[hx+fx,hy+.1+jaw],[hx+fx+.35,hy+.9+jaw]],cCore,cOut);
+  // กรามบน + กะโหลกทรงดุ + นอจมูก + แผงหนามแก้ม
+  poly([[hx-2.4,hy+1.2],[hx-2.2,hy-1.8],[hx+.6,hy-2.8],[hx+3.4,hy-2.2],[hx+7.2,hy-1.0],[hx+7.4,hy+.6],[hx+3.4,hy+1.0],[hx-.8,hy+1.1]],cMid,cOut);
+  poly([[hx-1.2,hy-1.6],[hx+.6,hy-2.6],[hx+3.0,hy-2.0],[hx+6.6,hy-.9],[hx+2.8,hy-.8]],cLt);
+  // นอจมูก & จุดจมูก
+  poly([[hx+5.6,hy-1.2],[hx+6.9,hy-2.6],[hx+6.8,hy-.8]],cHorn,cOut);
+  if(!T){ctx.fillStyle=cOut;ctx.fillRect(hx+6.3,hy-.5,.55,.55);}
+  // หนามแก้มด้านข้างกราม
+  poly([[hx-1.8,hy+.4],[hx-4.4,hy+1.6],[hx-1.4,hy+1.8]],cHorn,cOut);
+  // เขี้ยวบน
+  for(const fx of[1.6,3.4,5.0,6.4])poly([[hx+fx-.35,hy+.75],[hx+fx,hy+1.75],[hx+fx+.35,hy+.75]],cCore,cOut);
+  // ดวงตาเฉียงดุดัน & สันคิ้วกดเฉียงลงด้านหน้า + รูม่านตาขีดแนวตั้ง
+  poly([[hx-.2,hy-1.15],[hx+2.2,hy-.5],[hx+1.5,hy+.25],[hx+.1,hy+.15]],cEye,cOut);
+  poly([[hx-.6,hy-1.75],[hx+2.7,hy-.7],[hx+2.4,hy-.3],[hx-.5,hy-1.0]],cDk,cOut);
+  if(!T){
+    ctx.fillStyle=cOut;ctx.fillRect(hx+1.05,hy-.78,.36,.88);
+    ctx.fillStyle='#ffffff';ctx.fillRect(hx+.4,hy-.65,.38,.38);
+    if(beam||atk===1)ell(hx+1.0,hy-.45,1.5,1.1,'rgba(255,230,120,.35)');
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+}
+function drawDragonHD(ctx,pal,x,y,sc,flip,tint,f){
+  pal=pal||PAL.drake||{};
+  const px=sc>=4?4:3,ox=135,oy=205,k=(sc/px)*(sc>=6?.92:1.12),dir=flip?-1:1;
+  const t=(typeof G!=='undefined'&&G.t)||0,hv=!!(f&&f.def&&f.def.hover)||pal.t==='#7ad8ff';
+  const P={
+    br:Math.round(Math.sin(t*.09)*3)/3,
+    wk:f&&f.state==='walk'?Math.round(Math.sin(t*.25)*3)/3:0,
+    atk:f&&f.state==='attack'?(f.phase==='startup'?1:f.phase==='active'?2:3):0,
+    beam:f&&f.state==='attack'&&f.move&&f.move.beam?1:0,
+    wg:Math.round(Math.sin(t*(hv?.24:.1))*(hv?5:3))/3,
+    tl:Math.round(Math.sin(t*.12)*3)/3,
+    weak:f&&f.weakT>0?1:0,
+    hover:hv?1:0
+  };
+  let key=null;
+  if(!tint){
+    key='DRG|'+(pal.b||'')+(pal.t||'')+'|'+dir+'|'+P.br+','+P.wk+','+P.atk+','+P.beam+','+P.wg+','+P.tl+','+P.weak+','+P.hover+'|'+px;
+    const hit=RCACHE.get(key);
+    if(hit){ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(hit.c,Math.round(x+hit.dx*k),Math.round(y+hit.dy*k),Math.round(hit.c.width*k),Math.round(hit.c.height*k));ctx.restore();return;}
+  }
+  const bx=ox-17*px,by=oy-22*px,bw=34*px,bh=Math.min(230-by,24*px);
+  RX.setTransform(1,0,0,1,0,0);RX.clearRect(bx,by,bw,bh);
+  drawDragonChibi(RX,ox,oy,px,dir,pal,P,tint);
+  const bb=rigShade(bx,by,bw,bh,dir,!!tint);if(!bb)return;
+  const cx0=bx+bb[0],cy0=by+bb[1],cw=bb[2]-bb[0]+1,ch=bb[3]-bb[1]+1;
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(RIGC,cx0,cy0,cw,ch,Math.round(x+(cx0-ox)*k),Math.round(y+(cy0-oy)*k),Math.round(cw*k),Math.round(ch*k));
+  ctx.restore();
+  if(key){if(RCACHE.size>700)RCACHE.clear();const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(RIGC,cx0,cy0,cw,ch,0,0,cw,ch);RCACHE.set(key,{c,dx:cx0-ox,dy:cy0-oy});}
+}
 // แปลงเป็นพิกเซลอาร์ต: ตัดขอบเบลอ → แรเงา (บนสว่าง ล่าง/หลังมืด) → เส้นขอบ 1 พิกเซลสีเข้มของชิ้นที่ติดกัน (sel-out)
 function rigShade(bx,by,w,h,dir,flat){const im=RX.getImageData(bx,by,w,h),d=im.data,n=w*h,op=new Uint8Array(n);
   for(let i=0;i<n;i++){const a=d[i*4+3];if(a>=110){op[i]=1;if(a<255){const f=255/a;d[i*4]=Math.min(255,d[i*4]*f);d[i*4+1]=Math.min(255,d[i*4+1]*f);d[i*4+2]=Math.min(255,d[i*4+2]*f);}d[i*4+3]=255;}else d[i*4+3]=0;}
@@ -1502,6 +1894,7 @@ function pill(x,y,txt,col='#7ad8ff'){
   D.fillStyle='#f4f9ff';D.textAlign='center';D.textBaseline='middle';D.fillText(txt,x,y+1);
 }
 function lighting(ls,dark){
+  {const lw=Math.round(W),lh=Math.round(H);if(lc.width!==lw||lc.height!==lh){lc.width=lw;lc.height=lh;}}   /* ซูมออก: บัฟเฟอร์แสงต้องกว้างเท่าพื้นที่ที่วาด */
   L.globalCompositeOperation='source-over';L.clearRect(0,0,W,H);L.fillStyle=dark;L.fillRect(0,0,W,H);
   L.globalCompositeOperation='destination-out';
   for(const l of ls){const gr=L.createRadialGradient(l.x,l.y,0,l.x,l.y,l.r);gr.addColorStop(0,'rgba(0,0,0,.92)');gr.addColorStop(.5,'rgba(0,0,0,.65)');gr.addColorStop(1,'rgba(0,0,0,0)');L.fillStyle=gr;L.fillRect(l.x-l.r,l.y-l.r,l.r*2,l.r*2);}

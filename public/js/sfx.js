@@ -78,7 +78,7 @@ document.addEventListener('pointerdown',()=>initAudio(),{capture:true});
   document.addEventListener('pointerover',e=>{const el=e.target.closest&&e.target.closest(SEL);if(el&&el!==lastEl&&!el.disabled){lastEl=el;SFX.ui('cursor');}if(!el)lastEl=null;});
   document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest(SEL);if(el&&!el.disabled)SFX.ui('confirm');},true);})();
 // เสียงบรรยากาศตามโซน
-const AMB_OF={town:'amb_town',arena:'amb_town',cave:'amb_cave',stone:'amb_cave',crystal:'amb_cave',lava:'amb_lava',lavaboss:'amb_lava',ice:'amb_ice',frost:'amb_ice',tower:'amb_tower',sanctum:'amb_tower',cathedral:'amb_tower'};
+const AMB_OF={town:'amb_town',dragon:'amb_town',arena:'amb_town',cave:'amb_cave',stone:'amb_cave',crystal:'amb_cave',lava:'amb_lava',lavaboss:'amb_lava',ice:'amb_ice',frost:'amb_ice',tower:'amb_tower',sanctum:'amb_tower',cathedral:'amb_tower'};
 function sndTick(){if(!SND.booted||G.t%30)return;let n='amb_town',lv=.4;
   try{if(G.mode==='title')lv=.25;else{const inB=BT&&(G.mode==='battle'||G.mode==='trans');n=(!inB&&Z&&Z.theme==='spire')?'amb_tower':(AMB_OF[fxBiome(inB)]||'amb_cave');if(inB)lv=.3;}}catch(e){}
   if(n!==SND.ambName)SND.ambient(n,lv);

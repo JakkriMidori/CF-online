@@ -20,15 +20,17 @@ function itemStats(it){
   const add=(k,v)=>s[k]=(s[k]||0)+v;
   if(b.atk)add('watk',Math.round(b.atk*R.mult*em));
   if(b.def)add('def',Math.round(b.def*R.mult*em));
-  if(b.edmg)for(const k in b.edmg)add('dmg_'+k,b.edmg[k]);   /* โบนัสดาเมจธาตุติดตัวของอาวุธ (ไม่กินช่องค่าความสามารถ) */
-  if(b.res)for(const k in b.res)add('res_'+k,b.res[k]);      /* ค่าต้านธาตุติดตัวของเกราะ */
-  if(b.implicit)for(const k in b.implicit)add(k,b.implicit[k]);   /* ค่าติดตัวตายตัว (ไม่คูณระดับ) */
+  const impOn=implicitOn(it.rar);
+  if(impOn&&b.edmg)for(const k in b.edmg)add('dmg_'+k,b.edmg[k]);   /* โบนัสดาเมจธาตุติดตัวของอาวุธ (ไม่กินช่องค่าความสามารถ) */
+  if(impOn&&b.res)for(const k in b.res)add('res_'+k,b.res[k]);      /* ค่าต้านธาตุติดตัวของเกราะ */
+  if(impOn&&b.implicit)for(const k in b.implicit)add(k,b.implicit[k]);   /* ค่าติดตัวตายตัว (ไม่คูณระดับ) */
   for(const a of it.affixes||[]){const v=Gear.val(a,it);if(v)add(GAFX[a.k].stat,v);}
   for(const rk of it.sockets||[]){const m=rk&&MATS[rk];if(m&&m.rune)for(const k in m.rune)add(k,m.rune[k]);}
   return s;
 }
-function setCounts(list){const c={};for(const it of list){const st=BASES[it.base].set;if(st)c[st]=(c[st]||0)+1;}return c;}
-function activeSetBonuses(list){const out=[];const c=setCounts(list);for(const id in c)for(const n in SETS[id].b)if(c[id]>=+n)out.push({set:id,n:+n,b:SETS[id].b[n]});return out;}
+/* โบนัสเซ็ต: นับเฉพาะชิ้นที่เป็นระดับ "หายาก" (rare) · ใช้ขั้นสูงสุดที่ถึง (ค่าในตารางเป็นค่ารวม) */
+function setCounts(list){const c={};for(const it of list){const b=BASES[it.base],st=b&&b.setTag;if(st&&it.rar==='rare'&&SETS[st]&&Object.keys(SETS[st].b).length)c[st]=(c[st]||0)+1;}return c;}
+function activeSetBonuses(list){const out=[];const c=setCounts(list);for(const id in c){const ns=Object.keys(SETS[id].b).map(Number).filter(n=>c[id]>=n);if(ns.length){const n=Math.max(...ns);out.push({set:id,n,b:SETS[id].b[n]});}}return out;}
 /* ลานประลอง PvP: ชุดของแต่ละคน (เลเวล ค่าพลัง อุปกรณ์ สกิล) ส่งเป็น JSON ได้ */
 function vsLoadout(){
   const S=Stats.player();
@@ -58,7 +60,7 @@ const Stats={
     S.ap=Math.round((S.watk+(flat.wmatk||0)+attr.str*2+attr.int*2+(flat.atk||0)+(flat.matk||0))*(1+(TP.atkPct||0)+(TP.mpowPct||0)+(flat.mpowPct||0)+(flat.atkPct||0)));S.mpow=S.ap;S.dmgPct=flat.dmgPct||0;
     S.elDmg={};for(const k of ['phys','fire','ice','lightning','shadow','holy','magic']){const v=(flat['dmg_'+k]||0)+((TP.elDmg&&TP.elDmg[k])||0)+(k!=='phys'?(TP.elDmgAll||0):0);if(v)S.elDmg[k]=v;}   /* + โบนัสธาตุจากคลาส */   /* โบนัสดาเมจตามป้าย */
     S.res={};for(const k of ELEMS){const v=(flat['res_'+k]||0)+((TP.res&&TP.res[k])||0);if(v>0)S.res[k]=Math.min(CONFIG.resCap,v);}
-    S.hotPct=TP.hotPct||0;   /* ฟื้น HP ต่อวินาทีจากคลาส (เช่น Phoenix 1%) */   /* ค่าต้านธาตุจากอุปกรณ์ (res_fire …) */
+    S.hotPct=(TP.hotPct||0)+(flat.hotPct||0);S.magicDmg=flat.magicDmg||0;S.reflect=Math.min(.3,flat.reflect||0);   /* ฟื้น HP ต่อวินาทีจากคลาส (เช่น Phoenix 1%) */   /* ค่าต้านธาตุจากอุปกรณ์ (res_fire …) */
     S.spd=1;S.passives=passives;   /* ตัดค่าความเร็วออก (ความเร็วคงที่) */
     S.mpRegen=Math.min(CONFIG.mana.recoveryCap,flat.mpRegen||0);S.mpCost=Math.min(CONFIG.mana.costCap,flat.mpCost||0);S.statusRes=Math.min(.75,(flat.statusRes||0)+(TP.statusRes||0)+t10(attr.str)*DV.strPer10Res);
     S.statusChance=(TP.statusChance||0)+(flat.statusChance||0);S.dotPct=0;   /* ตัดโบนัส DoT ออก */S.talent=talent||null;   // ชุดนักแปรธาตุ: +โอกาสติด / +DoT
@@ -137,7 +139,7 @@ function calcDamage(A,T,h){
   let dmg=raw*armor;const base=dmg;
   let res=0;if(!tru&&!h.ignoreRes&&tag!=='phys'){res=((T.res&&T.res[resKey(tag)])||0)-(T.resDown||0);res=Math.max(CONFIG.allowWeak?-.5:0,Math.min(CONFIG.resCap,res));}
   dmg*=1-res;
-  dmg*=1+(A.dmgPct||0)+((A.elDmg&&A.elDmg[tag])||0);
+  dmg*=1+(A.dmgPct||0)+((A.elDmg&&A.elDmg[tag])||0)+(h.type==='magic'?(A.magicDmg||0):0);   /* ชุดนักปราชญ์: ดาเมจเวท (ทุกท่าประเภทเวท) */
   const crit=!!h.forceCrit||rand()<Math.max(0,Math.min(CONFIG.critCap,A.critRate));   /* ไม่มีต้านคริ */
   if(crit)dmg*=Math.min(CONFIG.critDmgCap,A.critDmg+(tag==='magic'?(A.mcritDmg||0):0));
   const mods={};
@@ -241,15 +243,16 @@ const rarPool=(pool,rar,uncap)=>{const r=uncap?rar:capRar(rar),f=pool.filter(k=>
 const rarCap=()=>{const g=typeof Guild!=='undefined'&&G&&G.guildRank?Guild.info().maxRar:'rare',m=CONFIG.maxRarity;return RARS.indexOf(g)<RARS.indexOf(m)?g:m;};   // เพดานระดับไอเทมตามแรงค์กิลด์
 const capRar=r=>RARS.indexOf(r)>RARS.indexOf(rarCap())?rarCap():r;   // ตัดระดับไอเทมไม่ให้เกิน CONFIG.maxRarity
 function newItem(baseId,rar,ilvl,uncap){   /* uncap=true: ใช้เฉพาะร้านรีไอเทม (ข้ามเพดาน maxRarity) */
-  rar=BASES[baseId].fixRar||(uncap?rar:capRar(rar));ilvl=Math.max(1,ilvl|0);   // ของระดับตายตัวไม่ถูกตัดเพดาน
+  rar=BASES[baseId].fixRar||(uncap?rar:capRar(rar));ilvl=Math.max(1,ilvl|0);
+  if(rar==='legendary'&&!LEGEND_OK.has(baseId)&&uncap!=='debug')rar='epic';   /* ตำนานมีได้แค่ดาบ bbqy / ดาบราชาอัศวินแสง */   // ของระดับตายตัวไม่ถูกตัดเพดาน
   const it={uid:G.uid++,base:baseId,rar,enh:0,affixes:[],sockets:[],uniq:null};   // ไม่มีเลเวลไอเทม / เลเวลสวมใส่   // ช่องรูนเริ่ม 0 ช่อง (เจาะเพิ่มด้วยสว่านรูน)
   for(let i=0;i<RARITY[rar].affix;i++)it.affixes.push(Gear.roll(it));
   if(RARITY[rar].uniq)it.uniq=pick(Object.keys(PASSIVES[RARITY[rar].uniq]));   // ช่องความสามารถเทพ
   return it;
 }
 const itemName=it=>(it.rar==='god'?'✦ ':'')+BASES[it.base].n+(it.enh?` +${it.enh}`:'');
-const fmtStat=(k,v)=>{const pct=(AFFIX[k]&&AFFIX[k].pct)||['atkPct','defPct','hpPct','evasion','statusChance','dotPct','mpowPct','dmgPct','apenPct','mpenPct','blindChance','chaosChance'].includes(k)||k==='critRate'||k==='critDmg'||k==='dr'||k.startsWith('res')||k.startsWith('dmg_');return pct?`${v>0?'+':''}${Math.round(v*1000)/10}%`:`${v>0?'+':''}${Math.round(v)}`;};
-const STATN2=Object.assign({apenPct:'ไม่สนเกราะ',mpenPct:'ไม่สนเกราะ (เวท)',blindChance:'โอกาสทำให้ตาบอด 5 วิ',chaosChance:'โอกาสสร้างโกลาหล 4 วิ',watk:'พลังอาวุธ',wmatk:'พลังเวทอาวุธ',def:'DEF',mdef:'DEF (เวทเดิม)',statusChance:'โอกาสสร้างสถานะ',dotPct:'ดาเมจสถานะ',mpowPct:'พลังเวท %',dmgPct:'ดาเมจทุกชนิด',atkPct:'ATK %',defPct:'DEF %',hpPct:'HP %',evasion:'หลบหลีก',sta:'สตามินา'},STATN);
+const fmtStat=(k,v)=>{const pct=(AFFIX[k]&&AFFIX[k].pct)||['atkPct','defPct','hpPct','evasion','statusChance','dotPct','mpowPct','dmgPct','apenPct','mpenPct','blindChance','chaosChance','magicDmg','reflect','hotPct'].includes(k)||k==='critRate'||k==='critDmg'||k==='dr'||k.startsWith('res')||k.startsWith('dmg_');return pct?`${v>0?'+':''}${Math.round(v*1000)/10}%`:`${v>0?'+':''}${Math.round(v)}`;};
+const STATN2=Object.assign({magicDmg:'ดาเมจเวท',reflect:'สะท้อนดาเมจ',hotPct:'ฟื้น HP/วิ',apenPct:'ไม่สนเกราะ',mpenPct:'ไม่สนเกราะ (เวท)',blindChance:'โอกาสทำให้ตาบอด 5 วิ',chaosChance:'โอกาสสร้างโกลาหล 4 วิ',watk:'พลังอาวุธ',wmatk:'พลังเวทอาวุธ',def:'DEF',mdef:'DEF (เวทเดิม)',statusChance:'โอกาสสร้างสถานะ',dotPct:'ดาเมจสถานะ',mpowPct:'พลังเวท %',dmgPct:'ดาเมจทุกชนิด',atkPct:'ATK %',defPct:'DEF %',hpPct:'HP %',evasion:'หลบหลีก',sta:'สตามินา'},STATN);
 const hasNoMaxLv=()=>!!(typeof G!=='undefined'&&G.talent&&TALENT_PASSIVE[G.talent]&&TALENT_PASSIVE[G.talent].noMaxLv);
 const Equip={
   canEquip(it){return!!it;},   // ไม่มีเงื่อนไขเลเวลสวมใส่ (แรงค์กิลด์คุมระดับไอเทมแทน)
@@ -272,11 +275,12 @@ const Equip={
     return{ok,rate:c.rate,msg:ok?`ตีบวกสำเร็จ! → +${it.enh}`:`ตีบวก +${(it.enh||0)+1} ล้มเหลว (ขั้นไม่ลด · เสียทองและวัตถุดิบ)`};},
   /* ---- วิวัฒน์: ต้องตีบวกถึงเพดานแรงค์ · ใช้หินวิวัฒน์ตามระดับ · ขึ้นระดับ 1 ขั้น · ได้ค่าความสามารถใหม่ 1 ค่า (ตำนาน→เทพ ได้ความสามารถเทพแทน) · ตีบวกคงเดิม ---- */
   evoCost(it){return it&&GEAR.evoCost[it.rar]||0;},
-  evoAllowed(it){const n=RARS[RARS.indexOf(it.rar)+1],cap=rarCap();return!!n&&(RARS.indexOf(n)<=RARS.indexOf(cap)||(n==='god'&&cap==='legendary'));},   // วิวัฒน์ได้ไม่เกินเพดานแรงค์ (เทพ: แรงค์ A ขึ้นไป)
+  evoAllowed(it){const n=RARS[RARS.indexOf(it.rar)+1],cap=rarCap();if(n==='legendary'&&!LEGEND_OK.has(it.base))return false;return!!n&&(RARS.indexOf(n)<=RARS.indexOf(cap)||(n==='god'&&cap==='legendary'));},   // วิวัฒน์ได้ไม่เกินเพดานแรงค์ (เทพ: แรงค์ A ขึ้นไป)
   canEvolve(it){return!!it&&(it.enh||0)>=this.maxEnh(it)&&RARS.indexOf(it.rar)<RARS.length-1&&this.evoAllowed(it);},
   evolve(it){if(!it)return{ok:false,msg:'ไม่พบอุปกรณ์'};
     const ri=RARS.indexOf(it.rar);if(ri<0||ri>=RARS.length-1)return{ok:false,msg:'ระดับสูงสุดแล้ว (เทพ)'};
     if((it.enh||0)<this.maxEnh(it))return{ok:false,msg:`ต้องตีบวกถึง +${this.maxEnh(it)} (เพดานแรงค์) ก่อนวิวัฒน์`};
+    if(RARS[ri+1]==='legendary'&&!LEGEND_OK.has(it.base))return{ok:false,msg:'อุปกรณ์ระดับมหากาพย์วิวัฒน์ต่อไม่ได้ — ระดับตำนานมีเฉพาะดาบ bbqy และดาบราชาอัศวินแสง'};
     if(!this.evoAllowed(it)){const n=RARS[ri+1],need=GUILD_RANKS.find(k=>RARS.indexOf(k.maxRar)>=RARS.indexOf(n==='god'?'legendary':n));return{ok:false,msg:`วิวัฒน์เป็น${RARN[n]}ต้องมีแรงค์กิลด์ ${need?need.id:'สูงขึ้น'} ขึ้นไป`};}
     const n=this.evoCost(it),g=GEAR.cost.evo.gold;
     if(!Inv.has('evostone',n))return{ok:false,msg:`ต้องใช้หินแห่งการวิวัฒน์ ${n} ก้อน`};if(G.gold<g)return{ok:false,msg:`ต้องใช้ ${g} ทอง`};
@@ -579,9 +583,11 @@ const Skills={
     const lvl=this.level(id,f),key=id+'|'+wt+'|'+slot+'|'+lvl;if(this.cache[key])return this.cache[key];
     const s=SKILLS[id],fr=SKILL_FRAMES[s.anim]||[10,4,18],a=s.active||(s.anim==='rush'?(s.multi||3)*4+4:s.rain?(s.multi||3)*7:fr[1]);
     const el=s.el==='weapon'?(WEAPONS[wt]||WEAPONS.fist).el:(s.el||'phys');
-    const m=M(s.n,s.startup||fr[0],a,fr[2],(s.coef||0)*10*this.scale(id,f).coef,s.reach||0,3,22,{anim:s.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
+    const ad=adaptSkillAnim(s,wt);
+    const m=M(s.n,s.startup||fr[0],a,fr[2],(s.coef||0)*10*this.scale(id,f).coef,s.reach||0,3,22,{anim:ad.anim,kind:s.tier==='ultimate'?'ultimate':'skill',tok:'S'+(slot+1),combo:!!s.combo,
       type:s.type,el,skillId:id,hy:s.hy||62,hh:s.hh||60});
     for(const k of ['multi','proj','beam','beamCol','spiritBeam','blueFlame','greenFlame','swap','launch','rise','inv','lunge','kicks','status','statusDur','armorBreak','unblockable','jackpotPen','jackpot','alwaysCrit','defPen','lifesteal','ignoreDef','lastCrit','strike','buff','hpCost','rain','kd','low','dragon','kingAura','holdParry','rootDur','pillars','frostnova','instantShatter','windblade','blink','blinkBuff','slashFx','vfx','lightJudge'])if(s[k]!==undefined)m[k]=s[k];
+    if(ad.style){m.slashFx=0;m.weaponStyle=ad.style;}   /* ท่าถูกปรับตามอาวุธ: ไม่ใช้รอยฟันดาบ */
     if(s.el==='weapon'&&typeof EL_STATUS!=='undefined'&&EL_STATUS[el]){const sk=EL_STATUS[el];m.status=Object.assign({},m.status||{});if(!m.status[sk]&&!(el==='ice'&&m.status.freeze))m.status[sk]=1;}
     if(s.tier==='ultimate')m.super=2;
     return this.cache[key]=m;
@@ -680,6 +686,10 @@ const Save={
     if(d.v<3)this.gearWipe();
     if(G.guildRank==='G')G.guildRank='D';   // แรงค์ G เดิม (Lv.30 + โคลอสเซียม) = แรงค์ D ใหม่   // เซฟก่อนระบบไอเทมใหม่: ล้างอุปกรณ์ทั้งหมด · เลเวลเหลือ 5 · ชดเชยทอง
     for(const it of G.bag||[]){const ts=(RARITY[it.rar]||RARITY.normal).sockets;it.sockets=Array.isArray(it.sockets)?it.sockets.slice(0,ts).map(rk=>rk==='rune_matk'?'rune_atk':rk&&MATS[rk]&&MATS[rk].rune?rk:null):[];it.affixes=(it.affixes||[]).filter(a=>a&&GAFX[a.k]);}
+    G.bag=(G.bag||[]).filter(it=>it&&BASES[it.base]);   // ไอเท็มที่ถูกลบออกจากเกม (เช่น แหวนปฐมกาล) หายจากเซฟเก่า
+    for(const s of Object.keys(G.eq||{}))if(G.eq[s]!=null&&!G.bag.some(i=>i.uid===G.eq[s]))G.eq[s]=null;
+    for(const it of G.bag||[]){if(!BASES[it.base]||gearCat(BASES[it.base].type)!=='armor')continue;   // เกราะไม่มีอัตราคริแล้ว: เปลี่ยนเป็นค่าอื่นของเกราะ (เทียร์เดิม)
+      for(const a of it.affixes||[])if(a.k==='critRate'){const pool=GPOOL.armor.filter(k=>!it.affixes.some(x=>x.k===k));if(pool.length)a.k=pool[Math.floor(rand()*pool.length)];}}
     if(G.mats&&G.mats.rune_matk){G.mats.rune_atk=(G.mats.rune_atk||0)+G.mats.rune_matk;delete G.mats.rune_matk;}   // รูนพลังเวท (ระบบเก่า) → รูนพลัง
     for(const s of SLOTS)if(!(s in G.eq))G.eq[s]=null;  // forward-compat for new slots
     for(const s of Object.keys(G.eq))if(!SLOTS.includes(s))delete G.eq[s];
@@ -694,7 +704,7 @@ const Save={
 };
 
 /* ---- Re-Item (NPC รีไอเทม): สุ่มครั้งละ 20,000 เหรียญ ซื้อชิ้นละ 10,000 เหรียญ ---- */
-const REITEM={cost:20000,buy:10000,odds:[['normal',69.9989],['rare',20],['epic',10],['legendary',.001],['god',.0001]]}   /* หน่วยเป็น % — ตำนาน/เทพ ได้จากร้านรีเท่านั้น (ดรอปไม่มีแล้ว) */;
+const REITEM={cost:20000,buy:10000,odds:[['normal',69.9999],['rare',20],['epic',10],['god',.0001]]}   /* หน่วยเป็น % — ตำนาน/เทพ ได้จากร้านรีเท่านั้น (ดรอปไม่มีแล้ว) */;
 function reitemRarity(uncap){let x=rand()*100;for(const [r,p] of REITEM.odds){if(x<p)return uncap?r:capRar(r);x-=p;}return 'normal';}
 function reitemOdds(uncap){const o={};for(const [r,p] of REITEM.odds){const c=uncap?r:capRar(r);o[c]=Math.round(((o[c]||0)+p)*1e6)/1e6;}return Object.entries(o);}
 function reitemRoll(uncap){const pool=Object.keys(BASES).filter(k=>BASES[k].type&&!BASES[k].setTag&&!/_god$|^h_crown$/.test(k)),r=reitemRarity(uncap);

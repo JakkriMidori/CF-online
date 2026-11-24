@@ -3,7 +3,7 @@
    OVERWORLD — 3-Island World Map (Town-to-Town Travel Only)
    * ดันเจี้ยนทั้งหมดเข้าทางประตูในเมือง ไม่ปรากฏบนแผนที่โลก *
    ============================================================ */
-const OW_COLS = 72, OW_ROWS = 48;
+const OW_COLS = 84, OW_ROWS = 60;   // ขยายแผนที่: เพิ่มแผ่นดินเกาะใต้ทางตะวันตก/ใต้/ตะวันออก
 
 const OW_LOCATIONS = [
   { id:'ow_spire',   k:'ow_spire',   kind:'spire',   tx:9,  ty:27, icon:'🔮', tag:'T',  n:'หอคอยคริสตัลจอมเวท',       lv:'Lv.50–95 · 5 ชั้น (Rank D+)', island:'south', dest:'spire',   desc:'หอคอยอเมทิสต์ 5 ชั้น ทางทิศตะวันตกของเกาะใต้ (เข้าได้เมื่อแรงค์กิลด์สูงกว่า F) มีโถงเสาแสงบันทึกจุดเกิด ห้องทั่วไป · หัวหน้า · บอส ต้องแก้ปริศนาคริสตัลเพื่อขึ้นชั้นถัดไป' },
@@ -16,6 +16,11 @@ const OW_LOCATIONS = [
   { id:'ow_spire_m', k:'ow_spire_m', kind:'spire_locked', tx:53, ty:24, icon:'🔒', tag:'T3', n:'หอคอยคริสตัลภูเขาไฟ (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'mid', dest:'spire_m', locked:1, desc:'หอคอยคริสตัลที่ตั้งตระหง่านเหนือเกาะหินแดงกลางทะเล ยังถูกผนึกแน่นหนา' },
   { id:'ow_spire_w', k:'ow_spire_w', kind:'spire_locked', tx:36, ty:14, icon:'🔒', tag:'T1', n:'หอคอยคริสตัลตะวันตก (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'north', dest:'spire_w', locked:1, desc:'หอคอยคริสตัลโบราณบนเกาะเหนือ (สลับที่กับหอคอยคริสตัลจอมเวท) ถูกผนึกด้วยม่านพลัง ไม่สามารถเข้าได้' },
   { id:'ow_spire_n', k:'ow_spire_n', kind:'spire_locked', tx:54, ty:13, icon:'🔒', tag:'T4', n:'หอคอยคริสตัลเหมันต์ (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้', island:'north', dest:'spire_n', locked:1, desc:'หอคอยคริสตัลท่ามกลางยอดเขาหิมะทางตะวันออกของเกาะเหนือ ยังถูกผนึกและไม่สามารถเข้าได้' },
+  { id:'ow_dg_stone', k:'ow_dg_stone', kind:'dungeon', tx:5, ty:38, icon:'🪨', tag:'D', n:'ถ้ำหินโกเลม', lv:'Lv.4–5 · บอส 30', island:'south', dest:'stonedungeon', theme:'stone', desc:'หุบผาศิลาตะวันตก บอส: โกเลมหิน แร่เหล็ก · ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีส' },
+  { id:'ow_dg_dragon', k:'ow_dg_dragon', kind:'dungeon', tx:10, ty:24, icon:'🐉', tag:'D', n:'ดินแดนมังกร', lv:'Lv.18–20 · บอส 36', island:'south', dest:'dragondungeon', theme:'dragon', desc:'ป่าสนแถวภูเขาและหุบเขามังกร ถิ่นของมังกรหลายพันธุ์และโจรมังกร บอส: ราชามังกร · ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีส' },
+  { id:'ow_dg_tower', k:'ow_dg_tower', kind:'dungeon', tx:22, ty:26, icon:'🧪', tag:'D', n:'หอคอยนักแปรธาตุ', lv:'Lv.14–16 · บอส 38', island:'south', dest:'towerdungeon', theme:'tower', desc:'แหลมศิลาเหนือ บอส: นักแปรธาตุที่บิดเบี้ยว · ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีส' },
+  { id:'ow_dg_ice', k:'ow_dg_ice', kind:'dungeon', tx:17, ty:26, icon:'❄️', tag:'D', n:'ถ้ำน้ำแข็ง & วิหารเซราฟ', lv:'Lv.15–17 · บอส 35', island:'south', dest:'icedungeon', theme:'ice', desc:'ยอดเขาหิมะเหนือสุด บอส: เซราฟตาเดียว · ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีส' },
+  { id:'ow_dg_lava', k:'ow_dg_lava', kind:'dungeon', tx:49, ty:42, icon:'🌋', tag:'D', n:'เหมืองลาวา', lv:'Lv.9–11 · บอส 32', island:'south', dest:'lavadungeon', theme:'lava', desc:'ปล่องภูเขาไฟตะวันออก บอส: ราชันย์ลาวา · ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีส' },
   { id:'ow_city',    k:'ow_city',    kind:'city',    tx:29, ty:14, icon:'🔒', tag:'C',  n:'เมืองหลวงออเรีย (ถูกผนึก)', lv:'🔒 ถูกล็อค · เข้าไม่ได้',    island:'north', dest:'city',    locked:1, desc:'ประตูเมืองหลวงบนเกาะเหนือถูกม่านพลังผนึกไว้แน่นหนา ยังไม่สามารถเดินทางเข้าไปได้' }
 ];
 
@@ -76,6 +81,10 @@ const OW = {
     ell(21, 39, 10.5, 6.2, '.');
     ell(29, 35, 11.5, 8.5, '.');
     ell(25, 29, 7.5, 5.0, '.');
+    ell(31, 46, 14, 8.5, '.');   // ขยายเกาะใต้ลงทางใต้
+    ell(13, 44, 11, 8, '.');
+    ell(8, 37, 7, 6, '.');
+    ell(46, 42, 8.5, 7, '.');    // แหลมตะวันออก
 
     // 2) เกาะกลาง (Middle Volcanic Ridge Island — ทางผ่านข้ามทะเล)
     ell(50, 26, 6.6, 5.2, 'V');
@@ -86,6 +95,12 @@ const OW = {
     ell(54, 13, 10.5, 6.6, 'N');
     ell(49, 9, 8.5, 4.5, 'N');
 
+    // ทางเข้าดันเจี้ยนกลางแจ้ง (ย้ายออกมาจากรายการประตูเมือง)
+    gr[38][5]='.'; road(5, 38, 14, 34);
+    gr[24][10]='.'; road(10, 24, 9, 27);
+    gr[26][22]='.'; road(22, 26, 25, 29);
+    gr[26][17]='.'; road(17, 26, 14, 30);
+    gr[42][49]='.'; road(49, 42, 29, 37);
     // ตัดสะพานข้ามทะเลออกทั้งหมด — ข้ามระหว่างเกาะไม่ได้
     road(9, 27, 14, 34);    // หอคอยคริสตัลจอมเวท -> ทางแยกตะวันตก
     road(14, 34, 20, 40);   // ทางแยกตะวันตก -> เมือง Collawarrie
@@ -264,6 +279,18 @@ const OW = {
 
   drawProp(o) {
     const x = o.x | 0, y = o.y | 0, k = o.k;
+    if (k.startsWith('ow_dg_')) {   // ปากทางดันเจี้ยนกลางแจ้ง: ธีมสีตามดันเจี้ยน · ล็อคถ้ายังไม่มีกุญแจ
+      const th = o.loc.theme, C = { stone: ['#6e6a62', '#8d887d', '#7ad8ff'], lava: ['#5a3a30', '#7c5040', '#ff7a30'], tower: ['#585468', '#7a7690', '#7affc8'], ice: ['#7d9ab0', '#bcd8ea', '#d8f4ff'], dragon: ['#4d5e48', '#6e8462', '#ffaa44'] }[th];
+      const open = hasLavaKey(), p = .5 + Math.sin(G.t * .08) * .35;
+      shadow(g, x, y, 20);
+      g.fillStyle = C[0]; g.beginPath(); g.moveTo(x - 17, y); g.lineTo(x - 13, y - 17); g.lineTo(x, y - 23); g.lineTo(x + 13, y - 17); g.lineTo(x + 17, y); g.closePath(); g.fill();
+      g.fillStyle = C[1]; g.beginPath(); g.moveTo(x - 16, y); g.lineTo(x - 12, y - 16); g.lineTo(x - 1, y - 21); g.lineTo(x - 4, y); g.closePath(); g.fill();
+      g.fillStyle = '#100c0a'; g.beginPath(); g.arc(x, y - 3, 8, Math.PI, 0); g.lineTo(x + 8, y); g.lineTo(x - 8, y); g.closePath(); g.fill();
+      if (th === 'dragon') { g.fillStyle = '#2d5c32'; g.beginPath(); g.moveTo(x - 19, y - 4); g.lineTo(x - 14, y - 16); g.lineTo(x - 9, y - 4); g.fill(); g.beginPath(); g.moveTo(x + 9, y - 4); g.lineTo(x + 14, y - 16); g.lineTo(x + 19, y - 4); g.fill(); g.fillStyle = '#e8dcc0'; for (const dx of [-10, 10]) { g.beginPath(); g.moveTo(x + dx - 2, y - 17); g.lineTo(x + dx, y - 25); g.lineTo(x + dx + 2, y - 17); g.fill(); } }
+      if (open) { g.save(); g.globalAlpha = .25 + p * .3; const gr = g.createRadialGradient(x, y - 4, 0, x, y - 4, 14); gr.addColorStop(0, C[2]); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - 14, y - 18, 28, 28); g.restore(); }
+      else { g.fillStyle = '#ff5a6a'; g.fillRect(x - 3, y - 9, 6, 6); g.fillStyle = '#2a0a10'; g.fillRect(x - 1, y - 6, 2, 3); }
+      return true;
+    }
     if (k === 'ow_town' || k === 'ow_city') {
       const cap = k === 'ow_city', roof = cap ? '#485268' : '#b83d2e', wall = cap ? '#a8b0be' : '#e6dac4';
       shadow(g, x, y, 22);
@@ -480,6 +507,11 @@ const OW = {
       toast(`🔒 ${(loc && loc.n) || 'หอคอยคริสตัล'} — ม่านพลังผนึกอยู่ ยังไม่สามารถเข้าได้ในขณะนี้`, 2800);
       SFX.ui && SFX.ui('error');
       return true;
+    }
+    if (type.startsWith('ow_dg_')) {
+      const loc = OW_LOCATIONS.find(l => l.id === type);
+      if (!hasLavaKey()) { toast('🔒 ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีสก่อน'); SFX.ui && SFX.ui('error'); return true; }
+      enterDungeon(1, loc.theme); Save.save(); return true;
     }
     if (type === 'ow_outpost') {
       const S = StatSync.get(); G.hp = S.maxHP; G.mp = S.maxMP; SFX.level();

@@ -92,11 +92,13 @@ function ico(name,size=20){
 
 // ไอคอนประจำไอเทมแต่ละชิ้น: [รูปทรง, สี] — วาดเอง ไม่ใช้ emoji
 const BASE_ICO={
+  h_storm:['helm','#ffe24a'],a_storm:['plate','#9fe6ff'],g_storm:['glove','#ffe24a'],b_storm:['boot','#9fe6ff'],h_arcw:['wizardhat','#7ad8ff'],a_arcw:['robe','#b08aff'],g_arcw:['glove','#b08aff'],b_arcw:['boot','#7ad8ff'],
+  h_travel:['cap','#c8a060'],a_travel:['robe','#c8925a'],b_travel:['boot','#a87a4a'],be_travel:['band','#c8925a'],h_dragon:['horns','#ff6a4a'],g_dragon:['glove','#ff6a4a'],b_dragon:['boot','#ff6a4a'],h_thorn:['horns','#c8d070'],a_thorn:['plate','#c8d070'],p_thorn:['pants','#a8b860'],b_thorn:['boot','#a8b860'],
   w_club:['club','#c8925a'],w_woodsword:['sword','#9c6a38'],w_stonesword:['sword','#8a867e'],w_sword:['sword','#d8dde6'],w_spear:['spear','#f0e2c0'],w_flame:['flameblade','#ff8a3a'],w_gaunt:['gauntlet','#7fd8ff'],
   w_firepan:['pan','#ff9a3a'],w_hammer:['hammer','#ffd56a'],w_kage:['katana','#b08aff'],w_seraph:['featherblade','#fff2a8'],w_god:['greatsword','#ff5a1a'],
   w_mswd:['magicsword','#c9a0ff'],w_mstaff:['staff','#a98aff'],w_adagger:['dagger','#d88aff'],w_wand_fire:['wand','#ff7a2a'],w_wand_ice:['wand','#bff0ff'],
   w_aetherking:['aethersword','#ffe878'],
-  w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],w_lightless:['greatsword','#9a7ad8'],r_primal:['ring','#ffd23a'],w_mercstaff:['wand','#9ae8b0'],h_alch:['wizardhat','#7af0c0'],a_alch:['robe','#7af0c0'],g_alch:['glove','#7af0c0'],b_alch:['boot','#7af0c0'],w_gs1:['greatsword','#c8ccd8'],w_gs2:['greatsword','#e8c070'],w_gs3:['greatsword','#a98aff'],
+  w_wand_lightning:['wand','#9fe6ff'],w_scythe:['scythe','#9a7ad8'],w_lightless:['greatsword','#9a7ad8'],w_mercstaff:['wand','#9ae8b0'],h_alch:['wizardhat','#7af0c0'],a_alch:['robe','#7af0c0'],g_alch:['glove','#7af0c0'],b_alch:['boot','#7af0c0'],w_gs1:['greatsword','#c8ccd8'],w_gs2:['greatsword','#e8c070'],w_gs3:['greatsword','#a98aff'],
   w_wh1:['hammer','#b8bfcc'],w_wh2:['hammer','#7fb8d8'],w_wh3:['hammer','#e8b040'],
   h_mage:['wizardhat','#b58aff'],a_mage:['robe','#b58aff'],p_mage:['pants','#b58aff'],b_mage:['boot','#b58aff'],
   h_boss:['horns','#ffd23a'],a_boss:['plate','#ffd23a'],g_boss:['glove','#ffd23a'],b_boss:['boot','#ffd23a'],
@@ -112,6 +114,7 @@ const BASE_ICO={
   w_icesword:['sword','#8ee4ff'],w_iceaxe:['axe','#7ad8ff'],b_ice:['boot','#8ee4ff'],h_ice:['helm','#8ee4ff'],a_ice:['plate','#aeeeff'],g_ice:['glove','#8ee4ff'],p_ice:['pants','#7ad8ff']
 };
 const MAT_ICO={
+  thornscale:['hide','#a8b860'],redscale:['hide','#ff6a4a'],dragonblood:['star','#d8283a'],
   wood:['log','#c8925a'],ore:['ore','#b8bfcc'],stoneore:['ore','#8a867e'],iceore:['ore','#7ad8ff'],fire:['crystal','#ff7a2a'],thunder:['crystal','#eef6ff'],fang:['fang','#f0e2c0'],hide:['hide','#c8925a'],
   cheese:['cheese','#ffd56a'],pan:['pan','#ff9a3a'],cloth:['spool','#9a8acc'],core:['core','#5fe0a0'],lavaore:['ore','#ff7a2a'],essence:['star','#ffb03a'],
   potion:['potion','#ff5a6a'],pot_regen:['potion','#7aff9a'],pot_def:['potion','#9fd0ff'],pot_mdef:['potion','#c88aff'],pot_m150:['potion','#ffd23a'],pot_quad:['potion','#ff8ae0'],mp_s:['potion','#7ab8ff'],mp_m:['potion','#5a9aff'],mp_l:['potion','#4a7aff'],mp_x:['potion','#b58aff'],

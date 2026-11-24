@@ -82,7 +82,7 @@ function update(){
 const FX={on:true,motes:[]};
 const fxC=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 const bloomC=fxC(W/4,H/4),BX=bloomC.getContext('2d'),blurC=fxC(W/4,H/4),BL=blurC.getContext('2d');
-const GRADE={town:'rgba(255,196,120,.18)',cave:'rgba(255,170,90,.16)',crystal:'rgba(140,120,255,.18)',lava:'rgba(255,110,40,.22)',ice:'rgba(120,200,255,.18)',
+const GRADE={town:'rgba(255,196,120,.18)',cave:'rgba(255,170,90,.16)',crystal:'rgba(140,120,255,.18)',lava:'rgba(255,110,40,.22)',dragon:'rgba(165,225,135,.15)',ice:'rgba(120,200,255,.18)',
   sanctum:'rgba(170,230,255,.18)',tower:'rgba(120,255,190,.14)',lavaboss:'rgba(255,90,30,.22)',cathedral:'rgba(190,230,255,.18)',frost:'rgba(120,200,255,.18)',stone:'rgba(255,190,120,.16)',arena:'rgba(255,200,130,.18)'};
 let vig=null;
 function fxBiome(inB){try{if(inB)return (typeof SCENE_OF!=='undefined'&&BT&&BT.e&&SCENE_OF[BT.e.kind])||(Z.biomeAt?Z.biomeAt(Math.floor(BT.e.x/16)):'cave');return Z.biomeAt?Z.biomeAt(Math.floor(P.x/16)):'town';}catch(e){return 'town';}}
@@ -102,7 +102,7 @@ function present(){
   HD.rays(D,bio);
   // 4) ฝุ่นละอองเอเธอร์ลอยในแสง
   if(FX.motes.length<24)FX.motes.push({x:Math.random()*960,y:Math.random()*540,vx:(Math.random()-.5)*.22,vy:-.10-Math.random()*.18,p:Math.random()*7});
-  D.save();D.globalCompositeOperation='screen';const mc=bio==='lava'||bio==='lavaboss'?'245,148,72':bio==='ice'||bio==='frost'||bio==='sanctum'?'195,232,255':bio==='tower'?'145,240,195':'248,225,175';
+  D.save();D.globalCompositeOperation='screen';const mc=bio==='lava'||bio==='lavaboss'?'245,148,72':bio==='dragon'?'225,245,155':bio==='ice'||bio==='frost'||bio==='sanctum'?'195,232,255':bio==='tower'?'145,240,195':'248,225,175';
   for(const m of FX.motes){m.x+=m.vx;m.y+=m.vy;m.p+=.026;if(m.y<-6){m.y=546;m.x=Math.random()*960;}const a=Math.max(0,.035+Math.sin(m.p)*.025);
     D.fillStyle=`rgba(${mc},${a*.4})`;D.fillRect(m.x-1,m.y-1,4,4);D.fillStyle=`rgba(${mc},${a})`;D.fillRect(m.x,m.y,2,2);}D.restore();
   // 5) ขอบจอมืด
@@ -111,7 +111,7 @@ function present(){
 function render(){
   if(!Z){D.fillStyle='#07050a';D.fillRect(0,0,960,540);return;}
   const inBattle=BT&&(G.mode==='battle'||G.mode==='trans');
-  if(inBattle)drawBattle();else drawExplore();
+  if(inBattle){PJ.uz=1;PJ.vw=0;drawBattle();}else drawExplore();
   present();
   if(inBattle)drawBattleUI();else drawExploreUI();
   if(typeof Cutscene!=='undefined'&&Cutscene.fade>0){D.fillStyle=`rgba(0,0,0,${clamp(Cutscene.fade,0,1)})`;D.fillRect(0,0,960,540);}

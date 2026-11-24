@@ -11,7 +11,8 @@ const PJ={k:.0016,yr:150,cx:0,cy:0,
   set(cx,cy){this.cx=cx;this.cy=cy;this.k=.0016;},
   s(ys){return 1+this.k*(ys-this.yr);},
   wy(ys){return this.k?this.cy+this.yr+Math.log(this.s(ys))/this.k:this.cy+ys;},
-  pt(wx,wy){if(!this.k)return{x:wx-this.cx,y:wy-this.cy,s:1};const s=Math.exp(this.k*(wy-this.cy-this.yr));return{x:W/2+(wx-this.cx-W/2)*s,y:this.yr+(s-1)/this.k,s};}
+  uz:1,vw:0,   /* uz = ตัวคูณซูมของจอจริง (ดันเจียนซูมออก) · vw = ความกว้างพื้นที่มองเห็นตอนไม่ได้วาดในโหมดซูม */
+  pt(wx,wy){const u=this.uz||1;if(!this.k)return{x:(wx-this.cx)*u,y:(wy-this.cy)*u,s:u};const vw=this.vw||W,s=Math.exp(this.k*(wy-this.cy-this.yr));return{x:(vw/2+(wx-this.cx-vw/2)*s)*u,y:(this.yr+(s-1)/this.k)*u,s:s*u};}
 };
 
 const HD=(()=>{
@@ -36,8 +37,8 @@ const HD=(()=>{
   const rgb=(c,m=1,add=0)=>`rgb(${Math.max(0,Math.min(255,c[0]*m+add))|0},${Math.max(0,Math.min(255,c[1]*m+add))|0},${Math.max(0,Math.min(255,c[2]*m+add))|0})`;
 
   // ---------- ลายพื้น ----------
-  const KIND={town:'grass',cave:'slab',crystal:'slab',lava:'basalt',ice:'ice',tower:'slab',sanctum:'slab'};
-  const MOSSY={cave:.52,tower:.6,sanctum:.5,town:.55,crystal:2,lava:2,ice:2};
+  const KIND={town:'grass',dragon:'grass',cave:'slab',crystal:'slab',lava:'basalt',ice:'ice',tower:'slab',sanctum:'slab'};
+  const MOSSY={cave:.52,tower:.6,sanctum:.5,town:.55,dragon:.42,crystal:2,lava:2,ice:2};
   function grass(B,px,py,tx,ty,base){
     const v=.86+lf(px,py)*.28;B.fillStyle=rgb(base,v);B.fillRect(px,py,16,16);
     for(let i=0;i<34;i++){const hx=hash(tx*31+i,ty*17+i*3),hy=hash(ty*29+i,tx*13-i),sh=hash(i*7,tx+ty*3);
@@ -67,7 +68,15 @@ const HD=(()=>{
     if(kind==='ice'&&hash(tx,ty*9)>.7){B.fillStyle='rgba(255,255,255,.5)';for(let i=0;i<4;i++)B.fillRect(px+hash(i,tx)*15,py+hash(ty,i)*15,.5,.5);}
     B.restore();
   }
+  function dirtPath(B,px,py,tx,ty,base){
+    const v=.88+lf(px,py)*.22;B.fillStyle=rgb(base,v);B.fillRect(px,py,16,16);
+    for(let i=0;i<18;i++){const hx=hash(tx*23+i,ty*19+i*3),hy=hash(ty*31+i,tx*11-i),sh=hash(i*5,tx+ty*7);
+      B.fillStyle=sh>.6?'rgba(175,148,108,.36)':'rgba(64,46,28,.24)';B.fillRect(px+hx*15,py+hy*15,1.2,1.0);}
+    if(hash(tx*11+3,ty*17)>.58){B.fillStyle='rgba(148,136,118,.65)';B.beginPath();B.ellipse(px+4+hash(tx,ty)*8,py+4+hash(ty,tx)*8,1.8,1.2,0,0,7);B.fill();}
+    if(hash(tx*7,ty*13)>.72){B.fillStyle='rgba(66,104,48,.38)';B.beginPath();B.ellipse(px+2+hash(ty,tx*2)*12,py+2+hash(tx*2,ty)*12,2.4,1.4,0,0,7);B.fill();}
+  }
   function floor(B,px,py,tx,ty,bn,base,isRoad){
+    if(bn==='dragon'&&isRoad){dirtPath(B,px,py,tx,ty,base);return;}
     const k=isRoad?'slab':(KIND[bn]||'slab');
     if(k==='grass')grass(B,px,py,tx,ty,base);else slabs(B,px,py,tx,ty,base,k,isRoad?'town':bn);
   }
@@ -89,6 +98,7 @@ const HD=(()=>{
   // ---------- พื้นมุมกล้องเอียง ----------
   const gC=cv(W*RES,H*RES),GC=gC.getContext('2d');let gKey='';
   function ground(ctx,cx,cy,fill){
+    {const gw=Math.round(W*RES),gh=Math.round(H*RES);if(gC.width!==gw||gC.height!==gh){gC.width=gw;gC.height=gh;gKey='';}}   /* ซูมออก: บัฟเฟอร์พื้นกว้างขึ้นตามพื้นที่วาด */
     const key=cx+','+cy+','+PJ.k+','+bgVer+','+bgC.width;
     if(key!==gKey){gKey=key;GC.setTransform(1,0,0,1,0,0);GC.fillStyle=fill;GC.fillRect(0,0,gC.width,gC.height);
       if(!PJ.k)GC.drawImage(bgC,cx*RES,cy*RES,W*RES,H*RES,0,0,gC.width,gC.height);
@@ -109,6 +119,7 @@ const HD=(()=>{
     stone:{fog:'92,92,62',fa:.14,wisp:'190,184,140',wa:.05,dark:'rgba(22,18,10,.46)',ray:.018,rayC:'255,226,150'},
     crystal:{fog:'70,70,120',fa:.16,wisp:'150,160,255',wa:.06,dark:'rgba(10,8,30,.50)',ray:.015,rayC:'190,200,255'},
     lava:{fog:'110,40,16',fa:.16,wisp:'255,140,70',wa:.05,dark:'rgba(20,6,4,.50)',ray:.012,rayC:'255,150,80'},
+    dragon:{fog:'46,78,52',fa:.10,wisp:'215,242,205',wa:.025,dark:'rgba(14,22,16,.18)',ray:.022,rayC:'255,228,162'},
     lavaboss:{fog:'110,40,16',fa:.22,wisp:'255,140,70',wa:.06,dark:'rgba(20,6,4,.50)',ray:.012,rayC:'255,150,80'},
     ice:{fog:'170,205,232',fa:.14,wisp:'235,248,255',wa:.04,dark:'rgba(20,34,60,.30)',ray:.02,rayC:'225,245,255'},
     frost:{fog:'170,205,232',fa:.14,wisp:'235,248,255',wa:.04,dark:'rgba(20,34,60,.30)',ray:.02,rayC:'225,245,255'},
@@ -149,6 +160,21 @@ const HD=(()=>{
         const wy=((hash(i,53)*H*2+t*(.32+(i%4)*.08)-cy*.55)%(H+20)+H+20)%(H+20)-10;
         const r=(i%3===0)?1.5:1.0,al=.22+(i%4)*.05;
         ctx.fillStyle=`rgba(228,244,255,${al})`;ctx.beginPath();ctx.arc(wx,wy,r,0,7);ctx.fill();
+      }
+    }else if(bio==='dragon'){
+      // ป่าแถวภูเขาดินแดนมังกร: ใบไม้สนและใบไม้ร่วงปลิวตามลม + ละอองแสงทองลอดยอดไม้
+      const cols=['rgba(128,196,92,.44)','rgba(218,170,84,.40)','rgba(216,112,68,.36)'];
+      for(let i=0;i<16;i++){
+        const sp=.24+(i%3)*.09,wx=((hash(i,19)*W*2+t*sp-cx*.65)%(W+40)+W+40)%(W+40)-20;
+        const wy=((hash(i,31)*H*1.5+t*(.16+(i%2)*.06)+Math.sin(t*.03+i)*9-cy*.5)%(H+20)+H+20)%(H+20)-10;
+        const ang=t*.045+i*1.3;ctx.fillStyle=cols[i%3];
+        ctx.beginPath();ctx.ellipse(wx,wy,2.2,1.0,ang,0,7);ctx.fill();
+      }
+      for(let i=0;i<8;i++){
+        const gx=((hash(i,61)*W*2+Math.sin(t*.025+i*2)*8-cx*.55)%(W+20)+W+20)%(W+20)-10;
+        const gy=((hash(i,73)*H*1.6-t*(.18+(i%2)*.06)-cy*.55)%(H+20)+H+20)%(H+20)-10;
+        ctx.fillStyle=`rgba(255,212,120,${.18+Math.sin(t*.07+i)*.10})`;
+        ctx.beginPath();ctx.arc(gx,gy,1.2,0,7);ctx.fill();
       }
     }else if(bio==='lava'||bio==='lavaboss'){
       // ละอองเถ้าถ่านและสะเก็ดไฟอุ่นลอยวนขึ้นช้าๆ (ความทึบต่ำ ไม่จ้า)
@@ -389,10 +415,24 @@ const HDP=(()=>{
 /* ---------- ฉากต่อสู้แบบไดออรามา: ผนังไกล (เบลอ+หมอก) · พื้นมุมเอียง · เสาหน้ากล้อง (เบลอ) ---------- */
 const HDB=(()=>{
   const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w*RES;c.height=h*RES;const x=c.getContext('2d');x.setTransform(RES,0,0,RES,0,0);return[c,x];};
-  const FLOORB={cave:'cave',stone:'cave',lava:'lava',cathedral:'sanctum',frost:'ice',tower:'tower',arena:'cave',rose:'tower',aether:'sanctum'};
+  const FLOORB={cave:'cave',stone:'cave',lava:'lava',dragon:'dragon',cathedral:'sanctum',frost:'ice',tower:'tower',arena:'cave',rose:'tower',aether:'sanctum'};
   const mul=(a,m)=>a.map(v=>Math.min(255,v*m));
   const col=(a,m=1,al=1)=>`rgba(${Math.min(255,a[0]*m)|0},${Math.min(255,a[1]*m)|0},${Math.min(255,a[2]*m)|0},${al})`;
   function wall(x,P,scene){
+    if(scene==='dragon'){
+      // ฉากต่อสู้ป่าแถวภูเขา: ทิวเขาสลับซับซ้อน + หมอกหุบเขา + แนวป่าสนหลายชั้น
+      const sky=x.createLinearGradient(0,0,0,206);sky.addColorStop(0,'#172d38');sky.addColorStop(.55,'#2e5148');sky.addColorStop(1,'#4d7356');x.fillStyle=sky;x.fillRect(0,0,W,206);
+      const ridge=(pts,c1,c2)=>{x.fillStyle=c1;x.beginPath();x.moveTo(0,206);for(const[px,py]of pts)x.lineTo(px,py);x.lineTo(W,206);x.closePath();x.fill();
+        x.fillStyle=c2;for(let i=0;i<pts.length-1;i+=2){const[ax,ay]=pts[i],[bx,by]=pts[i+1]||[W,206];x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.lineTo(ax+(bx-ax)*.3,206);x.closePath();x.fill();}};
+      ridge([[0,126],[52,62],[112,118],[178,44],[246,104],[318,38],[392,106],[446,60],[480,118]],'#273e44','#345258');
+      ridge([[0,152],[40,108],[92,144],[144,88],[208,138],[274,84],[338,140],[404,92],[462,136],[480,126]],'#1f372d','#2b4c39');
+      x.fillStyle='rgba(200,235,205,.18)';x.fillRect(0,132,W,26);
+      // ป่าสนระยะกลาง-ใกล้ริมขอบผา
+      for(let i=0;i<34;i++){const tx=i*15+(hash(i,9)-.5)*8,th=26+hash(i,17)*32,by=206,colT=i%3===0?'#152e1e':i%3===1?'#1e4228':'#275232';
+        x.fillStyle='#2a1d14';x.fillRect(tx-1.5,by-10,3,10);x.fillStyle=colT;
+        for(let t2=0;t2<3;t2++){const w2=(14-t2*3),y2=by-8-t2*(th*.26);x.beginPath();x.moveTo(tx-w2,y2);x.lineTo(tx,y2-th*.38);x.lineTo(tx+w2,y2);x.closePath();x.fill();}}
+      return;
+    }
     for(let y=0,r=0;y<206;y+=16,r++){let xx=-(r%2)*14;while(xx<W){const w=26+hash(xx,r*7)*20,v=.85+hash(r,xx)*.35,b=r%3===0?P.wall:P.wallD;
       x.fillStyle=col(b,v*1.35);x.fillRect(xx+.5,y+.5,w-1,15);x.fillStyle='rgba(255,240,220,.10)';x.fillRect(xx+.5,y+.5,w-1,.8);x.fillStyle='rgba(0,0,0,.35)';x.fillRect(xx+.5,y+14.5,w-1,1);
       if(hash(xx*3,r)>.8){x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=.6;x.beginPath();x.moveTo(xx+w*.3,y+2);x.lineTo(xx+w*.4,y+8);x.lineTo(xx+w*.35,y+14);x.stroke();}xx+=w;}}
@@ -427,8 +467,15 @@ const HDB=(()=>{
     for(let y=yT;y<yB;y+=.5){const s=s0+k*(y-yT),rows=.5/s,hw=W/2/s;c.drawImage(ft,(320-hw)*RES,acc*RES,2*hw*RES,Math.max(.5,rows*RES),0,y,W,.5);acc+=rows;}c.restore();
     const ao=c.createLinearGradient(0,190,0,214);ao.addColorStop(0,'rgba(0,0,0,.6)');ao.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=ao;c.fillRect(0,190,W,24);
     c.save();c.globalCompositeOperation='lighter';const pool=c.createRadialGradient(240,238,10,240,238,190);pool.addColorStop(0,P.glow+'26');pool.addColorStop(1,P.glow+'00');c.fillStyle=pool;c.save();c.translate(240,238);c.scale(1,.3);c.translate(-240,-238);c.fillRect(40,100,400,300);c.restore();c.restore();
-    for(const[px,w]of[[-14,46],[448,46]]){const[pc,px2]=mk(60,H);const pg=px2.createLinearGradient(0,0,60,0);pg.addColorStop(0,'#08060a');pg.addColorStop(.5,col(P.wallD,.7));pg.addColorStop(1,'#08060a');px2.fillStyle=pg;px2.fillRect(7,0,w,H);
-      for(let y=0;y<H;y+=18){px2.fillStyle='rgba(0,0,0,.4)';px2.fillRect(7,y,w,1.2);px2.fillStyle='rgba(255,230,200,.06)';px2.fillRect(7,y+1.2,w,.8);}
+    for(const[px,w]of[[-14,46],[448,46]]){const[pc,px2]=mk(60,H);
+      if(scene==='dragon'){
+        // ลำต้นสนยักษ์และพุ่มไม้ขอบฉากหน้า
+        const tg=px2.createLinearGradient(0,0,60,0);tg.addColorStop(0,'#140d09');tg.addColorStop(.5,'#3d281a');tg.addColorStop(1,'#140d09');px2.fillStyle=tg;px2.fillRect(10,0,w-8,H);
+        px2.fillStyle='#19381f';for(let k=0;k<4;k++){px2.beginPath();px2.arc(30,24+k*24,22,0,7);px2.fill();}
+      }else{
+        const pg=px2.createLinearGradient(0,0,60,0);pg.addColorStop(0,'#08060a');pg.addColorStop(.5,col(P.wallD,.7));pg.addColorStop(1,'#08060a');px2.fillStyle=pg;px2.fillRect(7,0,w,H);
+        for(let y=0;y<H;y+=18){px2.fillStyle='rgba(0,0,0,.4)';px2.fillRect(7,y,w,1.2);px2.fillStyle='rgba(255,230,200,.06)';px2.fillRect(7,y+1.2,w,.8);}
+      }
       c.save();c.filter='blur(2.2px)';c.drawImage(pc,px-7,0,60,H);c.restore();}
     const vg=c.createRadialGradient(W/2,H*.5,H*.3,W/2,H*.5,H*.95);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.55)');c.fillStyle=vg;c.fillRect(0,0,W,H);
     c.fillStyle=P.glow;c.globalAlpha=.06;c.fillRect(0,GY-2,W,2);c.globalAlpha=1;}
@@ -440,8 +487,8 @@ const HDB=(()=>{
    - เป็นแค่ภาพ ไม่กันทางเดิน · วาดลงแคชครั้งเดียวแล้วแปะตามมุมกล้อง
    - คริสตัลส่งแสงเข้าระบบแสงของฉาก (HDD.lights) */
 const HDD=(()=>{
-  const COL={cave:['#ffb04a','#fff0c0','#a8521a'],ice:['#9fe8ff','#ffffff','#2a78b8'],lava:['#ff6a2a','#ffe0a0','#8a1a08'],tower:['#7af0c0','#efffff','#1a8a6a'],frost:['#9fe8ff','#ffffff','#2a78b8'],stone:['#ffb04a','#fff0c0','#a8521a']};
-  const ROCK={cave:['#6e6458','#4a4238','#958a7a'],ice:['#8aa8bc','#5a7488','#d8eef8'],lava:['#3a3030','#221a1a','#5a4a44'],tower:['#56625e','#38423e','#7e8a84'],frost:['#8aa8bc','#5a7488','#d8eef8'],stone:['#6e6458','#4a4238','#958a7a']};
+  const COL={cave:['#ffb04a','#fff0c0','#a8521a'],ice:['#9fe8ff','#ffffff','#2a78b8'],lava:['#ff6a2a','#ffe0a0','#8a1a08'],dragon:['#ffa840','#fff2c0','#a84414'],tower:['#7af0c0','#efffff','#1a8a6a'],frost:['#9fe8ff','#ffffff','#2a78b8'],stone:['#ffb04a','#fff0c0','#a8521a']};
+  const ROCK={cave:['#6e6458','#4a4238','#958a7a'],ice:['#8aa8bc','#5a7488','#d8eef8'],lava:['#3a3030','#221a1a','#5a4a44'],dragon:['#687064','#424840','#949c8e'],tower:['#56625e','#38423e','#7e8a84'],frost:['#8aa8bc','#5a7488','#d8eef8'],stone:['#6e6458','#4a4238','#958a7a']};
   const SC=3,cache={};let zk=null,items=[];
   function cv(w,h){const c=document.createElement('canvas');c.width=w*SC;c.height=h*SC;const x=c.getContext('2d');x.setTransform(SC,0,0,SC,0,0);return[c,x];}
   function rubble(x,bio,v){const R=ROCK[bio]||ROCK.cave;
@@ -467,7 +514,7 @@ const HDD=(()=>{
       for(let i=0;i<5;i++){x.fillStyle='rgba(255,255,255,.9)';x.fillRect(14+hash(i,v)*20,29+hash(v,i)*4,.6,.6);}return;}
     if(bio==='lava'){for(let i=0;i<6;i++){const px=14+hash(i,v)*20,py=34-hash(v,i)*4,r=1.6+hash(i*3,v)*2.4;x.fillStyle='#241a18';x.beginPath();x.arc(px,py,r,0,7);x.fill();
       x.fillStyle=hash(i,v*3)>.5?'#ff7a2a':'#ffb84a';x.fillRect(px-r*.4,py-r*.2,r*.7,.6);x.fillRect(px,py-r*.6,.6,r*.5);}return;}
-    const G=bio==='tower'?['#3a6a5a','#5aa080','#9ae0b8']:['#3a5a22','#5a8a32','#a8d060'];
+    const G=bio==='tower'?['#3a6a5a','#5aa080','#9ae0b8']:bio==='dragon'?['#2c5824','#4a8834','#96cc58']:['#3a5a22','#5a8a32','#a8d060'];
     x.fillStyle='rgba(20,30,10,.35)';x.beginPath();x.ellipse(24,35,12,3,0,0,7);x.fill();
     for(let i=0;i<22;i++){const bx=14+hash(i,v*13)*20,h=4+hash(v,i*5)*9,c=G[(hash(i*7,v)*3)|0];x.strokeStyle=c;x.lineWidth=.9;x.beginPath();x.moveTo(bx,35);x.quadraticCurveTo(bx+(hash(i,v)-.5)*3,35-h*.6,bx+(hash(i*3,v)-.5)*6,35-h);x.stroke();}
     if(hash(v,99)>.5)for(let i=0;i<3;i++){x.fillStyle=['#f4e27a','#ffffff','#f08ab0'][i];x.beginPath();x.arc(16+hash(i,v*3)*16,26+hash(v*5,i)*5,1,0,7);x.fill();}}

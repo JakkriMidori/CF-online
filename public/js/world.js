@@ -84,10 +84,10 @@ const BOSS_CHUNK=["....................","..LL............LL..","..LL...........
    - หนาม: มองไม่เห็นจนกว่าจะเหยียบ ลด HP 10% (ไม่ตาย) · สัญญาณเตือน: เรียกศัตรูที่ซ่อนอยู่มาสู้ทันที
    - ไม่วางใกล้ประตู/บันได/จุดเกิด (ห่างอย่างน้อย 4 ช่อง) */
 const TRAP={near:64,pitDmg:.08,spikeDmg:.10,spikeCD:90};
-function makeTraps(grid,props,items,floor){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/2.4);
+function makeTraps(grid,props,items,floor,opts={}){const out=[],rows=grid.length,cols=grid[0].length,n=Math.round(cols/2.4);
   const far=(x,y)=>props.every(o=>Math.hypot(o.x-(x*16+8),o.y-(y*16+8))>(o.inter?TRAP.near:24))&&items.every(i=>Math.hypot(i.x-(x*16+8),i.y-(y*16+8))>20)&&Math.hypot(x*16-16,y*16-9*16)>TRAP.near*1.5;
   for(let k=0,tries=0;k<n&&tries<1500;tries++){const x=rint(6,cols-6),y=rint(4,14);if(grid[y][x]!=='.'||!far(x,y)||out.some(t=>Math.abs(t.tx-x)+Math.abs(t.ty-y)<3))continue;
-    const r=rand(),type=r<.35&&y!==8&&y!==9?'pit':r<.78?'spike':'alarm';
+    const r=rand(),type=!opts.noPit&&r<.35&&y!==8&&y!==9?'pit':r<.78?'spike':'alarm';
     out.push({tx:x,ty:y,type,seen:0,cd:0});k++;}
   return out;}
 function hideFoe(e){const d=FOES[e.kind];return d&&d.kind==='mon'&&!d.boss&&!d.miniboss&&!e.challenge&&!d.passive&&!d.immortal;}
@@ -97,7 +97,102 @@ function keepFromDoors(z){const doors=(z.props||[]).filter(o=>/exit|stairs|porta
   for(const e of z.foes){if(!e.hidden||!bad(e.x,e.y))continue;
     for(let t=0;t<80;t++){const tx=rint(1,z.grid[0].length-2),ty=rint(3,z.grid.length-2),x=tx*16+8,y=ty*16+8;
       if(z.grid[ty][tx]!=='.'||bad(x,y))continue;e.x=x;e.y=y;e.home={x,y};break;}}}
+function makeDragonForest(floor){
+  const COLS=52,ROWS=17,id='dragon'+floor,info=ZONE_INFO[id];
+  const gr=Array.from({length:ROWS},(_,y)=>Array.from({length:COLS},(_,x)=>(y<=2||y>=ROWS-1||x===0||x===COLS-1)?'^':'.'));
+  // ทางเดินดินบนสันเขาคดเคี้ยวจากทางเข้าซ้ายไปสู่บันไดขึ้นยอดเขาขวา
+  const pathY=tx=>Math.round(9+Math.sin(tx*.21+floor*1.4)*2.2);
+  for(let tx=1;tx<COLS-1;tx++){
+    const py=clamp(pathY(tx),4,13);
+    gr[py][tx]=':';if(py+1<=14)gr[py+1][tx]=':';
+  }
+  for(let y=3;y<=9;y++)for(let x=1;x<=4;x++)gr[y][x]=x===2&&y>=4?':':'.';
+  // ลำธารภูเขา (W) และสะพานไม้ (B) ข้ามลำธาร
+  const streamCols=floor===1?[19]:[16,35],water=[];
+  for(const sx of streamCols){
+    for(let y=3;y<ROWS-1;y++){
+      const wx=sx+Math.round(Math.sin(y*.55+floor)*1);
+      for(const dx of [0,1]){
+        const x=wx+dx;if(x<=4||x>=COLS-4)continue;
+        const onMain=Math.abs(y-pathY(x))<=1||(y===13&&floor===2);
+        gr[y][x]=onMain?'B':'W';
+      }
+    }
+  }
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(gr[y][x]==='W')water.push({x,y});
+
+  const props=[{k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town'},{k:'stairs',...T(COLS-2,9,8,10),hw:6,inter:'stairs'}];
+  const items=[],foes=[];
+  const occ=new Set(['2,3','2,4','1,9','2,9',(COLS-2)+',9',(COLS-3)+',9']);
+  const canPlace=(tx,ty,minD=1)=>{
+    if(tx<2||tx>COLS-3||ty<3||ty>ROWS-2)return false;
+    if(gr[ty][tx]!=='.'&&gr[ty][tx]!==':')return false;
+    for(let dy=-minD;dy<=minD;dy++)for(let dx=-minD;dx<=minD;dx++)if(occ.has((tx+dx)+','+(ty+dy)))return false;
+    return true;
+  };
+  const mark=(tx,ty)=>occ.add(tx+','+ty);
+
+  // แนวป่าสนและต้นไม้รอบขอบภูเขาและหย่อมป่า
+  for(let tx=5;tx<COLS-3;tx+=3){
+    if(canPlace(tx,3,0)&&hash(tx,floor*11)>.22){props.push({k:tx%2?'pine_tree':'tree',...T(tx,3,8,14),hw:8,hh:10});mark(tx,3);}
+    if(canPlace(tx+1,15,0)&&hash(tx+7,floor*13)>.2){props.push({k:(tx+floor)%2?'pine_tree':'tree',...T(tx+1,15,8,14),hw:8,hh:10});mark(tx+1,15);}
+  }
+  for(let i=0;i<22;i++){
+    const tx=4+((hash(i*7+floor*19,3)*(COLS-8))|0),ty=4+((hash(i*11+floor*5,7)*10)|0);
+    if(gr[ty][tx]!=='.'||!canPlace(tx,ty,1))continue;
+    if(Math.abs(ty-pathY(tx))<=1)continue;
+    const r=hash(tx,ty+floor*3);
+    props.push({k:r<.65?'pine_tree':r<.86?'tree':'boulder',...T(tx,ty,8,14),hw:r<.86?8:9,hh:10});
+    mark(tx,ty);
+  }
+  // เสาหินมังกรหน้าทางขึ้นยอดเขา + ค่ายโจรมังกรบนชั้น 2
+  if(canPlace(COLS-5,7,1)){props.push({k:'dragon_totem',...T(COLS-5,7,8,14),hw:8,hh:12});mark(COLS-5,7);}
+  if(canPlace(COLS-5,12,1)){props.push({k:'dragon_totem',...T(COLS-5,12,8,14),hw:8,hh:12});mark(COLS-5,12);}
+  if(floor===2){
+    for(const cx of [12,28,42]){
+      const cy=clamp(pathY(cx)+(cx===28?-3:3),4,13);
+      if(canPlace(cx,cy,1)){props.push({k:'campfire',...T(cx,cy,8,12),hw:7,hh:8});mark(cx,cy);
+        if(canPlace(cx+1,cy,0)){props.push({k:'barrel',...T(cx+1,cy,8,12),hw:6});mark(cx+1,cy);}}
+    }
+  }else{
+    if(canPlace(11,5,1)){props.push({k:'campfire',...T(11,5,8,12),hw:7,hh:8});mark(11,5);}
+  }
+
+  // หีบสมบัติในลานป่า (1-2 หีบต่อชั้น + หีบลับชั้น 2)
+  const chestSpots=[];
+  for(let tx=7;tx<COLS-6;tx+=6){
+    for(const ty of [4,13,5,12]){
+      if(gr[ty][tx]==='.'&&canPlace(tx,ty,1)){chestSpots.push([tx,ty]);break;}
+    }
+  }
+  for(let i=chestSpots.length-1;i>0;i--){const j=rint(0,i);[chestSpots[i],chestSpots[j]]=[chestSpots[j],chestSpots[i]];}
+  for(let i=0;i<Math.min(chestSpots.length,rint(1,2));i++){
+    const[tx,ty]=chestSpots[i];props.push({k:'chest',...T(tx,ty,8,12),hw:7,inter:'chest',content:{loot:'dragoncave',skill:.05}});mark(tx,ty);
+  }
+  if(floor===2&&canPlace(3,14,0)){props.push({k:'chest',...T(3,14,8,12),hw:7,inter:'chest',content:{base:'w_spear',rar:'rare',mat:'dragonblood',mat2:'thornscale'},hidden:1});mark(3,14);}
+
+  // วัตถุดิบในป่าแถวภูเขา
+  const matPool=['wood','ore','hide','fire','thornscale','redscale'];
+  for(let i=0;i<10;i++){
+    const tx=5+((hash(i*13,floor*23)*(COLS-9))|0),ty=4+((hash(i*17,floor*29)*11)|0);
+    if(gr[ty][tx]==='.'&&canPlace(tx,ty,0)){items.push({it:pick(matPool),...T(tx,ty)});mark(tx,ty);}
+  }
+
+  // มอนสเตอร์ประจำดินแดนมังกร (drake, thornwyrm, wyvern, dragonbandit)
+  const foeSlots=[8,14,22,29,36,42,46];
+  for(let i=0;i<foeSlots.length;i++){
+    const tx=foeSlots[i];let fy=clamp(pathY(tx)+(i%2?-2:2),4,13);
+    if(gr[fy][tx]!=='.'&&gr[fy][tx]!==':')fy=clamp(pathY(tx),4,13);
+    if(gr[fy][tx]!=='.'&&gr[fy][tx]!==':')continue;
+    const kind=floor===2&&rand()<.25?'dragonbandit':pick(floor===2?['drake','thornwyrm','wyvern','dragonbandit']:['drake','drake','thornwyrm','wyvern','dragonbandit']);
+    foes.push(mkFoe(kind,T(tx,fy,8,8),floor===2&&kind==='dragonbandit'&&rand()<.35?{elite:1}:{}));
+  }
+  const traps=makeTraps(gridForTraps(gr),props,items,floor,{noPit:1});
+  return{id,grid:gr,traps,spawn:T(2,8),levelAt:()=>info.lv,regionAt:()=>id,biomeAt:()=>'dragon',props,items,npcs:[],foes,water,lavaTiles:[],puddles:{},floor,theme:'dragon'};
+}
+function gridForTraps(gr){return gr;}
 function makeDungeon(floor,theme){
+  if(theme==='dragon')return makeDragonForest(floor);
   const th=theme||'lava',ice=th==='ice',stone=th==='stone',lava=th==='lava',tower=th==='tower',puddles={},id=th+floor,info=ZONE_INFO[id],grid=[];
   const NCH=5,COLS=NCH*10+2;   // v0.2.0: ดันเจียนกว้างขึ้น 5 ห้องต่อชั้น (เดิม 3)
   for(let y=0;y<17;y++)grid.push(Array(COLS).fill('#'));
@@ -130,14 +225,31 @@ function makeDungeon(floor,theme){
   return{id,grid,traps,spawn:T(1,9),levelAt:()=>info.lv,regionAt:()=>id,biomeAt:()=>tower?'tower':stone?'cave':ice?'ice':'lava',props,items,npcs:[],foes,lavaTiles,puddles,floor,theme:th};
 }
 /* ห้องบอสแยก — เข้าแล้วออกไม่ได้ (ประตูออก/พอร์ทัลล็อก) จนกว่าจะชนะ หรือตาย */
-const BOSS_ROOMS={golem:{id:'golemroom',biome:'crystal',theme:'stone'},lavaking:{id:'lava3',biome:'lava',theme:'lava'},seraph:{id:'sanctum',biome:'sanctum',theme:'ice'},homunculus:{id:'towerroom',biome:'tower',theme:'tower'}};
+const BOSS_ROOMS={golem:{id:'golemroom',biome:'crystal',theme:'stone'},lavaking:{id:'lava3',biome:'lava',theme:'lava'},seraph:{id:'sanctum',biome:'sanctum',theme:'ice'},homunculus:{id:'towerroom',biome:'tower',theme:'tower'},dragonking:{id:'dragonroom',biome:'dragon',theme:'dragon'}};
 /* v0.2.0: บอสเกิดใหม่ตามเวลา (นับเวลาจริง เก็บในเซฟ) — ระหว่างรอ ห้องบอสว่าง ประตูเปิด และมีตัวนับถอยหลัง */
 const BOSS_RESPAWN={min:5};
 const bossLeft=k=>{const t=((G.flags||{}).bossCD||{})[k]||0;return Math.max(0,t-Date.now());};
 const fmtLeft=ms=>{const s=Math.ceil(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
 function setBossCD(k){G.flags.bossCD=G.flags.bossCD||{};G.flags.bossCD[k]=Date.now()+BOSS_RESPAWN.min*60000;}
 function makeBossRoom(kind){
-  const R=BOSS_ROOMS[kind],grid=[];for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
+  const R=BOSS_ROOMS[kind],grid=[];
+  if(kind==='dragonking'){
+    for(let y=0;y<17;y++)grid.push(Array.from({length:30},(_,x)=>(y<=2||y>=16||x===0||x===29)?'^':'.'));
+    for(let y=5;y<=13;y++)for(let x=9;x<=24;x++)if((x-17)*(x-17)/38+(y-9)*(y-9)/18<=1)grid[y][x]=':';
+    const need='🔒 ผนึกบอส — ต้องปราบ '+FOES[kind].n+' ก่อนจึงจะออกได้';
+    const props=[
+      {k:'exitdoor',...T(2,3,8,14),hw:7,inter:'town',locked:1,need},
+      {k:'portal',...T(27,9,8,10),hw:6,inter:'portal',locked:1,need},
+      ...[6,10,14,19,23,27].map(tx=>({k:tx%2?'pine_tree':'tree',...T(tx,3,8,14),hw:8,hh:10})),
+      ...[5,12,19,25].map(tx=>({k:'pine_tree',...T(tx,15,8,14),hw:8,hh:10})),
+      ...[[8,5],[8,13],[15,4],[15,14]].map(([bx,by])=>({k:'boulder',...T(bx,by,8,14),hw:9,hh:10})),
+      {k:'dragon_totem',...T(22,4,8,14),hw:8,hh:12},{k:'dragon_totem',...T(22,14,8,14),hw:8,hh:12},
+      {k:'campfire',...T(10,9,8,12),hw:7,hh:8}
+    ];
+    const wait=bossLeft(kind)>0;if(wait)for(const pr of props)pr.locked=0;
+    return{id:R.id,grid,spawn:T(3,9),levelAt:()=>ZONE_INFO[R.id].lv,regionAt:()=>R.id,biomeAt:()=>R.biome,props,items:[],npcs:[],foes:wait?[]:[mkFoe(kind,T(22,9,8,6),{cool:100})],lavaTiles:[],floor:3,theme:R.theme,bossRoom:kind,cleared:wait?1:0,bossWait:wait?kind:null};
+  }
+  for(let y=0;y<17;y++)grid.push(Array(30).fill('#'));
   for(let x=1;x<29;x++)grid[2][x]=x%6===3?'T':'^';
   for(let y=3;y<16;y++)for(let x=1;x<29;x++)grid[y][x]='.';
   for(const [x,y] of [[7,5],[7,13],[14,5],[14,13],[21,4],[21,14]])grid[y][x]='#';
@@ -523,6 +635,7 @@ const BIOME={town:{floor:[92,132,72],line:'rgba(30,60,20,.25)',top:'#141a2b',fac
   lava:{floor:[74,52,46],line:'rgba(30,10,8,.6)',top:'#140c0a',face:['#4a2a20','#2a1612']},
   ice:{floor:[150,184,204],line:'rgba(30,60,90,.45)',top:'#34506a',face:['#8ab0c8','#5a7e98']},
   tower:{floor:[64,56,80],line:'rgba(20,10,30,.55)',top:'#140f1c',face:['#4a3a5a','#2a2036']},
+  dragon:{floor:[74,120,58],line:'rgba(24,48,20,.26)',top:'#1a2e22',face:['#5d6458','#373d34'],road:[132,102,72]},
   sanctum:{floor:[84,104,98],line:'rgba(10,24,24,.5)',top:'#141c24',face:['#4a6a64','#2a403c']},
   interior:{floor:[118,84,54],line:'rgba(35,20,10,.45)',top:'#18110c',face:['#785e46','#4e3a28'],road:[140,46,42]}};
 /* ----- กำแพงหินของเมือง: ผนังอิฐสลับแถว + หลังกำแพงปูแผ่นหิน + ขอบสว่าง/เงา/มอส ----- */
@@ -595,7 +708,26 @@ function buildBg(){
       if(ty>0&&grid[ty-1][tx]!=='W'&&grid[ty-1][tx]!=='B'){B.fillStyle='rgba(0,0,0,.28)';B.fillRect(px,py,16,3);}
       if(ch==='B'){B.fillStyle='#7a5530';B.fillRect(px,py,16,16);for(let i=0;i<4;i++){B.fillStyle=i%2?'#8a6238':'#6a4826';B.fillRect(px,py+i*4,16,4);B.fillStyle='rgba(0,0,0,.35)';B.fillRect(px,py+i*4+3,16,1);}
         B.fillStyle='#4a3018';B.fillRect(px,py,16,2);B.fillRect(px,py+14,16,2);B.fillStyle='rgba(255,230,170,.18)';B.fillRect(px,py+2,16,1);}}
-    else HD.face(B,px,py,tx,ty,bi);
+    else{if(Z.theme==='dragon'&&ty<=2)continue;if(Z.theme==='dragon'){B.fillStyle='#253d28';B.fillRect(px,py,16,16);B.fillStyle='#3d5c3b';B.fillRect(px+1,py+1,14,10);}else HD.face(B,px,py,tx,ty,bi);}
+  }
+  if(Z.theme==='dragon'){
+    // ฉากหลังทิวเขาและป่าสนบนเส้นขอบฟ้า (แถว 0..2 = y 0..48) สำหรับโซนป่าแถวภูเขา
+    const w=C*16,sky=B.createLinearGradient(0,0,0,48);
+    sky.addColorStop(0,'#274959');sky.addColorStop(.52,'#447368');sky.addColorStop(1,'#6b966e');
+    B.fillStyle=sky;B.fillRect(0,0,w,48);
+    for(let x=0;x<w;x+=46){
+      const pk=4+(hash(x,7)*15|0);
+      B.fillStyle='#34555e';B.beginPath();B.moveTo(x-16,48);B.lineTo(x+18,pk);B.lineTo(x+52,48);B.closePath();B.fill();
+      B.fillStyle='#517882';B.beginPath();B.moveTo(x+18,pk);B.lineTo(x+52,48);B.lineTo(x+24,48);B.closePath();B.fill();
+      if(pk<14){B.fillStyle='#eaf5fa';B.beginPath();B.moveTo(x+11,pk+9);B.lineTo(x+18,pk);B.lineTo(x+25,pk+9);B.closePath();B.fill();}
+    }
+    for(let x=0;x<w;x+=12){
+      const th=16+(hash(x,19)*14|0);
+      B.fillStyle=x%24?'#1f482b':'#2b5d38';
+      B.beginPath();B.moveTo(x-8,48);B.lineTo(x+4,48-th);B.lineTo(x+16,48);B.closePath();B.fill();
+    }
+    B.fillStyle='#535e4e';B.fillRect(0,44,w,4);
+    B.fillStyle='rgba(255,238,195,.24)';B.fillRect(0,44,w,1);
   }
   if(Z.id==='cave')for(const sx of [6*16+1,14*16+1]){const sy=2*16+1;B.fillStyle='#4a2e1a';B.fillRect(sx,sy,30,15);B.fillStyle='#2a1a10';B.fillRect(sx+2,sy+2,26,11);
     B.fillStyle='#6b4428';B.fillRect(sx,sy+7,30,1);B.fillRect(sx,sy+14,30,1);for(let i=0;i<5;i++){B.fillStyle=i%2?'#e3b448':'#c9473a';B.fillRect(sx+3+i*5,sy+3,4,4);B.fillRect(sx+3+i*5,sy+10,4,4);}}
@@ -604,7 +736,7 @@ function buildBg(){
 
 /* ----- exploration ----- */
 const hitBox=(o,x,y)=>Math.abs(o.x-x)<(o.hw||6)+4&&y>o.y-(o.hh||(o.k==='colosseum'?26:o.k==='house'?24:o.k==='fountain'||o.k==='light_pillar'?12:o.k==='spire_gate'?14:o.k==='counter'||o.k==='shelf'||o.k==='table'||o.k==='fireplace'||o.k==='furnace'||o.k==='cauldron'?12:o.k==='tree'||o.k==='board'||o.k==='anvil'||o.k==='rack'||o.k==='ore_stone'||o.k==='ore_iron'||o.k==='hide_rack'?10:8))&&y-3<o.y;
-const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','colosseum','fountain','light_pillar','vine_pillar','spire_gate','ore_stone','ore_iron','hide_rack','stall','board','tree','cavegate','icegate','bossdoor','stonegate','duelpost','towergate','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','pillar']);
+const SOLID_PROP=new Set(['anvil','pot','cheese','barrel','chest','gate','house','colosseum','fountain','light_pillar','vine_pillar','spire_gate','ore_stone','ore_iron','hide_rack','stall','board','tree','pine_tree','boulder','campfire','dragon_totem','cavegate','icegate','bossdoor','stonegate','duelpost','towergate','counter','shelf','table','cauldron','rack','puzzle_clue','puzzle_rune','fireplace','furnace','chair','plant','pillar']);
 function blocked(x,y,self,tilesOnly){
   for(const[px,py] of [[x-4,y-3],[x+4,y-3],[x-4,y],[x+4,y]]){const tx=Math.floor(px/16),ty=Math.floor(py/16);
     if(ty<0||ty>=Z.rows||tx<0||tx>=Z.cols)return true;if('#^TRLW'.includes(Z.grid[ty][tx]))return true;}
@@ -613,7 +745,7 @@ function blocked(x,y,self,tilesOnly){
   for(const o of Z.npcs)if(o!==self&&hitBox(o,x,y))return true;
   return false;
 }
-const LABEL={ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_w:'🔒 หอคอยคริสตัลตะวันตก (ถูกผนึก · เข้าไม่ได้)',ow_spire_s:'⚔️ เข้าหอคอยอัศวินแสง Aether (5 ชั้น Lv.55–100)',ow_spire_m:'🔒 หอคอยคริสตัลภูเขาไฟ (ถูกผนึก · เข้าไม่ได้)',ow_spire_n:'🔒 หอคอยคริสตัลเหมันต์ (ถูกผนึก · เข้าไม่ได้)',ow_forest:'🌲 เข้าป่าไม้คอลลาวาร์รี (เก็บไม้ & หนัง)',ow_mine:'⛏️ เข้าถ้ำขุดแร่คอลลาวาร์รี (หิน · แร่เหล็ก · ไม้)',ow_forest_exit:'🚪 ออกจากป่า → กลับแผนที่โลก (Overworld)',ow_mine_exit:'🚪 ออกจากถ้ำขุดแร่ → กลับแผนที่โลก (Overworld)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก (Overworld)',spire_enter_dungeon:'⚔️ เข้าสู่ดันเจี้ยนหอคอย ชั้น 1',light_pillar:'✨ อธิษฐานที่เสาแสง (ฟื้นเต็ม + บันทึกจุดเกิดใหม่)',gather_wood:'🪓 เก็บไม้จากต้นไม้',gather_hide:'🦌 เก็บหนังสัตว์',mine_stone:'⛏️ ขุดแร่หิน',mine_iron:'⛏️ ขุดแร่เหล็ก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_boss_gate:'🔒 ประตูห้องบอสหอคอย (แก้ปริศนา 3/3 เพื่อเปิด)',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอสประจำชั้น)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',colosseum:'🏟️ เข้าโคลอสเซียม (ดันเจี้ยนทดสอบแรงค์)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เมืองหลวงออเรีย (ถูกผนึก)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',folk:'ทักทาย',ground:'เก็บ',fountain:'💧 พักที่น้ำพุ (ฟื้นเต็ม + บันทึก & ตั้งจุดเกิดใหม่)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจียน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
+const LABEL={ow_dg_stone:'🪨 เข้าถ้ำหินโกเลม (Lv.4–5)',ow_dg_lava:'🌋 เข้าเหมืองลาวา (Lv.9–11)',ow_dg_tower:'🧪 เข้าหอคอยนักแปรธาตุ (Lv.14–16)',ow_dg_ice:'❄️ เข้าถ้ำน้ำแข็ง & วิหารเซราฟ (Lv.15–17)',ow_dg_dragon:'🐉 เข้าดินแดนมังกร (Lv.18–20)',ow_spire:'🔮 เข้าหอคอยคริสตัลจอมเวท (5 ชั้น Lv.50–95)',ow_spire_w:'🔒 หอคอยคริสตัลตะวันตก (ถูกผนึก · เข้าไม่ได้)',ow_spire_s:'⚔️ เข้าหอคอยอัศวินแสง Aether (5 ชั้น Lv.55–100)',ow_spire_m:'🔒 หอคอยคริสตัลภูเขาไฟ (ถูกผนึก · เข้าไม่ได้)',ow_spire_n:'🔒 หอคอยคริสตัลเหมันต์ (ถูกผนึก · เข้าไม่ได้)',ow_forest:'🌲 เข้าป่าไม้คอลลาวาร์รี (เก็บไม้ & หนัง)',ow_mine:'⛏️ เข้าถ้ำขุดแร่คอลลาวาร์รี (หิน · แร่เหล็ก · ไม้)',ow_forest_exit:'🚪 ออกจากป่า → กลับแผนที่โลก (Overworld)',ow_mine_exit:'🚪 ออกจากถ้ำขุดแร่ → กลับแผนที่โลก (Overworld)',ow_spire_exit:'🚪 ออกจากหอคอย → กลับแผนที่โลก (Overworld)',spire_enter_dungeon:'⚔️ เข้าสู่ดันเจี้ยนหอคอย ชั้น 1',light_pillar:'✨ อธิษฐานที่เสาแสง (ฟื้นเต็ม + บันทึกจุดเกิดใหม่)',gather_wood:'🪓 เก็บไม้จากต้นไม้',gather_hide:'🦌 เก็บหนังสัตว์',mine_stone:'⛏️ ขุดแร่หิน',mine_iron:'⛏️ ขุดแร่เหล็ก',puzzle_clue:'📜 อ่านศิลาคำใบ้ปริศนาคริสตัล',puzzle_rune:'🔮 จุดเสาผลึกปริศนา',spire_boss_gate:'🔒 ประตูห้องบอสหอคอย (แก้ปริศนา 3/3 เพื่อเปิด)',spire_stairs:'✨ บันไดเวทขึ้นชั้นถัดไป (ปราบบอสประจำชั้น)',spire_clear:'👑 แท่นพิชิตยอดหอคอย (รับรางวัล & ออก)',colosseum:'🏟️ เข้าโคลอสเซียม (ดันเจี้ยนทดสอบแรงค์)',in_smithy:'🔨 เข้าโรงตีเหล็กโบโร',in_store:'🪙 เข้าร้านค้ามาร์คัส',in_alchemy:'🧪 เข้าสำนักเล่นแร่แปรธาตุ',in_guild:'⚔️ เข้ากิลด์นักผจญภัยคอลลาวาร์รี',exit_interior:'🚪 ออกจากอาคาร → กลับสู่เมือง',reitem:'🔮 แปรผลึกไอเทม (เซเรน่า)',guildmaster:'📜 คุยกับหัวหน้ากิลด์ / รับเควสต์',citygate:'🚪 ประตูเมือง — ออกเดินทางสู่ดันเจี้ยน',southgate:'🗺️ ประตูใต้ — ออกจากเมืองสู่แผนที่โลก (Overworld)',cityexit:'🗺️ ประตูเมืองหลวง — ออกสู่แผนที่โลก',ow_town:'🏰 เข้าเมือง Collawarrie',ow_city:'🏛️ เมืองหลวงออเรีย (ถูกผนึก)',ow_port:'⚓ ท่าเรือเกาะใต้',ow_outpost:'⛺ พักแรมฟื้นพลัง (จุดพักเกาะกลาง)',towerdungeon:'ลงดันเจี้ยน: หอคอยนักแปรธาตุ (Lv.14-16)',alchemy:'นักเล่นแร่แปรธาตุ (รีค่าอุปกรณ์)',store:'เข้าร้านค้า (ซื้อ / ขาย)',smithy:'ซื้อขายอาวุธ / เกราะ (โบโร)',duel:'⚔️ ท้าดวล bbqy legendary',stonedungeon:'ลงดันเจี้ยน: ถ้ำหินโกเลม',bossroom:'⚔️ ประตูบอส (เข้าแล้วออกไม่ได้)',icedungeon:'ลงดันเจี้ยน: ถ้ำน้ำแข็ง',dragondungeon:'ลงดันเจี้ยน: ดินแดนมังกร',folk:'ทักทาย',ground:'เก็บ',fountain:'💧 พักที่น้ำพุ (ฟื้นเต็ม + บันทึก & ตั้งจุดเกิดใหม่)',shop:'ซื้อ / ขายสินค้า',board:'กระดานเควสต์กิลด์',dungeon:'ลงดันเจียน: ถ้ำชีส',town:'ออกจากดันเจียน → เมือง',arena:'ลานประลอง (สู้ 2 คน)',bloodstain:'เก็บคราบเลือด (ทอง/EXP)',npc:'คุย',craft:'ตีเหล็ก / ตีบวก',pot:'กินซุป (ฟื้นเต็ม)',rubble:'ทุบหิน',chest:'เปิดหีบ',gate:'เข้าเหมืองลาวา (Lv.8+)',stairs:'ลงชั้นต่อไป',portal:'กลับถ้ำ'};
 let NEAR=null;
 function findNear(){
   let best=null,bd=44;const c=(o,type)=>{const maxD=o&&o.k==='colosseum'?42:o&&o.k==='house'?36:o&&(o.k==='fountain'||o.k==='light_pillar'||o.k==='spire_gate')?32:o&&(o.k==='tree'||o.k==='ore_stone'||o.k==='ore_iron'||o.k==='hide_rack')?28:22;const d=Math.hypot(o.x-P.x,(o.y-P.y)*1.2);if(d<maxD&&d<bd){bd=d;best={o,type};}};
@@ -775,16 +907,19 @@ function interact(n){
   else if(n.type==='board')UI.open('quests');
   else if(typeof OW!=='undefined'&&OW.interact(n.type))return;
   else if(n.type==='citygate'){UI.open('citygate');}
-  else if(n.type==='stonedungeon'||n.type==='lavadungeon'||n.type==='icedungeon'||n.type==='towerdungeon'){
+  else if(n.type==='stonedungeon'||n.type==='lavadungeon'||n.type==='icedungeon'||n.type==='towerdungeon'||n.type==='dragondungeon'){
     if(!hasLavaKey()){toast('🔒 ต้องมีกุญแจลาวาจากคาเงะในถ้ำชีสก่อน');return;}
-    const th=n.type==='stonedungeon'?'stone':n.type==='lavadungeon'?'lava':n.type==='icedungeon'?'ice':'tower';
+    const th=n.type==='stonedungeon'?'stone':n.type==='lavadungeon'?'lava':n.type==='icedungeon'?'ice':n.type==='dragondungeon'?'dragon':'tower';
     enterDungeon(1,th);Save.save();
   }
   else if(n.type==='dungeon'){loadZone(CAVE,T(3,11));G.shake=3;toast('⬇️ ลงสู่ถ้ำชีส (ดันเจี้ยน Lv.1-5)');Save.save();}
-  else if(n.type==='town'){loadZone(TOWN,TOWN.gate);toast('⬆️ กลับเมือง Collawarrie (เขตปลอดภัย)');Save.save();}
-  else if(n.type==='portal'){if(o.locked){toast(o.need||'ต้องปราบราชันย์ลาวาก่อน');return;}loadZone(TOWN,TOWN.gate);toast('กลับสู่เมือง Collawarrie');Save.save();}
+  else if(n.type==='town'||n.type==='portal'){
+    if(n.type==='portal'&&o.locked){toast(o.need||'ต้องปราบราชันย์ลาวาก่อน');return;}
+    if(isBigDungeon()&&typeof OW!=='undefined'){OW.enter('ow_dg_'+Z.theme);return;}
+    loadZone(TOWN,TOWN.gate);toast(n.type==='town'?'⬆️ กลับเมือง Collawarrie (เขตปลอดภัย)':'กลับสู่เมือง Collawarrie');Save.save();
+  }
 }
-const THEME_BOSS={lava:'lavaking',ice:'seraph',stone:'golem',tower:'homunculus'};
+const THEME_BOSS={lava:'lavaking',ice:'seraph',stone:'golem',tower:'homunculus',dragon:'dragonking'};
 function enterDungeon(floor,theme){
   const th=theme||'lava';
   if(th==='lava'){Quest.activate('lava');if(floor===1)Quest.advance('lava',1);if(floor===3)Quest.advance('lava',2);}
@@ -959,15 +1094,22 @@ function drawProp(o){
     g.fillStyle='#8c9474';g.beginPath();g.ellipse(x,y-11,15,5.5,0,0,7);g.fill();
     g.fillStyle='#c8dc7a';g.beginPath();g.ellipse(x,y-11.5,13,4.4,0,0,7);g.fill();
     g.fillStyle=`rgba(255,252,210,${.75+p*.25})`;g.beginPath();g.ellipse(x,y-11.5,9.5,3,0,0,7);g.fill();
-    // ลำแสงศักดิ์สิทธิ์ส่องลงมาจากเพดานด้านบน (เสาแสง)
-    const lg=g.createLinearGradient(x,y-135,x,y);
-    lg.addColorStop(0,'rgba(255,248,200,.05)');
-    lg.addColorStop(.35,`rgba(255,244,185,${.18+p*.08})`);
-    lg.addColorStop(1,`rgba(255,250,210,${.36+p*.14})`);
-    g.fillStyle=lg;
-    g.beginPath();g.moveTo(x-9,y-135);g.lineTo(x+9,y-135);g.lineTo(x+15,y-2);g.lineTo(x-15,y-2);g.closePath();g.fill();
-    g.fillStyle=`rgba(255,255,235,${.22+p*.12})`;g.fillRect(x-4,y-135,8,124);
-    if(G.t%7===0)EP.push({x:x+rnd(-11,11),y:y-rnd(10,75),vx:rnd(-.06,.06),vy:-rnd(.2,.45),l:34,c:G.t%14===0?'#7af0ff':'#fff6b8'});
+    // เสาแสงศักดิ์สิทธิ์: ลำแสงโปร่งขอบนุ่มแบบเรืองแสง (screen) + แกนขาวสว่าง + วงแหวนแสงไหลขึ้น + แสงบานที่ฐาน
+    const T0=G.t,top=y-150,bw=1+Math.sin(T0*.05)*.08;
+    g.save();g.globalCompositeOperation='screen';
+    for(const [hw,al] of [[22,.16],[15,.26],[8,.5],[3.4,.9]]){   // 4 ชั้นซ้อน กว้าง→แคบ ให้ขอบเรียบนุ่ม
+      const gh=hw*bw,lg=g.createLinearGradient(x,top,x,y-6);
+      lg.addColorStop(0,'rgba(255,250,215,0)');lg.addColorStop(.18,`rgba(255,246,190,${al*(.5+p*.3)})`);lg.addColorStop(1,`rgba(255,252,225,${al*(.8+p*.3)})`);
+      g.fillStyle=lg;g.beginPath();g.moveTo(x-gh*.55,top);g.lineTo(x+gh*.55,top);g.lineTo(x+gh,y-6);g.lineTo(x-gh,y-6);g.closePath();g.fill();
+    }
+    // วงแหวนแสงลอยขึ้นตามลำแสง
+    for(let k=0;k<4;k++){const u=((T0*.012+k/4)%1),ry=y-8-u*120,rw=(11+u*3)*bw;g.globalAlpha=(1-u)*.55;g.strokeStyle='rgba(190,245,255,1)';g.lineWidth=1.3;g.beginPath();g.ellipse(x,ry,rw,rw*.32,0,0,7);g.stroke();}
+    g.globalAlpha=1;
+    // แสงบานที่ฐาน
+    const fl=g.createRadialGradient(x,y-6,0,x,y-6,40);fl.addColorStop(0,`rgba(255,250,215,${.55+p*.25})`);fl.addColorStop(.5,'rgba(255,235,160,.18)');fl.addColorStop(1,'rgba(255,235,160,0)');
+    g.fillStyle=fl;g.beginPath();g.ellipse(x,y-6,40,15,0,0,7);g.fill();
+    g.restore();
+    if(G.t%4===0)EP.push({x:x+rnd(-13,13),y:y-rnd(6,60),vx:rnd(-.06,.06),vy:-rnd(.25,.6),l:48,c:G.t%14===0?'#7af0ff':'#fff6b8'});
     return;
   }
   if(o.k==='vine_pillar'){
@@ -1002,6 +1144,48 @@ function drawProp(o){
     g.fillStyle='#565850';g.fillRect(x-3,y-28,6,13);g.beginPath();g.arc(x,y-31,2.6,0,7);g.fill();
     g.fillStyle=isA?`rgba(255,224,102,${.35+p*.35})`:`rgba(180,110,255,${.35+p*.35})`;
     g.beginPath();g.ellipse(x,y-22,8,10,0,0,7);g.fill();
+    return;
+  }
+  if(o.k==='pine_tree'){
+    shadow(g,x,y,14);
+    const sw=Math.sin(G.t*.022+x*.2)*.6;
+    g.fillStyle='#4a2e1a';g.fillRect(x-2.5,y-12,5,12);
+    g.fillStyle='#6c4628';g.fillRect(x-1.5,y-12,2,12);
+    for(const[ty,tw,th,c1,c2]of[[y-10,16,18,'#1a4224','#2c6838'],[y-21,13,16,'#1f4e2b','#357a44'],[y-31,9,14,'#266034','#438f52']]){
+      g.fillStyle=c1;g.beginPath();g.moveTo(x-tw+sw*.4,ty);g.lineTo(x+sw,ty-th);g.lineTo(x+tw+sw*.4,ty);g.closePath();g.fill();
+      g.fillStyle=c2;g.beginPath();g.moveTo(x-tw+1+sw*.4,ty);g.lineTo(x+sw,ty-th);g.lineTo(x+sw,ty);g.closePath();g.fill();
+    }
+    return;
+  }
+  if(o.k==='boulder'){
+    shadow(g,x,y,13);
+    g.fillStyle='#4a5048';g.beginPath();g.moveTo(x-12,y);g.lineTo(x-10,y-12);g.lineTo(x-2,y-17);g.lineTo(x+8,y-13);g.lineTo(x+12,y);g.closePath();g.fill();
+    g.fillStyle='#727a70';g.beginPath();g.moveTo(x-11,y);g.lineTo(x-9,y-11);g.lineTo(x-2,y-16);g.lineTo(x+2,y);g.closePath();g.fill();
+    g.fillStyle='#969e92';g.fillRect(x-6,y-12,4,3);g.fillRect(x-3,y-14,3,2);
+    g.fillStyle='#4a7a3a';g.fillRect(x-8,y-5,5,3);g.fillRect(x+2,y-8,5,3);g.fillStyle='#76ad52';g.fillRect(x-7,y-5,3,1.5);
+    return;
+  }
+  if(o.k==='dragon_totem'){
+    shadow(g,x,y,11);
+    g.fillStyle='#3c403c';g.fillRect(x-8,y-6,16,6);
+    g.fillStyle='#585e56';g.fillRect(x-6,y-28,12,22);
+    g.fillStyle='#767e74';g.fillRect(x-5,y-28,4,22);
+    // เขามังกรศิลา + อัญมณีเรืองแสงสีส้มทอง
+    g.fillStyle='#b8b09c';g.beginPath();g.moveTo(x-5,y-28);g.lineTo(x-9,y-35);g.lineTo(x-2,y-29);g.fill();
+    g.beginPath();g.moveTo(x+5,y-28);g.lineTo(x+9,y-35);g.lineTo(x+2,y-29);g.fill();
+    const p=.5+Math.sin(G.t*.08+x)*.35;
+    g.fillStyle=`rgba(255,155,55,${.65+p*.35})`;g.beginPath();g.arc(x,y-20,3,0,7);g.fill();
+    g.fillStyle='#fff4b8';g.fillRect(x-1,y-21,2,2);
+    return;
+  }
+  if(o.k==='campfire'){
+    shadow(g,x,y,10);
+    g.fillStyle='#5a5650';for(let i=0;i<6;i++){const a=i/6*6.283;g.beginPath();g.arc(x+Math.cos(a)*7,y-2+Math.sin(a)*3,2.3,0,7);g.fill();}
+    g.fillStyle='#4a2c16';g.fillRect(x-6,y-4,12,3);g.fillStyle='#6a4020';g.fillRect(x-4,y-5,8,2);
+    const p=Math.sin(G.t*.25+x);
+    g.fillStyle='#ff581a';g.beginPath();g.moveTo(x-5,y-3);g.lineTo(x,y-14-p*2);g.lineTo(x+5,y-3);g.closePath();g.fill();
+    g.fillStyle='#ffd24a';g.beginPath();g.moveTo(x-2.5,y-3);g.lineTo(x,y-10-p);g.lineTo(x+2.5,y-3);g.closePath();g.fill();
+    if(G.t%8===0)EP.push({x:x+rnd(-3,3),y:y-10,vx:rnd(-.1,.1),vy:-.35,l:24,c:'#ffb45a'});
     return;
   }
   if(o.k==='ore_stone'){
@@ -1292,7 +1476,18 @@ function drawExploreWpnFx(x,y,K,sheet){
 function drawWalker(x,y,face,K,moving,ph,seed,tint,sheet,dir){drawExploreWpnFx(x,y,K,sheet);if(sheet&&AS.walker(g,sheet,x,y,dir||(face<0?'left':'right'),moving,ph,tint))return;shadow(g,x,y,6);if(K&&((Z&&Z.safe&&K.weapon)||K.outfit))K=sheathed(K);   // สำรวจ/ในเมือง: เก็บอาวุธสะพายหลังเสมอ
   if(RIG_HD.on&&(dir==='up'||dir==='down')){drawRigFB(g,Math.round(x),Math.round(y),OW_SC,dir,ph,moving,K,tint,G.t+(seed||0));return;}   // มุมหน้า/หลัง
   drawRig(g,Math.round(x),Math.round(y),OW_SC,face<0?-1:1,owPose(G.t+(seed||0),moving,ph),K,tint);}
+/* ดันเจียนที่ใช้กุญแจ (หิน/ลาวา/น้ำแข็ง/หอคอยนักแปรธาตุ/ดินแดนมังกร) — ถ้ำชีสไม่รวม: ซูมกล้องออก + มินิแมปใหญ่ขึ้น */
+const BIG_DUNGEON_THEMES=['stone','lava','ice','tower','dragon'],DUN_ZOOM=1;
+const isBigDungeon=()=>!!(Z&&!Z.interior&&BIG_DUNGEON_THEMES.includes(Z.theme));
+const exploreZoom=()=>(isBigDungeon()&&!Z.bossRoom&&Z.cols*16>=640)?DUN_ZOOM:1;   // ห้องบอสแคบ (480) ไม่ซูม
 function drawExplore(){
+  const z=exploreZoom();PJ.uz=1;PJ.vw=0;
+  if(z===1){drawExploreCore();return;}
+  const w0=W,h0=H;W=w0/z;H=h0/z;g.save();g.scale(z,z);
+  try{drawExploreCore();}finally{g.restore();W=w0;H=h0;}
+  PJ.uz=z;PJ.vw=w0/z;   // หลังวาดโลก: ป้ายชื่อ/เอฟเฟกต์ที่ใช้ PJ.pt ต้องแปลงเป็นพิกัดจอจริง
+}
+function drawExploreCore(){
   {const mxc=Math.max(0,Z.cols*16-W),myc=Z.rows>17?Math.max(0,Z.rows*16-H):0,tx=clamp(P.x-W/2,0,mxc),ty=clamp(P.y-H/2+14,0,myc);
    if(CAM.snap||CAM.zone!==Z.id){CAM.x=tx;CAM.y=ty;CAM.snap=0;CAM.zone=Z.id;}else{CAM.x+=(tx-CAM.x)*.14;CAM.y+=(ty-CAM.y)*.14;}CAM.rx=Math.round(CAM.x);CAM.ry=Math.round(CAM.y);}
   const cx=CAM.rx,cy=CAM.ry;
@@ -1325,12 +1520,12 @@ function drawExplore(){
   if(Z.lavaTiles&&G.t%6===0){const l=pick(Z.lavaTiles);if(l)EP.push({x:l.x+rnd(-6,6),y:l.y,vx:rnd(-.15,.15),vy:-.35,l:32,c:'rgba(245,152,68,.65)'});}
   if(P.moving&&G.t%7===0){
     const bio=Z.biomeAt?Z.biomeAt(Math.floor(P.x/16)):'town';
-    const fc=bio==='town'?'rgba(195,180,140,.42)':bio==='ice'?'rgba(215,238,255,.45)':bio==='lava'?'rgba(235,140,70,.42)':bio==='tower'?'rgba(135,225,190,.38)':'rgba(165,158,142,.38)';
+    const fc=bio==='town'?'rgba(195,180,140,.42)':bio==='dragon'?'rgba(148,186,108,.44)':bio==='ice'?'rgba(215,238,255,.45)':bio==='lava'?'rgba(235,140,70,.42)':bio==='tower'?'rgba(135,225,190,.38)':'rgba(165,158,142,.38)';
     EP.push({x:P.x-P.face*3+rnd(-2,2),y:P.y+rnd(-1,1),vx:-P.face*rnd(.1,.28),vy:-rnd(.12,.26),l:16,c:fc});
   }
   const list=[],K=Equip.look();
-  // หญ้าและดอกไม้ไหวตามลม + ผีเสื้อในเมือง
-  if((Z.id==='town'||Z.id==='city')&&Z.grid){
+  // หญ้าและดอกไม้ไหวตามลม + ผีเสื้อในเมืองและป่าแถวภูเขา
+  if((Z.id==='town'||Z.id==='city'||Z.theme==='dragon')&&Z.grid){
     const gx0=Math.max(1,(cx-40)>>4),gx1=Math.min(Z.cols-2,(cx+W+40)>>4),gy0=Math.max(2,(cy-20)>>4),gy1=Math.min(Z.rows-3,(cy+H+20)>>4),t=G.t;
     for(let ty=gy0;ty<=gy1;ty++)for(let tx=gx0;tx<=gx1;tx++){
       if(Z.grid[ty][tx]!=='.')continue;const h=hash(tx*17,ty*29);if(h<.56)continue;
@@ -1384,7 +1579,7 @@ function drawExplore(){
   g.restore();
   const fl=()=>Math.sin(G.t*.25)*3+rnd(-1.5,1.5),ls=Z.torches.map(t=>({x:t.x,y:t.y+6,r:Z.interior?95+fl():72+fl(),c:Z.interior?'rgba(255,180,100,.28)':'rgba(255,140,60,.22)'}));
   ls.push({x:P.x,y:P.y-8,r:P.castExit>0?55+(180-P.castExit)*.25:Z.interior?70:50,c:P.castExit>0?'rgba(122,240,255,.38)':undefined});
-  for(const o of Z.props){if(o.k==='pot'||o.k==='fireplace'||o.k==='furnace')ls.push({x:o.x,y:o.y-6,r:76+fl(),c:'rgba(255,140,60,.32)'});if(o.k==='pillar'||o.k==='table')ls.push({x:o.x,y:o.y-14,r:56+fl(),c:'rgba(255,195,110,.22)'});if(o.k==='anvil')ls.push({x:o.x-8,y:o.y-10,r:42+fl(),c:'rgba(255,120,40,.25)'});if(o.k==='cauldron')ls.push({x:o.x,y:o.y-10,r:52,c:'rgba(90,245,180,.28)'});
+  for(const o of Z.props){if(o.k==='pot'||o.k==='fireplace'||o.k==='furnace'||o.k==='campfire')ls.push({x:o.x,y:o.y-6,r:76+fl(),c:'rgba(255,140,60,.32)'});if(o.k==='dragon_totem')ls.push({x:o.x,y:o.y-18,r:48+fl(),c:'rgba(255,170,70,.28)'});if(o.k==='pillar'||o.k==='table')ls.push({x:o.x,y:o.y-14,r:56+fl(),c:'rgba(255,195,110,.22)'});if(o.k==='anvil')ls.push({x:o.x-8,y:o.y-10,r:42+fl(),c:'rgba(255,120,40,.25)'});if(o.k==='cauldron')ls.push({x:o.x,y:o.y-10,r:52,c:'rgba(90,245,180,.28)'});
     if(o.k==='crystal')ls.push({x:o.x,y:o.y-8,r:44,c:'rgba(80,200,255,.22)'});if(o.k==='chest'&&!o.opened)ls.push({x:o.x,y:o.y-6,r:20,c:'rgba(255,220,120,.18)'});
     if(o.k==='gate')ls.push({x:o.x,y:o.y-12,r:46+fl(),c:'rgba(255,100,30,.35)'});if(o.k==='bossdoor')ls.push({x:o.x,y:o.y-14,r:44,c:'rgba(255,60,60,.3)'});if(o.k==='portal'||o.k==='stairs')ls.push({x:o.x,y:o.y-8,r:36,c:'rgba(120,220,255,.25)'});if(o.k==='exitdoor')ls.push({x:o.x,y:o.y-14,r:40,c:'rgba(120,255,140,.28)'});}
   if(Z.lavaTiles)for(let i=0;i<Z.lavaTiles.length;i+=2){const l=Z.lavaTiles[i];ls.push({x:l.x,y:l.y,r:34,c:'rgba(255,90,20,.2)'});}
@@ -1393,6 +1588,12 @@ function drawExplore(){
   for(const e of Z.foes)if(e.alive&&FOES[e.kind].boss)ls.push({x:e.x,y:e.y-22,r:34,c:'rgba(255,210,80,.15)'});
   for(const gi of Z.ground||[])if(!gi.picked){const r=RARS.indexOf(gi.drop.rar);ls.push({x:gi.x,y:gi.y-6,r:16+r*8,c:RARC[gi.drop.rar]+'66'});}
   for(const o of Z.props)if(o.k==='lamp')ls.push({x:o.x,y:o.y-18,r:70,c:'rgba(255,200,120,.2)'});else if(o.k==='citygate')ls.push({x:o.x,y:o.y-16,r:76,c:'rgba(255,205,130,.24)'});else if(o.k==='fountain')ls.push({x:o.x,y:o.y-8,r:50,c:'rgba(120,200,255,.15)'});else if(o.k==='exitdoor')ls.push({x:o.x,y:o.y-14,r:34,c:'rgba(120,255,140,.18)'});else if(o.k==='arena')ls.push({x:o.x,y:o.y-8,r:62,c:'rgba(255,200,120,.22)'});else if(o.k==='cavegate')ls.push({x:o.x,y:o.y-10,r:40,c:'rgba(255,160,80,.15)'});
+  if(isBigDungeon()){   /* เอฟเฟกต์แสงเพิ่มในดันเจียน: มอนธาตุเรืองแสง · บันได/ประตูเต้นเป็นจังหวะ · แสงตะเกียงรอบตัว */
+    const EC={fire:'rgba(255,120,40,.24)',lightning:'rgba(150,205,255,.26)',ice:'rgba(140,220,255,.22)',shadow:'rgba(170,110,255,.22)',holy:'rgba(255,240,170,.24)',poison:'rgba(120,255,150,.2)'},pl=.5+.5*Math.sin(G.t*.07);
+    for(const e of Z.foes)if(e.alive&&!e.hidden){const d=FOES[e.kind],c=d&&EC[d.el];if(c)ls.push({x:e.x,y:e.y-12,r:(d.boss?60:30)+pl*4,c});}
+    for(const o of Z.props)if(o.k==='stairs'||o.k==='portal')ls.push({x:o.x,y:o.y-8,r:52+pl*10,c:'rgba(140,230,255,.30)'});else if(o.k==='chest'&&!o.opened)ls.push({x:o.x,y:o.y-8,r:34+pl*6,c:'rgba(255,215,110,.26)'});
+    ls.push({x:P.x,y:P.y-14,r:78+Math.sin(G.t*.05)*3,c:'rgba(255,225,170,.14)'});
+  }
   HDD.lights(ls);
   for(const l of ls){const q=PJ.pt(l.x,l.y);l.x=q.x;l.y=q.y;l.r*=q.s;}
   {const bio=fxBiome(false);lighting(ls,HD.dark(bio));HD.atmos(g,bio,cx,cy);}
@@ -1420,19 +1621,19 @@ function drawExploreUI(){
     outlineText(`บอสประจำชั้น: ${bDead?'✓ พิชิตแล้ว':'✕ ยังอยู่'} · ปริศนาผลึก: ${pzOk?'✓ ปลดล็อก':Z.puzzle.lit.length+'/3'}`,24,42,10.5,bDead&&pzOk?'#8affb8':'#ffd88a','left');
     D.restore();
   }
-  if(NEAR&&G.mode==='explore'){const o=NEAR.o;const lab=GATHER_LBL[NEAR.type]&&Respawn.nodeLeft(o)>0?`${GATHER_LBL[NEAR.type]} · ⏳ ${Respawn.fmt(Respawn.nodeLeft(o))}`:NEAR.type==='item'?'เก็บ '+MATS[o.it].n:NEAR.type==='ground'?'เก็บ '+LootManager.name(o.drop):NEAR.type==='puzzle_rune'?`จุด${o.rn}`:LABEL[NEAR.type];{const q=PJ.pt(o.x,o.y);pill(q.x*S,(q.y-(NEAR.type==='npc'?30:26)*q.s)*S,'[E] '+lab);}}
+  if(NEAR&&G.mode==='explore'){const o=NEAR.o;const lab=GATHER_LBL[NEAR.type]&&Respawn.nodeLeft(o)>0?`${GATHER_LBL[NEAR.type]} · ⏳ ${Respawn.fmt(Respawn.nodeLeft(o))}`:NEAR.type==='item'?'เก็บ '+MATS[o.it].n:NEAR.type==='ground'?'เก็บ '+LootManager.name(o.drop):NEAR.type==='puzzle_rune'?`จุด${o.rn}`:isBigDungeon()&&typeof OW!=='undefined'&&(NEAR.type==='town'||NEAR.type==='portal')?(NEAR.type==='town'?'ออกจากดันเจียน → แผนที่โลก (Overworld)':'กลับสู่แผนที่โลก (Overworld)'):LABEL[NEAR.type];{const q=PJ.pt(o.x,o.y);pill(q.x*S,(q.y-(NEAR.type==='npc'?30:26)*q.s)*S,'[E] '+lab);}}
   if(!G.miniOff)drawMinimap();
 }
 function drawMinimap(){
   if(Z.id==='overworld'&&typeof OW!=='undefined'){OW.drawMinimap();return;}
-  const sc=Math.min(4,170/Z.cols),mx=960-Z.cols*sc-26,my=38;D.save();   // มินิแมปมุมขวาบน สไตล์ Final Fantasy Resonance
+  const big=isBigDungeon(),sc=big?Math.min(6.5,290/Z.cols):Math.min(4,170/Z.cols),mx=960-Z.cols*sc-26,my=38;D.save();   // มินิแมปมุมขวาบน สไตล์ Final Fantasy Resonance
   {const fw=Z.cols*sc+16,fh=Z.rows*sc+32,fx=mx-8,fy=my-24;
     const mg=D.createLinearGradient(0,fy,0,fy+fh);mg.addColorStop(0,'rgba(12,30,78,.86)');mg.addColorStop(1,'rgba(4,12,34,.9)');
     D.fillStyle=mg;rrect(fx,fy,fw,fh,4);D.fill();
     D.strokeStyle='rgba(122,216,255,.72)';D.lineWidth=1.2;rrect(fx+.5,fy+.5,fw-1,fh-1,4);D.stroke();
     D.strokeStyle='rgba(255,217,138,.28)';D.lineWidth=1;rrect(fx+3,fy+3,fw-6,fh-6,3);D.stroke();
     D.fillStyle='rgba(255,217,138,.75)';D.fillRect(fx-1,fy+16,fw+2,1);}D.globalAlpha=.92;
-  for(let y=0;y<Z.rows;y++)for(let x=0;x<Z.cols;x++){const c=Z.grid[y][x];D.fillStyle=c==='W'?'#3a78b8':c==='B'?'#8a6238':c===':'?'#8a826e':c==='.'?(Z.id==='town'?'#3a6a32':'#5a5048'):c==='L'?'#ff6a1a':c==='P'?'#4ad86a':c==='R'?'#8a7a6a':'#1a1414';D.fillRect(mx+x*sc,my+y*sc,Math.ceil(sc),Math.ceil(sc));}
+  for(let y=0;y<Z.rows;y++)for(let x=0;x<Z.cols;x++){const c=Z.grid[y][x];D.fillStyle=c==='W'?'#3a78b8':c==='B'?'#8a6238':c===':'?'#8a826e':c==='.'?(Z.id==='town'||Z.id==='forest'||Z.theme==='dragon'?'#3a6a32':'#5a5048'):c==='L'?'#ff6a1a':c==='P'?'#4ad86a':c==='R'?'#8a7a6a':Z.theme==='dragon'?'#1f3324':'#1a1414';D.fillRect(mx+x*sc,my+y*sc,Math.ceil(sc),Math.ceil(sc));}
   const dot=(x,y,c,r=2.5)=>{D.fillStyle=c;D.beginPath();D.arc(mx+x/16*sc,my+y/16*sc,r,0,7);D.fill();};
   for(const o of Z.props){if(o.k==='chest'&&!o.opened)dot(o.x,o.y,'#ffd23a',1.8);if(['gate','stairs','portal','citygate'].includes(o.k))dot(o.x,o.y,'#5ae0ff',2.5);if(o.k==='bossdoor')dot(o.x,o.y,'#ff4a4a',2.8);if(o.k==='exitdoor'||o.k==='exitup')dot(o.x,o.y,'#5aff7a',2.5);if(o.k==='anvil')dot(o.x,o.y,'#ff9a3a',2);}if(G.bloodstain&&G.bloodstain.zone===Z.id&&G.t%30<20)dot(G.bloodstain.x,G.bloodstain.y,'#ff2a2a',3);
   for(const n of Z.npcs)dot(n.x,n.y,'#6aff8a');
@@ -1440,7 +1641,7 @@ function drawMinimap(){
   for(const gi of Z.ground||[])if(!gi.picked&&gi.owner==='P1')dot(gi.x,gi.y,RARC[gi.drop.rar],1.6);
   dot(P.x,P.y,'#fff',3);D.globalAlpha=1;
   {const rid=Z.regionAt(Math.floor(P.x/16)),zi=ZONE_INFO[rid]||(typeof SPIRE_ZONE_META!=='undefined'&&SPIRE_ZONE_META[rid])||(typeof OW!=='undefined'&&OW.zoneInfo(rid))||{n:Z.title||''};outlineText(zi.n,mx+Z.cols*sc/2,my-9,11,'#ffe3a0');}
-  {const vw=W/16*sc,vh=H/16*sc;D.strokeStyle='rgba(255,255,255,.55)';D.lineWidth=1;D.strokeRect(mx+CAM.rx/16*sc,my+CAM.ry/16*sc,vw,vh);}D.restore();
+  {const zz=exploreZoom(),vw=W0/zz/16*sc,vh=H0/zz/16*sc;D.strokeStyle='rgba(255,255,255,.55)';D.lineWidth=1;D.strokeRect(mx+CAM.rx/16*sc,my+CAM.ry/16*sc,vw,vh);}D.restore();
 }
 
 /* ----- NPC dialog ----- */

@@ -8,7 +8,7 @@ function mkF(o){const f=Object.assign({x:0,y:GY,vx:0,vy:0,dir:1,onGround:true,st
   flash:0,invuln:0,combo:0,hist:[],lastN:5,lastFT:-99,lastBT:-99,lastRT:-99,lastLT:-99,backPressT:-99,dashCharges:CONFIG.dashMax||2,dashCD:0,airUsed:0,jug:0,walkT:0,think:40,guard:0,guardCD:0,noGuardT:0,_blkRollSeq:-1,_projBlkCD:0,aiChain:0,trail:[],gc:false,
   penalty:0,failedThis:false,cmb:null,fullMove:null,buffT:0,armorBuff:0,kingAuraT:0,parryBuffT:0,rootT:0,hits:0,weakT:0,ph:0},o);f.guardLeft=maxGuard(f);f.guardBroken=0;f.S0=f.S;f.mods=[];Status.init(f);return f;}
 /* ฉากหลังการต่อสู้ — แยกตามคู่ต่อสู้ (สไตล์ Elden Ring: มืด มีหมอก เน้นแสงทองเล็กน้อย) */
-const SCENE_OF={rat:'cave',shade:'cave',kage:'cave',lavarat:'lava',lavaking:'lava',rat2:'cave',
+const SCENE_OF={drake:'dragon',thornwyrm:'dragon',wyvern:'dragon',dragonbandit:'dragon',dragonking:'dragon',rat:'cave',shade:'cave',kage:'cave',lavarat:'lava',lavaking:'lava',rat2:'cave',
   golem:'stone',rockling:'stone',mudslime:'stone',seraph:'cathedral',mslime:'tower',homunc:'tower',gargoyle:'tower',homunculus:'tower',
   frostslime:'frost',frostwolf:'frost',iceknight:'frost',icegolem:'frost',arena:'arena',
   ranke1:'arena',ranke2:'arena',egel:'arena',rankg2:'arena',rankg3:'arena',
@@ -20,6 +20,7 @@ const SCENE_PAL={
   cave:{sky:['#0c0a10','#1a1420'],wall:[58,50,64],wallD:[36,30,42],fog:'rgba(120,110,140,.18)',glow:'#e8c674',floor:[46,40,48]},
   stone:{sky:['#07090a','#161a18'],wall:[70,74,66],wallD:[40,44,38],fog:'rgba(170,190,160,.14)',glow:'#9fe6b8',floor:[52,56,50]},
   lava:{sky:['#120404','#2a0a06'],wall:[52,30,26],wallD:[30,16,14],fog:'rgba(255,120,60,.16)',glow:'#ff8a3a',floor:[40,22,18]},
+  dragon:{sky:['#10222a','#2c4e3e'],wall:[64,86,62],wallD:[38,54,38],fog:'rgba(180,225,180,.14)',glow:'#ffd87a',floor:[58,92,48]},
   cathedral:{sky:['#0a0c14','#1a2236'],wall:[84,92,110],wallD:[46,52,66],fog:'rgba(210,225,255,.16)',glow:'#fff2b8',floor:[70,76,92]},
   frost:{sky:['#060b12','#12202e'],wall:[120,150,170],wallD:[70,92,112],fog:'rgba(200,230,255,.2)',glow:'#bfe4ff',floor:[110,140,160]},
   tower:{sky:['#08060c','#1a1226'],wall:[66,54,84],wallD:[38,30,52],fog:'rgba(140,240,190,.14)',glow:'#7af0c0',floor:[50,42,62]},
@@ -371,9 +372,70 @@ function cmdCheck(p,btn){p.cmdBuf=p.cmdBuf||[];p.cmdBuf.push({c:cmdDir(p)+btn,l:
     if(ok){p.cmdBuf=[];return C;}}return null;}
 function pressAttack(p,btn){const C=cmdCheck(p,btn);
   if(C){const m=C.move;if(p.state==='attack'||p.state==='air')p.state='idle';if(beginMove(p,m)){p.fullCombo={n:C.n,t:90};BT.fullCombo={n:C.n,t:90,who:p};SFX.perfect();return true;}}
-  const m=pickMove(p,btn);if(m&&m.skill!==undefined)return useSkill(p,m.skill);return attemptMove(p,m);}
+  const m=pickMove(p,btn);if(m&&m.skill!==undefined)return useSkill(p,m.skill);
+  if(btn==='J'&&SSArt.tryStart(p,m))return true;
+  const ok=attemptMove(p,m);if(ok&&btn==='J')SSArt.note(p,m);return ok;}
+/* ---- คอมโบเฉพาะทางของดาบสั้น (หมวดดาบ): ตีปกติ 2 ครั้ง → กระโดดตี 2 ครั้ง = ท่าพิเศษ "ประกายพันคม"
+   งัดศัตรูลอยขึ้น → ตัวเองหายจากแมป ฟันเป็นเส้นคมรอบตัวศัตรู 7 ครั้ง → โผล่อีกฝั่งฟันปิด (สตามินา 20 · คูลดาวน์ 8 วิ) ---- */
+const SHORT_SWORD_WT=new Set(Object.keys(BASES).filter(k=>BASES[k].cat==='sword'&&BASES[k].wt).map(k=>BASES[k].wt));
+const SS_MOVE={
+  launch:M('ประกายพันคม: งัดฟ้า',0,0,0,8,60,0,14,{anim:'upper',launch:1,kind:'special',hy:60,hh:70}),
+  cut:M('ประกายพันคม',0,0,0,3,60,0,6,{anim:'slash',kind:'special',hy:60,hh:70}),
+  fin:M('ประกายพันคม: ผ่าจันทรา',0,0,0,11,60,0,18,{anim:'heavyslash',kind:'special',kd:1,hy:60,hh:70})};
+const SSArt={
+  CFG:{gap:60,span:200,range:170,sta:20,cd:480,cuts:7},
+  ok(p){return!!(p&&p.isP&&BT&&!BT.vs&&SHORT_SWORD_WT.has(p.wpn));},
+  note(p,m){if(!this.ok(p)||!m)return;const k=m.air?'A':(m.kind==='light'&&p.onGround?'G':null);if(!k){p.ssq=[];return;}
+    p.ssq=(p.ssq||[]).filter(x=>G.t-x.t<=this.CFG.span);p.ssq.push({k,t:G.t});if(p.ssq.length>4)p.ssq.shift();
+    if(k==='A'&&p.ssq.map(x=>x.k).join('').endsWith('GGA'))num(p,'⚔️ ดาบสั้น: ตีอากาศอีกครั้ง!','#ffe27a',13,-58);},
+  ready(p){const q=(p.ssq||[]).slice(-3);if(q.length<3||q.map(x=>x.k).join('')!=='GGA')return false;
+    if(G.t-q[0].t>this.CFG.span)return false;for(let i=1;i<q.length;i++)if(q[i].t-q[i-1].t>this.CFG.gap)return false;return G.t-q[2].t<=this.CFG.gap;},
+  tryStart(p,m){
+    if(!this.ok(p)||!m||!m.air||p.onGround||BT.ssArt||BT.result)return false;
+    if(!this.ready(p))return false;
+    const e=BT.e;if(!e||e.hp<=0||['ko','down'].includes(e.state))return false;
+    if(Math.abs(e.x-p.x)>this.CFG.range){setSmall(p,'ประกายพันคม: ศัตรูอยู่ไกลเกินไป',50);return false;}
+    if((p.ssCD||0)>G.t){setSmall(p,'ประกายพันคม คูลดาวน์ '+Math.ceil((p.ssCD-G.t)/60)+' วิ',50);return false;}
+    if(p.sta<this.CFG.sta){setSmall(p,'สตามินาไม่พอ (ประกายพันคม)',50);return false;}
+    p.sta-=this.CFG.sta;p.ssq=[];p.ssCD=G.t+this.CFG.cd;
+    this.start(p,e);return true;},
+  start(p,e){
+    const boss=!!(e.def&&e.def.boss),col=(WEAPONS[p.wpn]&&WEAPONS[p.wpn].fx)||'#ffffff';
+    const A={p,e,t:0,boss,col,lines:[],cutN:0,y0:e.y,hold:boss?e.y:Math.max(GY-120,e.y-110),side:p.x<e.x?1:-1};
+    BT.ssArt=A;p.ssLock=1;p.state='ssart';p.move=null;p.vx=0;p.vy=0;p.invuln=Math.max(p.invuln||0,140);
+    p.dir=e.x>p.x?1:-1;e.move=null;if(!['hurt','airhurt','stun','down','ko'].includes(e.state)){e.state='hurt';e.st=12;}e.guard=0;
+    num(p,'⚔️ ประกายพันคม!','#ffe27a',22,-70);BT.white=4;SFX.flash&&SFX.flash();
+    BT.moveFx=BT.moveFx||[];BT.moveFx.push({t:0,update(){this.t++;},done(){return!BT.ssArt&&!A.lines.length;},
+      draw(gg,layer){if(layer!=='front')return;gg.save();gg.lineCap='round';
+        for(const L of A.lines){const u=1-L.t/L.l;if(u<=0)continue;
+          gg.globalAlpha=u*.55;gg.strokeStyle=A.col;gg.lineWidth=7*u+1;gg.beginPath();gg.moveTo(L.x1,L.y1);gg.lineTo(L.x2,L.y2);gg.stroke();
+          gg.globalAlpha=u;gg.strokeStyle='#ffffff';gg.lineWidth=2;gg.beginPath();gg.moveTo(L.x1,L.y1);gg.lineTo(L.x2,L.y2);gg.stroke();}
+        gg.restore();}});},
+  cutLine(A,horiz){const e=A.e,cx=e.x,cy=e.y-e.h*.5,ang=horiz?(A.side>0?0:Math.PI)+rnd(-.12,.12):rnd(0,Math.PI),len=horiz?150:rnd(110,150);
+    A.lines.push({x1:cx-Math.cos(ang)*len/2,y1:cy-Math.sin(ang)*len/2,x2:cx+Math.cos(ang)*len/2,y2:cy+Math.sin(ang)*len/2,t:0,l:horiz?22:14});
+    sparks(cx,cy,A.col,6);},
+  hit(A,m){const p=A.p,e=A.e;if(e.hp<=0)return;p.moveSeq=(p.moveSeq||0)+1;e.jug=0;e.invuln=0;
+    const pv=e.state;applyHit(p,e,m,1,e.x,e.y-e.h*.5);
+    if(!A.boss&&e.hp>0&&m!==SS_MOVE.fin){e.state='airhurt';e.onGround=false;}else if(A.boss&&e.hp>0&&pv!=='ko'){e.state='hurt';e.st=Math.max(e.st||0,12);}},
+  step(){const A=BT.ssArt;if(!A)return;const p=A.p,e=A.e;A.t++;
+    for(const L of A.lines)L.t++;A.lines=A.lines.filter(L=>L.t<L.l);
+    const C=this.CFG,tCut0=24,tFin=tCut0+C.cuts*8+8;
+    if(BT.result||e.hp<=0||p.hp<=0){this.end(A);return;}
+    p.vx=0;p.vy=0;p.move=null;if(e.state==='attack'||e.state==='dash'||e.state==='backdash'){e.move=null;e.state=A.boss||e.onGround?'hurt':'airhurt';e.st=8;}
+    if(!A.boss&&A.t>=4&&A.t<tFin){const k=Math.min(1,(A.t-4)/14);e.y=A.y0+(A.hold-A.y0)*k;e.vy=-GRAV;e.vx=0;e.onGround=false;}
+    if(A.t===4){this.hit(A,SS_MOVE.launch);A.lines.push({x1:e.x-A.side*20,y1:e.y+10,x2:e.x+A.side*10,y2:e.y-e.h-30,t:0,l:16});}
+    if(A.t===16){p.ssHide=1;for(let i=0;i<16;i++)BT.parts.push({x:p.x+rnd(-12,12),y:p.y-rnd(6,80),vx:rnd(-2,2),vy:rnd(-2,.5),l:20,c:i%2?'#ffffff':A.col,s:2});SFX.dodge&&SFX.dodge();}
+    if(A.t>=tCut0&&A.cutN<C.cuts&&(A.t-tCut0)%8===0){this.cutLine(A,false);this.hit(A,SS_MOVE.cut);A.cutN++;BT.shake=Math.max(BT.shake||0,2);}
+    if(A.t===tFin){const nx=clamp(e.x+A.side*58,24,BW-24);p.x=nx;p.y=GY;p.onGround=true;p.ssHide=0;p.dir=e.x>p.x?1:-1;
+      for(let i=0;i<14;i++)BT.parts.push({x:p.x+rnd(-12,12),y:p.y-rnd(6,80),vx:rnd(-2,2),vy:rnd(-2,.5),l:18,c:A.col,s:2});
+      this.cutLine(A,true);if(!A.boss){e.vy=2;}this.hit(A,SS_MOVE.fin);BT.shake=6;BT.white=4;num(p,'ผ่าจันทรา!','#ffffff',20,-60);}
+    if(A.t>=tFin+12)this.end(A);},
+  end(A){const p=A.p;p.ssHide=0;p.ssLock=0;if(p.state==='ssart')p.state=p.onGround?'idle':'air';p.invuln=Math.max(p.invuln||0,20);
+    if(p.y<GY&&p.onGround)p.y=GY;BT.ssArt=null;}
+};
 function control(p,e){
   if(p.state==='ko'||BT.result)return;
+  if(p.ssLock)return;   /* กำลังออกท่าประกายพันคม */
   if(p.drinkT>0){p.drinkT--;p.hp=Math.min(p.S.maxHP,p.hp+(p.drinkH)*Status.healMul(p));p.state='idle';p.vx*=.8;if(p.drinkT%6===0)BT.parts.push({x:p.x+rnd(-6,6),y:p.y-rnd(10,40),vx:0,vy:-.6,l:26,c:'#7aff9a',s:2});return;}   // กำลังดื่มยา: ขยับไม่ได้ชั่วครู่
   const frz=(p.st8&&p.st8.freeze?.55:1)*Status.slowMul(p),actTick=!p.st8||!p.st8.freeze||p.__frzAct;
   if(p.cd&&actTick)for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;
@@ -637,10 +699,17 @@ function applyHit(a,t,m,mul=1,px,py,isProj,projSeq){
   if(m.instantShatter&&t.hp>0&&(!m.multi||a.hitN===0)){if(!t.st8.freeze)Status.apply(t,'freeze',1,a,8);iceShatterFx(t);t.st8.freeze=null;if(!shattered)num(t,'💥❄️ น้ำแข็งแตก!','#e8fbff',24,-56);}
   const ps=a.S.passives;
   if(ps.has('bleeder')&&rand()<.15)tryStatus(t,'bleed',1,a);if(ps.has('venom')&&rand()<.15)tryStatus(t,'poison',1,a);
-  if(ps.has('shadowBleed')&&rand()<.25)tryStatus(t,'bleed',1,a);if(ps.has('magmaBurn')&&rand()<.3)tryStatus(t,'burn',1,a);if(ps.has('phoenix'))tryStatus(t,'burn',1,a);
+  if(ps.has('shadowBleed')&&rand()<.20)tryStatus(t,'bleed',1,a);if(ps.has('magmaBurn')&&rand()<.3)tryStatus(t,'burn',1,a);if(ps.has('phoenix'))tryStatus(t,'burn',1,a);
   if(ps.has('wrath')&&a.hits%5===0){tryStatus(t,'shock',1,a);b.bolts.push({x:t.x,t:12});}
   if(ps.has('vampire')&&r.crit){const heal=Math.round(a.maxHp*.02);a.hp=Math.min(a.maxHp,a.hp+(heal)*Status.healMul(a));num(a,'+'+heal,'#6aff8a',14);}
   if(t.S.passives.has('thorns')&&!isProj){const ref=Math.max(1,Math.round(r.dmg*.1));dealDamage(t,a,ref);num(a,'หนาม '+ref,'#c8a0ff',13);}
+  /* โบนัสเซ็ต (ระดับหายาก): มังกรหนาม = สะท้อนระยะประชิด · อัศวินน้ำแข็ง = แช่แข็งผู้โจมตี · นักปราชญ์ = โดนตี 5 ครั้งฟื้น MP · เกล็ดมังกรแดง = เผาไหม้ */
+  if((t.S.reflect||0)>0&&!isProj&&a.hp>0&&!BT.result){const rf=Math.max(1,Math.round(r.dmg*t.S.reflect));dealDamage(t,a,rf,'#c8d070');num(a,'🦔 สะท้อน '+rf,'#c8d070',13,-30);}
+  if(t.S.passives.has('frostGuard')&&!isProj&&a.hp>0&&rand()<.15)tryStatus(a,'freeze',1,t,3);
+  if(t.S.passives.has('sageMana')&&(t.isP||t.isP2)){t.sageHits=(t.sageHits||0)+1;if(t.sageHits%5===0&&t.mp<t.S.maxMP){const gm=Math.round(t.S.maxMP*.10);t.mp=Math.min(t.S.maxMP,t.mp+gm);fxMana(t);num(t,'📘 +'+gm+' MP','#7ab8ff',14,-44);}}
+  if(ps.has('dragonBurn')&&t.hp>0&&rand()<.2)tryStatus(t,'burn',1,a);
+  if(t.hp>0){if(ps.has('stormShock')&&rand()<.2)tryStatus(t,'shock',1,a);if(ps.has('toxicTouch')&&rand()<.2)tryStatus(t,'poison',1,a);
+    if(ps.has('holyBlind')&&rand()<.1)tryStatus(t,'blind',1,a,2);if(ps.has('arcaneBurn')&&rand()<.2)tryStatus(t,'arcaneburn',1,a);}   /* เซ็ตเกราะธาตุ 4 ชิ้น */
   if(a.isP&&!BT.vs&&Prog.addMastery(a.wpn,1))num(a,'ความชำนาญอาวุธ Lv.'+Prog.masteryLv(a.wpn)+'!','#5affb0',15,-80);
   b.shake=Math.min(6,1.5+m.dmg*.18);
   SFX.hit(m.dmg>=12);
@@ -896,7 +965,8 @@ function updBattleCore(){
   if(!b.result&&--b.time<=0){b.result=b.vs?(p.hp/p.maxHp===e.hp/e.maxHp?'draw':p.hp/p.maxHp>e.hp/e.maxHp?'win':'lose'):(p.hp/p.maxHp>=e.hp/e.maxHp?'win':'lose');b.msg={t:'TIME OVER',c:'#fff'};b.end=110;SFX.ko();}
   control(p,e);
   if(b.coach){const c=b.coach;c.t++;if(p.combo>=3||b.fullCombo)c.jCombo=1;if(p.state==='attack'&&p.move){const an=p.move.anim;if(an==='heavyslash')c.heavy=1;if(an==='kick'||an==='sweep')c.kick=1;if(p.move.skillId)c.skill=1;}if(p.state==='dodge'||p.state==='dash'||p.state==='backdash')c.dodge=1;if(['block','cblock','holdparry','parried','gstun'].includes(p.state))c.guard=1;}
-  if(!b.result){if(b.vs)control(e,p);else if(e.rig)aiRig(e,p);else aiMon(e,p);}
+  if(!b.result&&!b.ssArt){if(b.vs)control(e,p);else if(e.rig)aiRig(e,p);else aiMon(e,p);}
+  if(b.ssArt)SSArt.step();
   stepF(p,e);stepF(e,p);
   for(const pr of b.proj){pr.x+=pr.vx;pr.life--;if(pr.cd>0)pr.cd--;const t=pr.o===p?e:p;
     if(G.t%2===0)b.parts.push({x:pr.x-Math.sign(pr.vx)*pr.r,y:pr.y+rnd(-pr.r,pr.r)*.6,vx:-pr.vx*.2,vy:rnd(-.3,.3),l:14,c:pr.col,s:2});
@@ -1084,7 +1154,8 @@ const hasChaosBlade=f=>!!(f&&(f.wpn==='bbqysword'||(f.look&&f.look.wshape==='cha
 const hasLightless=f=>!!(f&&f.look&&f.look.wfxKind==='lightless');
 const hasAetherStar=f=>!!(f&&((f.look&&f.look.aetherStar)||f.wpn==='aethersword'));
 function drawFighterB(f){
-  const hgt=Math.max(0,GY-f.y),shR=(f.kind==='golem'||f.kind==='lavaking'||f.kind==='seraph'?48:f.kind==='icegolem'?40:f.h<60?26:20)*Math.max(.38,1-hgt/150);
+  if(f.ssHide)return;   /* ดาบสั้น: หายตัวจากแมประหว่างท่าพิเศษ */
+  const hgt=Math.max(0,GY-f.y),shR=(f.kind==='golem'||f.kind==='lavaking'||f.kind==='seraph'||f.kind==='dragonking'?52:f.kind==='icegolem'?40:f.h<60?26:20)*Math.max(.38,1-hgt/150);
   g.save();g.fillStyle='rgba(4,2,10,.28)';g.beginPath();g.ellipse(f.x,GY+1,shR*1.25,shR*.28,0,0,7);g.fill();
   g.fillStyle='rgba(4,2,10,.52)';g.beginPath();g.ellipse(f.x,GY,shR*.85,shR*.19,0,0,7);g.fill();g.restore();
   if(hasAetherStar(f)){
@@ -1370,7 +1441,7 @@ function drawBurst(u){const k=u.t/14,r=(u.big?22:13)*(.35+k);g.save();
   g.restore();}
 function drawBattle(){
   const b=BT;g.save();if(b.shake)g.translate(rnd(-b.shake,b.shake)|0,rnd(-b.shake,b.shake)|0);
-  g.drawImage(bbC,0,0,W,H);drawTorch(g,62,86,2);drawTorch(g,418,86,2);if(FX.on)HD.atmos(g,buildBattleBg.last||'cave',G.t*.5,0);
+  g.drawImage(bbC,0,0,W,H);if(buildBattleBg.last!=='dragon'){drawTorch(g,62,86,2);drawTorch(g,418,86,2);}if(FX.on)HD.atmos(g,buildBattleBg.last||'cave',G.t*.5,0);
   if(b.impFrame>0){g.save();g.globalCompositeOperation='screen';g.fillStyle='rgba(255,245,210,.10)';g.fillRect(0,0,W,H);g.restore();}
   if(b.flash){g.fillStyle='rgba(6,5,16,.62)';g.fillRect(0,0,W,H);for(let i=0;i<10;i++){g.fillStyle='rgba(255,240,205,.08)';g.fillRect(0,(hash(i,G.t>>1)*H)|0,W,1);}}
   g.save();g.translate(0,GY*(1-BZ));g.scale(BZ,BZ);   // กล้องซูมออก: ตัวละคร/เอฟเฟกต์ทั้งหมดอยู่ในพิกัดโลก 0..BW
